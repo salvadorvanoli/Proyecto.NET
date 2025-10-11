@@ -1,0 +1,177 @@
+# ================================================
+# .gitignore - CredencialDigital (.NET 8 Solution)
+# ================================================
+
+# --- Build output directories ---
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+[Tt]est[Rr]esults/
+[Rr]elease/
+[Dd]ebug/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+
+# --- Visual Studio & VS Code ---
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# --- Build artifacts ---
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.build.csdef
+*.appxrecipe
+*.appxupload
+*.pubxml
+*.Publish.xml
+*.publishproj
+*.tmp
+*.bak
+*.cache
+*.log
+*.pidb
+*.svclog
+*.msscci
+*.pdb
+*.opendb
+*.dbmdl
+
+# --- Entity Framework & Migrations ---
+Migrations/
+*.sqlite
+*.db
+*.mdf
+*.ldf
+*.ndf
+
+# --- Configuration secrets ---
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.local.json
+secrets.json
+*.key
+*.pfx
+*.pem
+*.cer
+*.crt
+
+# --- Packages ---
+*.nupkg
+*.snupkg
+*.nuspec
+packages/
+!packages/build/
+!packages/repositories.config
+
+# --- Rider / JetBrains ---
+.idea/
+*.sln.iml
+
+# --- Resharper / Code analysis ---
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# --- Coverage / Test / Benchmark ---
+coverage/
+*.coverage
+*.coveragexml
+BenchmarkDotNet.Artifacts/
+TestResults/
+*.trx
+*.coverageinfo
+*.cov
+
+# --- ASP.NET / Web ---
+node_modules/
+bower_components/
+wwwroot/dist/
+wwwroot/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+pnpm-lock.yaml
+jspm_packages/
+.vscode-test/
+
+# --- Blazor / WebAssembly ---
+obj/Debug/net*/blazor.boot.json
+obj/Release/net*/blazor.boot.json
+wwwroot/_framework/
+wwwroot/.vs/
+wwwroot/.idea/
+*.br
+*.gz
+
+# --- MAUI / Mobile ---
+**/Platforms/Android/obj/
+**/Platforms/Android/bin/
+**/Platforms/iOS/obj/
+**/Platforms/iOS/bin/
+**/Platforms/MacCatalyst/obj/
+**/Platforms/MacCatalyst/bin/
+**/Platforms/Tizen/obj/
+**/Platforms/Tizen/bin/
+*.apk
+*.aab
+*.ipa
+*.app
+*.xcuserdata/
+*.xcuserstate
+*.xcworkspace
+*.DS_Store
+
+# --- Temporary files ---
+~$*
+*.tmp
+*.temp
+*.bak
+*.orig
+*.swp
+*.swo
+*.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- Logs ---
+*.log
+*.trace
+*.tlog
+
+# --- Publish outputs ---
+publish/
+_PublishTemp/
+*.publishsettings
+**/Properties/PublishProfiles/
+
+# --- Environment / Tooling ---
+.env
+.env.*
+*.local
+*.secret
+*.cache/
+*.config/
+*.lock.json
+*.localhost/
+
+# --- Build system ---
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# --- Others ---
+.dump/
+.vscode/
+.idea/
+*.iml
