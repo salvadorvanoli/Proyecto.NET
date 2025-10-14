@@ -1,0 +1,95 @@
+<Project>
+  
+  <!-- ============================================ -->
+  <!-- Propiedades Comunes - Proyecto.NET (.NET 8) -->
+  <!-- ============================================ -->
+  
+  <PropertyGroup>
+    <!-- Target Framework y Lenguaje (skip for MAUI projects) -->
+    <TargetFramework Condition="'$(MSBuildProjectName)' != 'Mobile'">net8.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    
+    <!-- Metadatos del Ensamblado -->
+    <Company>CredeX</Company>
+    <Product>Proyecto.NET</Product>
+    <Copyright>Copyright © 2025 CredeX. Todos los derechos reservados.</Copyright>
+    <Authors>Nadia Gorría - Joaquín Jozami - Salvador Vanoli - Valentín Veintemilla</Authors>
+    <Description>Sistema integral de credenciales digitales desarrollado en .NET 8</Description>
+    
+    <!-- Versionado -->
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <FileVersion>1.0.0</FileVersion>
+    
+    <!-- Configuración de Build -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <WarningsNotAsErrors />
+    
+    <!-- Análisis de Código .NET 8 -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    
+    <!-- Documentación XML -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn> <!-- Suppress missing XML comment warnings -->
+    
+    <!-- Configuraciones de Rendimiento .NET 8 -->
+    <PublishReadyToRun Condition="'$(MSBuildProjectName)' != 'Mobile'">true</PublishReadyToRun>
+    <PublishSingleFile>false</PublishSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+
+  <!-- Configuración específica para proyectos Web -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Web.Api' OR '$(MSBuildProjectName)' == 'Web.BackOffice' OR '$(MSBuildProjectName)' == 'Web.FrontOffice'">
+    <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+  </PropertyGroup>
+
+  <!-- Configuración específica para proyectos de Test -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- Paquetes Comunes para Todos los Proyectos -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+  </ItemGroup>
+
+  <!-- Paquetes para Proyectos de Test -->
+  <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit" Version="2.6.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="FluentAssertions" Version="6.12.0" />
+    <PackageReference Include="Moq" Version="4.20.69" />
+    <PackageReference Include="coverlet.collector" Version="6.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- Configuraciones de Release -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+
+  <!-- Configuraciones de Debug -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <Optimize>false</Optimize>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+
+</Project>
