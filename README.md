@@ -16,10 +16,10 @@ Arquitectura basada en **Clean Architecture + .NET 8**, con separación clara de
 | **Application** | Casos de uso, validaciones, interfaces de servicios. | Domain |
 | **Infrastructure** | Persistencia (EF Core), Identity, logs, servicios externos. | Application, Domain |
 | **Shared** | DTOs, contratos y enums comunes entre cliente y servidor. | (Opcional) Domain |
-| **Web/FrontOffice** | Frontend Blazor Web App (.NET 8) para usuarios finales. | Shared |
-| **Web/BackOffice** | Razor Pages (admin, gestión de usuarios, beneficios, reportes). | Application, Infrastructure, Domain, Shared |
+| **Web.FrontOffice** | Frontend Blazor Web App (.NET 8) para usuarios finales. | Shared |
+| **Web.BackOffice** | Razor Pages (admin, gestión de usuarios, beneficios, reportes). | Application, Infrastructure, Domain, Shared |
 | **Mobile** | App .NET MAUI para credenciales digitales y validación offline. | Shared |
-| **Api** | API REST para FrontOffice y Mobile (autenticación JWT, endpoints). | Application, Infrastructure, Domain, Shared |
+| **Web.Api** | API REST para FrontOffice y Mobile (autenticación JWT, endpoints). | Application, Infrastructure, Domain, Shared |
 
 ---
 
@@ -36,10 +36,10 @@ Arquitectura basada en **Clean Architecture + .NET 8**, con separación clara de
 ---
 
 ## 🧭 Flujo general
-1. **Api** expone endpoints REST para autenticación, usuarios, credenciales y beneficios.
-2. **Web/FrontOffice** (Blazor) consume estos endpoints y brinda la interfaz al usuario.
+1. **Web.Api** expone endpoints REST para autenticación, usuarios, credenciales y beneficios.
+2. **Web.FrontOffice** (Blazor) consume estos endpoints y brinda la interfaz al usuario.
 3. **Mobile** (MAUI) consume la misma API y sincroniza datos localmente en modo offline.
-4. **Web/BackOffice** permite a los administradores gestionar entidades del sistema.
+4. **Web.BackOffice** permite a los administradores gestionar entidades del sistema.
 5. **Infrastructure** maneja la persistencia y configuración técnica.
 6. **Application** contiene la lógica de aplicación que orquesta las operaciones.
 7. **Domain** define las entidades y reglas del negocio.

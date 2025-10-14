@@ -1,4 +1,4 @@
-using FrontOffice.Components;
+using Web.FrontOffice.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
