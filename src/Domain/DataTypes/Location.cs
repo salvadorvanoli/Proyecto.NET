@@ -16,19 +16,19 @@ public readonly record struct Location
     {
         if (string.IsNullOrWhiteSpace(street))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "Street"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Street"),
                 nameof(street));
         if (string.IsNullOrWhiteSpace(number))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "Number"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Number"),
                 nameof(number));
         if (string.IsNullOrWhiteSpace(city))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "City"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "City"),
                 nameof(city));
         if (string.IsNullOrWhiteSpace(country))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "Country"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Country"),
                 nameof(country));
 
         var trimmedStreet = street.Trim();

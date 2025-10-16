@@ -42,7 +42,7 @@ public class Tenant
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "Tenant name"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Tenant name"),
                 nameof(name));
 
         var trimmedName = name.Trim();
@@ -67,7 +67,7 @@ public class Tenant
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "Tenant name"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Tenant name"),
                 nameof(name));
 
         var trimmedName = name.Trim();

@@ -24,7 +24,7 @@ public class Role : BaseEntity
     public Role(int tenantId, string name) : base(tenantId)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, nameof(name)), nameof(name));
+            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, nameof(name)), nameof(name));
 
         Name = name.Trim();
     }
@@ -35,7 +35,7 @@ public class Role : BaseEntity
     public void UpdateName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, nameof(name)), nameof(name));
+            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, nameof(name)), nameof(name));
 
         Name = name.Trim();
         UpdateTimestamp();

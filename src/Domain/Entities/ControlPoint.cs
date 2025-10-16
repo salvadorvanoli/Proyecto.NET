@@ -31,7 +31,7 @@ public class ControlPoint : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "Control point name"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Control point name"),
                 nameof(name));
 
         if (spaceId <= DomainConstants.NumericValidation.TransientEntityId)
@@ -50,7 +50,7 @@ public class ControlPoint : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "Control point name"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Control point name"),
                 nameof(name));
 
         Name = name.Trim();

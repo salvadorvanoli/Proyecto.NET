@@ -78,7 +78,6 @@ public static class DomainConstants
     {
         // Null/Empty validation
         public const string CannotBeNullOrEmpty = "{0} cannot be null or empty.";
-        public const string CannotBeNullOrWhiteSpace = "{0} cannot be null or whitespace.";
 
         // Length validation
         public const string MinLengthRequired = "{0} must be at least {1} characters long.";

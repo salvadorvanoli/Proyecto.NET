@@ -36,7 +36,7 @@ public class Space : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "Space name"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Space name"),
                 nameof(name));
 
         var trimmedName = name.Trim();
@@ -67,7 +67,7 @@ public class Space : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "Space name"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Space name"),
                 nameof(name));
 
         var trimmedName = name.Trim();

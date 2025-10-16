@@ -30,12 +30,12 @@ public class BenefitType : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "Benefit type name"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Benefit type name"),
                 nameof(name));
 
         if (string.IsNullOrWhiteSpace(description))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "Description"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Description"),
                 nameof(description));
 
         Name = name.Trim();
@@ -49,12 +49,12 @@ public class BenefitType : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "Benefit type name"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Benefit type name"),
                 nameof(name));
 
         if (string.IsNullOrWhiteSpace(description))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "Description"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Description"),
                 nameof(description));
 
         Name = name.Trim();

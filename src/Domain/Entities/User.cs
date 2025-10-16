@@ -45,12 +45,12 @@ public class User : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(email))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "Email"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Email"),
                 nameof(email));
 
         if (string.IsNullOrWhiteSpace(passwordHash))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "Password hash"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Password hash"),
                 nameof(passwordHash));
 
         if (!IsValidEmail(email))
@@ -68,7 +68,7 @@ public class User : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(email))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "Email"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Email"),
                 nameof(email));
 
         if (!IsValidEmail(email))
@@ -85,7 +85,7 @@ public class User : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(passwordHash))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "Password hash"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Password hash"),
                 nameof(passwordHash));
 
         PasswordHash = passwordHash;

@@ -15,12 +15,12 @@ public readonly record struct PersonalData
     {
         if (string.IsNullOrWhiteSpace(firstName))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "First name"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "First name"),
                 nameof(firstName));
 
         if (string.IsNullOrWhiteSpace(lastName))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrWhiteSpace, "Last name"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Last name"),
                 nameof(lastName));
 
         if (!IsValidName(firstName))
