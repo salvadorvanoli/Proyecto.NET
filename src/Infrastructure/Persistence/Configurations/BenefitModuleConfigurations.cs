@@ -36,6 +36,9 @@ public class BenefitConfiguration : IEntityTypeConfiguration<Benefit>
         builder.Property(b => b.TenantId).IsRequired();
         builder.Property(b => b.BenefitTypeId).IsRequired();
 
+        // Ignore the complex property - we'll map it as separate columns
+        builder.Ignore(b => b.ValidityPeriod);
+
         // Properties for ValidityPeriod (nullable)
         builder.Property<DateOnly?>("ValidityStartDate")
             .HasColumnName("ValidityStartDate");
