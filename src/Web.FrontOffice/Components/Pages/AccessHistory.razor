@@ -1,0 +1,138 @@
+@page "/historial-accesos"
+@using Web.FrontOffice.Components.Shared
+@rendermode InteractiveServer
+
+<Microsoft.AspNetCore.Components.Web.PageTitle>Historial de Accesos</Microsoft.AspNetCore.Components.Web.PageTitle>
+
+<div class="access-history-container">
+    <PageHeader Title="Historial de Accesos" Subtitle="Registro completo de tus accesos al sistema" />
+
+    <Card>
+        <div class="access-stats">
+            <div class="stat-item">
+                <span class="stat-value">@eventosAcceso.Count</span>
+                <span class="stat-label">Total de Accesos</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">@eventosAcceso.Count(e => e.Resultado == ResultadoAcceso.PERMITIDO)</span>
+                <span class="stat-label">Permitidos</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">@eventosAcceso.Count(e => e.Resultado == ResultadoAcceso.DENEGADO)</span>
+                <span class="stat-label">Denegados</span>
+            </div>
+        </div>
+    </Card>
+
+    <Card Title="Registro de Eventos">
+        <div class="access-list">
+            @foreach (var evento in eventosAcceso.OrderByDescending(e => e.Fecha))
+            {
+                <div class="access-item @(evento.Resultado == ResultadoAcceso.PERMITIDO ? "access-allowed" : "access-denied")">
+                    <div class="access-info">
+                        <div class="access-icon-wrapper">
+                            <span class="access-icon">@(evento.Resultado == ResultadoAcceso.PERMITIDO ? "✓" : "✗")</span>
+                        </div>
+                        <div class="access-content">
+                            <div class="access-details">
+                                <span class="access-location">@evento.PuntoControl</span>
+                                <div class="access-datetime">
+                                    <span class="access-date">@evento.Fecha.ToString("dd/MM/yyyy")</span>
+                                    <span class="access-separator">•</span>
+                                    <span class="access-time">@evento.Fecha.ToString("HH:mm:ss")</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <Badge Text="@evento.Resultado.ToString()"
+                           Type="@(evento.Resultado == ResultadoAcceso.PERMITIDO ? "success" : "danger")" />
+                </div>
+            }
+        </div>
+    </Card>
+
+    <div class="back-action">
+        <a href="/perfil" class="action-link">
+            <PrimaryButton Text="Volver a Mi Perfil" />
+        </a>
+    </div>
+</div>
+
+@code {
+    private List<EventoAcceso> eventosAcceso = new List<EventoAcceso>
+    {
+        new EventoAcceso
+        {
+            Fecha = new DateTime(2025, 10, 18, 14, 30, 0),
+            Resultado = ResultadoAcceso.PERMITIDO,
+            PuntoControl = "Entrada Principal"
+        },
+        new EventoAcceso
+        {
+            Fecha = new DateTime(2025, 10, 18, 9, 15, 0),
+            Resultado = ResultadoAcceso.PERMITIDO,
+            PuntoControl = "Entrada Principal"
+        },
+        new EventoAcceso
+        {
+            Fecha = new DateTime(2025, 10, 17, 18, 45, 0),
+            Resultado = ResultadoAcceso.PERMITIDO,
+            PuntoControl = "Salida Principal"
+        },
+        new EventoAcceso
+        {
+            Fecha = new DateTime(2025, 10, 17, 9, 0, 0),
+            Resultado = ResultadoAcceso.PERMITIDO,
+            PuntoControl = "Entrada Principal"
+        },
+        new EventoAcceso
+        {
+            Fecha = new DateTime(2025, 10, 16, 19, 30, 0),
+            Resultado = ResultadoAcceso.PERMITIDO,
+            PuntoControl = "Salida Estacionamiento"
+        },
+        new EventoAcceso
+        {
+            Fecha = new DateTime(2025, 10, 16, 15, 20, 0),
+            Resultado = ResultadoAcceso.DENEGADO,
+            PuntoControl = "Área Restringida"
+        },
+        new EventoAcceso
+        {
+            Fecha = new DateTime(2025, 10, 16, 9, 10, 0),
+            Resultado = ResultadoAcceso.PERMITIDO,
+            PuntoControl = "Entrada Estacionamiento"
+        },
+        new EventoAcceso
+        {
+            Fecha = new DateTime(2025, 10, 15, 18, 50, 0),
+            Resultado = ResultadoAcceso.PERMITIDO,
+            PuntoControl = "Salida Principal"
+        },
+        new EventoAcceso
+        {
+            Fecha = new DateTime(2025, 10, 15, 9, 5, 0),
+            Resultado = ResultadoAcceso.PERMITIDO,
+            PuntoControl = "Entrada Principal"
+        },
+        new EventoAcceso
+        {
+            Fecha = new DateTime(2025, 10, 14, 20, 0, 0),
+            Resultado = ResultadoAcceso.DENEGADO,
+            PuntoControl = "Laboratorio B"
+        }
+    };
+
+    public class EventoAcceso
+    {
+        public DateTime Fecha { get; set; }
+        public ResultadoAcceso Resultado { get; set; }
+        public string PuntoControl { get; set; } = string.Empty;
+    }
+
+    public enum ResultadoAcceso
+    {
+        PERMITIDO,
+        DENEGADO
+    }
+}
