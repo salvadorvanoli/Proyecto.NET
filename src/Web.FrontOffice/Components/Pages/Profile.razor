@@ -1,0 +1,245 @@
+@page "/perfil"
+@using Web.FrontOffice.Components.Shared
+@rendermode InteractiveServer
+
+<Microsoft.AspNetCore.Components.Web.PageTitle>Mi Perfil</Microsoft.AspNetCore.Components.Web.PageTitle>
+
+<div class="profile-container">
+    <div class="profile-header">
+        <PageHeader Title="Mi Perfil" Subtitle="Información personal y estado de cuenta" />
+        @if (!modoEdicion)
+        {
+            <button class="secondary-button edit-button" @onclick="ActivarEdicion" type="button">
+                <span>Editar Perfil</span>
+            </button>
+        }
+    </div>
+
+    <div class="profile-grid">
+        <!-- Datos Personales -->
+        <Card Title="Datos Personales">
+            @if (modoEdicion)
+            {
+                <div class="edit-form">
+                    <div class="form-group">
+                        <label class="form-label">Nombre</label>
+                        <input type="text" class="form-input" @bind="usuario.DatosPersonales.Nombre" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Apellido</label>
+                        <input type="text" class="form-input" @bind="usuario.DatosPersonales.Apellido" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Fecha de Nacimiento</label>
+                        <input type="date"
+                               class="form-input"
+                               @bind="usuario.DatosPersonales.FechaNacimiento"
+                               @bind:format="yyyy-MM-dd" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" @bind="usuario.Email" />
+                    </div>
+                    <div class="form-actions">
+                        <button class="primary-button" @onclick="GuardarCambios" type="button">
+                            <span>Guardar Cambios</span>
+                        </button>
+                        <button class="secondary-button" @onclick="CancelarEdicion" type="button">
+                            <span>Cancelar</span>
+                        </button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <InfoField Label="Nombre Completo" Value="@($"{usuario.DatosPersonales.Nombre} {usuario.DatosPersonales.Apellido}")" />
+                <InfoField Label="Fecha de Nacimiento" Value="@usuario.DatosPersonales.FechaNacimiento.ToString("dd/MM/yyyy")" />
+                <InfoField Label="Email" Value="@usuario.Email" />
+            }
+        </Card>
+
+        <!-- Estado de Credencial -->
+        <Card Title="Estado de Credencial">
+            <div class="credential-status">
+                <InfoField Label="Fecha de Emisión" Value="@usuario.Credencial.FechaEmision.ToString("dd/MM/yyyy")" />
+                <div class="info-field badge-field">
+                    <span class="info-label">Estado:</span>
+                    <Badge Text="@(usuario.Credencial.Activa ? "Activa" : "Inactiva")"
+                           Type="@(usuario.Credencial.Activa ? "success" : "danger")" />
+                </div>
+            </div>
+        </Card>
+
+        <!-- Roles -->
+        <Card Title="Roles Asignados">
+            <div class="roles-list">
+                @foreach (var rol in usuario.Roles)
+                {
+                    <Badge Text="@rol.Nombre" Type="info" />
+                }
+            </div>
+        </Card>
+
+        <!-- Último Acceso -->
+        <Card Title="Último Acceso Registrado">
+            @if (ultimoAcceso != null)
+            {
+                <InfoField Label="Fecha y Hora" Value="@ultimoAcceso.Fecha.ToString("dd/MM/yyyy HH:mm:ss")" />
+                <div class="info-field badge-field">
+                    <span class="info-label">Resultado:</span>
+                    <Badge Text="@ultimoAcceso.Resultado.ToString()"
+                           Type="@(ultimoAcceso.Resultado == ResultadoAcceso.PERMITIDO ? "success" : "danger")" />
+                </div>
+            }
+            else
+            {
+                <p class="no-data">No hay registros de acceso</p>
+            }
+        </Card>
+    </div>
+
+    <!-- Acciones Rápidas -->
+    <div class="quick-actions">
+        <SectionTitle Title="Acciones Rápidas" />
+        <div class="actions-grid">
+            <a href="/mis-beneficios" class="action-link">
+                <PrimaryButton Text="Mis Beneficios" />
+            </a>
+            <a href="/historial-accesos" class="action-link">
+                <PrimaryButton Text="Historial de Accesos" />
+            </a>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool modoEdicion = false;
+    private Usuario usuarioRespaldo = new Usuario();
+
+    // Datos hardcodeados del usuario
+    private Usuario usuario = new Usuario
+    {
+        Email = "juan.perez@example.com",
+        DatosPersonales = new DatosPersonales
+        {
+            Nombre = "Juan",
+            Apellido = "Pérez",
+            FechaNacimiento = new DateTime(1990, 5, 15)
+        },
+        Credencial = new Credencial
+        {
+            FechaEmision = new DateTime(2024, 1, 10),
+            Activa = true
+        },
+        Roles = new List<Rol>
+        {
+            new Rol { Nombre = "Profesor" },
+            new Rol { Nombre = "Director" }
+        },
+        EventosAcceso = new List<EventoAcceso>
+        {
+            new EventoAcceso
+            {
+                Fecha = new DateTime(2025, 10, 18, 14, 30, 0),
+                Resultado = ResultadoAcceso.PERMITIDO
+            },
+            new EventoAcceso
+            {
+                Fecha = new DateTime(2025, 10, 17, 9, 15, 0),
+                Resultado = ResultadoAcceso.PERMITIDO
+            },
+            new EventoAcceso
+            {
+                Fecha = new DateTime(2025, 10, 16, 18, 45, 0),
+                Resultado = ResultadoAcceso.DENEGADO
+            }
+        }
+    };
+
+    private EventoAcceso? ultimoAcceso;
+
+    protected override void OnInitialized()
+    {
+        // Obtener el último evento de acceso
+        ultimoAcceso = usuario.EventosAcceso.OrderByDescending(e => e.Fecha).FirstOrDefault();
+    }
+
+    private void ActivarEdicion()
+    {
+        modoEdicion = true;
+        // Guardar copia de seguridad
+        usuarioRespaldo = new Usuario
+        {
+            Email = usuario.Email,
+            DatosPersonales = new DatosPersonales
+            {
+                Nombre = usuario.DatosPersonales.Nombre,
+                Apellido = usuario.DatosPersonales.Apellido,
+                FechaNacimiento = usuario.DatosPersonales.FechaNacimiento
+            },
+            Credencial = new Credencial
+            {
+                FechaEmision = usuario.Credencial.FechaEmision,
+                Activa = usuario.Credencial.Activa
+            },
+            Roles = usuario.Roles.ToList(),
+            EventosAcceso = usuario.EventosAcceso.ToList()
+        };
+    }
+
+    private void GuardarCambios()
+    {
+        modoEdicion = false;
+        // Aquí iría la lógica para guardar en el backend
+    }
+
+    private void CancelarEdicion()
+    {
+        modoEdicion = false;
+        // Restaurar datos originales
+        usuario.Email = usuarioRespaldo.Email;
+        usuario.DatosPersonales.Nombre = usuarioRespaldo.DatosPersonales.Nombre;
+        usuario.DatosPersonales.Apellido = usuarioRespaldo.DatosPersonales.Apellido;
+        usuario.DatosPersonales.FechaNacimiento = usuarioRespaldo.DatosPersonales.FechaNacimiento;
+    }
+
+    // Clases del modelo (hardcodeadas para esta demo)
+    public class Usuario
+    {
+        public string Email { get; set; } = string.Empty;
+        public DatosPersonales DatosPersonales { get; set; } = new();
+        public Credencial Credencial { get; set; } = new();
+        public List<Rol> Roles { get; set; } = new();
+        public List<EventoAcceso> EventosAcceso { get; set; } = new();
+    }
+
+    public class DatosPersonales
+    {
+        public string Nombre { get; set; } = string.Empty;
+        public string Apellido { get; set; } = string.Empty;
+        public DateTime FechaNacimiento { get; set; }
+    }
+
+    public class Credencial
+    {
+        public DateTime FechaEmision { get; set; }
+        public bool Activa { get; set; }
+    }
+
+    public class Rol
+    {
+        public string Nombre { get; set; } = string.Empty;
+    }
+
+    public class EventoAcceso
+    {
+        public DateTime Fecha { get; set; }
+        public ResultadoAcceso Resultado { get; set; }
+    }
+
+    public enum ResultadoAcceso
+    {
+        PERMITIDO,
+        DENEGADO
+    }
+}
