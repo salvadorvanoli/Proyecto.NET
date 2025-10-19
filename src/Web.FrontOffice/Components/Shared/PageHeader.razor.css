@@ -1,0 +1,30 @@
+.page-title-container {
+    margin-bottom: 2rem;
+}
+
+.page-title {
+    font-size: 2.25rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0 0 0.75rem 0;
+}
+
+.page-subtitle {
+    font-size: 1.05rem;
+    color: #6b7280;
+    margin: 0;
+    line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+    .page-title {
+        font-size: 1.75rem;
+    }
+
+    .page-subtitle {
+        font-size: 0.95rem;
+    }
+}

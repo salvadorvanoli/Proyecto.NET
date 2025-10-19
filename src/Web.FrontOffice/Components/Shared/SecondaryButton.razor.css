@@ -1,0 +1,29 @@
+.secondary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.75rem;
+    background: white;
+    color: #2c3e50;
+    border: 2px solid #e8e8e8;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    min-width: 140px;
+}
+
+.secondary-button:hover {
+    background: #f8f9fa;
+    border-color: #2c3e50;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(44, 62, 80, 0.1);
+}
+
+.secondary-button:active {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.1);
+}
