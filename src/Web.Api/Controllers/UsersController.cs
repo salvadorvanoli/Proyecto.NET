@@ -159,4 +159,76 @@ public class UsersController : ControllerBase
             return StatusCode(500, new { error = "An error occurred while retrieving users." });
         }
     }
+
+    /// <summary>
+    /// Updates an existing user.
+    /// </summary>
+    /// <param name="id">The user ID.</param>
+    /// <param name="request">The update request.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The updated user information.</returns>
+    /// <response code="200">User updated successfully.</response>
+    /// <response code="400">Invalid request.</response>
+    /// <response code="404">User not found.</response>
+    [HttpPut("{id}")]
+    [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<UserResponse>> UpdateUser(
+        int id,
+        [FromBody] UpdateUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var user = await _userService.UpdateUserAsync(id, request, cancellationToken);
+
+            _logger.LogInformation("User {UserId} updated successfully", id);
+
+            return Ok(user);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning("Failed to update user {UserId}: {Message}", id, ex.Message);
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating user {UserId}", id);
+            return StatusCode(500, new { error = "An error occurred while updating the user." });
+        }
+    }
+
+    /// <summary>
+    /// Deletes a user by ID.
+    /// </summary>
+    /// <param name="id">The user ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Success status.</returns>
+    /// <response code="204">User deleted successfully.</response>
+    /// <response code="404">User not found.</response>
+    [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteUser(int id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var deleted = await _userService.DeleteUserAsync(id, cancellationToken);
+
+            if (!deleted)
+            {
+                return NotFound(new { error = $"User with ID {id} not found." });
+            }
+
+            _logger.LogInformation("User {UserId} deleted successfully", id);
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting user {UserId}", id);
+            return StatusCode(500, new { error = "An error occurred while deleting the user." });
+        }
+    }
 }

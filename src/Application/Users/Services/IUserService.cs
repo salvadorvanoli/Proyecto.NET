@@ -31,4 +31,14 @@ public interface IUserService
     /// Gets all users from the current tenant.
     /// </summary>
     Task<IEnumerable<UserResponse>> GetUsersByTenantAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates an existing user.
+    /// </summary>
+    Task<UserResponse> UpdateUserAsync(int id, UpdateUserRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a user by ID.
+    /// </summary>
+    Task<bool> DeleteUserAsync(int id, CancellationToken cancellationToken = default);
 }

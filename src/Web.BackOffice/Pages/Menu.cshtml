@@ -1,0 +1,85 @@
+﻿@page
+@model Web.BackOffice.Pages.MenuModel
+@{
+    ViewData["Title"] = "Menú Principal";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Menú Principal</h1>
+    <p class="lead">Seleccione una opción para gestionar el sistema</p>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title">
+                    <i class="bi bi-building"></i> Gestionar Espacios
+                </h5>
+                <p class="card-text">Administre los espacios disponibles en el sistema.</p>
+                <a asp-page="/Spaces/Index" class="btn btn-primary mt-auto">Acceder</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title">
+                    <i class="bi bi-shield-lock"></i> Gestionar Reglas de Acceso
+                </h5>
+                <p class="card-text">Configure las reglas de acceso del sistema.</p>
+                <a asp-page="/AccessRules/Index" class="btn btn-primary mt-auto">Acceder</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title">
+                    <i class="bi bi-tags"></i> Gestionar Tipos de Espacio
+                </h5>
+                <p class="card-text">Administre los diferentes tipos de espacios.</p>
+                <a asp-page="/SpaceTypes/Index" class="btn btn-primary mt-auto">Acceder</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title">
+                    <i class="bi bi-people"></i> Gestionar Usuarios
+                </h5>
+                <p class="card-text">Administre los usuarios del sistema.</p>
+                <a asp-page="/Users/Index" class="btn btn-primary mt-auto">Acceder</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title">
+                    <i class="bi bi-person-badge"></i> Gestionar Roles
+                </h5>
+                <p class="card-text">Configure los roles y permisos del sistema.</p>
+                <a asp-page="/Roles/Index" class="btn btn-primary mt-auto">Acceder</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body d-flex flex-column">
+                <h5 class="card-title">
+                    <i class="bi bi-newspaper"></i> Gestionar Noticias
+                </h5>
+                <p class="card-text">Publique y administre noticias del sistema.</p>
+                <a asp-page="/News/Index" class="btn btn-primary mt-auto">Acceder</a>
+            </div>
+        </div>
+    </div>
+</div>
+

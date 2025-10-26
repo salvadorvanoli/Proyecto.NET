@@ -112,6 +112,67 @@ public class UserService : IUserService
         return users.Select(MapToResponse);
     }
 
+    public async Task<UserResponse> UpdateUserAsync(int id, UpdateUserRequest request, CancellationToken cancellationToken = default)
+    {
+        var tenantId = _tenantProvider.GetCurrentTenantId();
+
+        // Find the user
+        var user = await _context.Users
+            .Where(u => u.Id == id && u.TenantId == tenantId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (user == null)
+        {
+            throw new InvalidOperationException($"User with ID {id} not found in current tenant.");
+        }
+
+        // Check if email is being changed and if it already exists
+        if (user.Email != request.Email.ToLower())
+        {
+            var emailExists = await _context.Users
+                .AnyAsync(u => u.Email == request.Email.ToLower() && u.TenantId == tenantId && u.Id != id, cancellationToken);
+
+            if (emailExists)
+            {
+                throw new InvalidOperationException($"User with email '{request.Email}' already exists in this tenant.");
+            }
+
+            user.UpdateEmail(request.Email);
+        }
+
+        // Update personal data
+        var birthDate = DateOnly.FromDateTime(request.DateOfBirth);
+        var personalData = new PersonalData(
+            request.FirstName,
+            request.LastName,
+            birthDate
+        );
+        user.UpdatePersonalData(personalData);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return MapToResponse(user);
+    }
+
+    public async Task<bool> DeleteUserAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var tenantId = _tenantProvider.GetCurrentTenantId();
+
+        var user = await _context.Users
+            .Where(u => u.Id == id && u.TenantId == tenantId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (user == null)
+        {
+            return false;
+        }
+
+        _context.Users.Remove(user);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return true;
+    }
+
     private static UserResponse MapToResponse(User user)
     {
         return new UserResponse
