@@ -1,4 +1,6 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@rendermode InteractiveServer
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">Web.FrontOffice</a>
     </div>
@@ -15,20 +17,36 @@
         </div>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="perfil">
-                <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> Mi Perfil
+            <div class="nav-link nav-dropdown" @onclick="ToggleProfileMenu">
+                <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> 
+                <span class="dropdown-label">Mi Perfil</span>
+                <span class="dropdown-arrow @(perfilMenuExpanded ? "expanded" : "")">▼</span>
+            </div>
+            @if (perfilMenuExpanded)
+            {
+                <div class="nav-submenu">
+                    <NavLink class="nav-link nav-sublink" href="perfil">
+                        Ver Perfil
+                    </NavLink>
+                    <NavLink class="nav-link nav-sublink" href="mis-beneficios">
+                        Mis Beneficios
+                    </NavLink>
+                    <NavLink class="nav-link nav-sublink" href="historial-accesos">
+                        Historial de Accesos
+                    </NavLink>
+                </div>
+            }
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="canjear-beneficio">
+                <span class="bi bi-ticket-fill-nav-menu" aria-hidden="true"></span> Canjear Beneficio
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="mis-beneficios">
-                <span class="bi bi-gift-fill-nav-menu" aria-hidden="true"></span> Mis Beneficios
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="historial-accesos">
-                <span class="bi bi-clipboard-fill-nav-menu" aria-hidden="true"></span> Historial de Accesos
+            <NavLink class="nav-link" href="acceso-nfc">
+                <span class="bi bi-wifi-nav-menu" aria-hidden="true"></span> Acceso NFC
             </NavLink>
         </div>
 
@@ -45,4 +63,13 @@
         </div>
     </nav>
 </div>
+
+@code {
+    private bool perfilMenuExpanded = false;
+
+    private void ToggleProfileMenu()
+    {
+        perfilMenuExpanded = !perfilMenuExpanded;
+    }
+}
 
