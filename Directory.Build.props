@@ -1,42 +1,42 @@
 <Project>
-  
+
   <!-- ============================================ -->
   <!-- Propiedades Comunes - Proyecto.NET (.NET 8) -->
   <!-- ============================================ -->
-  
+
   <PropertyGroup>
     <!-- Target Framework y Lenguaje (skip for MAUI projects) -->
     <TargetFramework Condition="'$(MSBuildProjectName)' != 'Mobile'">net8.0</TargetFramework>
     <LangVersion>12.0</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    
+
     <!-- Metadatos del Ensamblado -->
     <Company>CredeX</Company>
     <Product>Proyecto.NET</Product>
     <Copyright>Copyright © 2025 CredeX. Todos los derechos reservados.</Copyright>
     <Authors>Nadia Gorría - Joaquín Jozami - Salvador Vanoli - Valentín Veintemilla</Authors>
     <Description>Sistema integral de credenciales digitales desarrollado en .NET 8</Description>
-    
+
     <!-- Versionado -->
     <Version>1.0.0</Version>
     <AssemblyVersion>1.0.0</AssemblyVersion>
     <FileVersion>1.0.0</FileVersion>
-    
+
     <!-- Configuración de Build -->
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <WarningsAsErrors />
     <WarningsNotAsErrors />
-    
+
     <!-- Análisis de Código .NET 8 -->
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    
+
     <!-- Documentación XML -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn> <!-- Suppress missing XML comment warnings -->
-    
+
     <!-- Configuraciones de Rendimiento .NET 8 -->
     <PublishReadyToRun Condition="'$(MSBuildProjectName)' != 'Mobile'">true</PublishReadyToRun>
     <PublishSingleFile>false</PublishSingleFile>
@@ -58,7 +58,7 @@
 
   <!-- Paquetes Comunes para Todos los Proyectos -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.10" />
   </ItemGroup>
 
   <!-- Paquetes para Proyectos de Test -->

@@ -1,3 +1,4 @@
+using Application.Common.Interfaces;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,7 +7,7 @@ namespace Infrastructure.Persistence;
 /// <summary>
 /// Main database context for the application using Entity Framework Core.
 /// </summary>
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : DbContext, IApplicationDbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     {

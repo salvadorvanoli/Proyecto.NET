@@ -125,17 +125,12 @@ public class User : BaseEntity
     }
 
     /// <summary>
-    /// Adds a role to the user.
+    /// Assigns a role to the user.
     /// </summary>
-    public void AddRole(Role role)
+    public void AssignRole(Role role)
     {
         if (role == null)
             throw new ArgumentNullException(nameof(role));
-
-        if (role.TenantId != TenantId)
-            throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBelongToSameTenant, "Role"),
-                nameof(role));
 
         if (!Roles.Contains(role))
         {
@@ -152,8 +147,9 @@ public class User : BaseEntity
         if (role == null)
             throw new ArgumentNullException(nameof(role));
 
-        if (Roles.Remove(role))
+        if (Roles.Contains(role))
         {
+            Roles.Remove(role);
             UpdateTimestamp();
         }
     }
@@ -161,9 +157,9 @@ public class User : BaseEntity
     /// <summary>
     /// Checks if the user has a specific role.
     /// </summary>
-    public bool HasRole(Role role)
+    public bool HasRole(string roleName)
     {
-        return Roles.Contains(role);
+        return Roles.Any(r => r.Name.Equals(roleName, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>
@@ -189,4 +185,3 @@ public class User : BaseEntity
         }
     }
 }
-

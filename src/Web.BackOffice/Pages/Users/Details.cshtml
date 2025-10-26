@@ -1,0 +1,76 @@
+﻿@page "{id:int}"
+@model Web.BackOffice.Pages.Users.DetailsModel
+@{
+    ViewData["Title"] = "Detalles del Usuario";
+}
+
+<h1 class="display-4 mb-4">Detalles del Usuario</h1>
+
+@if (Model.ErrorMessage != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Model.User != null)
+{
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Información del Usuario</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">ID:</dt>
+                        <dd class="col-sm-8">@Model.User.Id</dd>
+
+                        <dt class="col-sm-4">Nombre Completo:</dt>
+                        <dd class="col-sm-8">@Model.User.FullName</dd>
+
+                        <dt class="col-sm-4">Nombre:</dt>
+                        <dd class="col-sm-8">@Model.User.FirstName</dd>
+
+                        <dt class="col-sm-4">Apellido:</dt>
+                        <dd class="col-sm-8">@Model.User.LastName</dd>
+
+                        <dt class="col-sm-4">Email:</dt>
+                        <dd class="col-sm-8">@Model.User.Email</dd>
+
+                        <dt class="col-sm-4">Fecha de Nacimiento:</dt>
+                        <dd class="col-sm-8">@Model.User.DateOfBirth.ToString("dd/MM/yyyy")</dd>
+
+                        <dt class="col-sm-4">Tenant ID:</dt>
+                        <dd class="col-sm-8">@Model.User.TenantId</dd>
+
+                        <dt class="col-sm-4">Fecha de Creación:</dt>
+                        <dd class="col-sm-8">@Model.User.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")</dd>
+
+                        <dt class="col-sm-4">Última Actualización:</dt>
+                        <dd class="col-sm-8">@Model.User.UpdatedAt.ToString("dd/MM/yyyy HH:mm:ss")</dd>
+                    </dl>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex gap-2">
+                        <a asp-page="/Users/Edit" asp-route-id="@Model.User.Id" class="btn btn-warning">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                        <a asp-page="/Users/Index" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Volver al Listado
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i> Usuario no encontrado.
+    </div>
+    <a asp-page="/Users/Index" class="btn btn-secondary">Volver al Listado</a>
+}
+
