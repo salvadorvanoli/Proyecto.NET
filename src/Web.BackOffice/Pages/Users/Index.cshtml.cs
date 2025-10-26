@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Web.BackOffice.Models;
 using Web.BackOffice.Services;
+using System.Security.Claims;
 
 namespace Web.BackOffice.Pages.Users;
 
@@ -43,6 +44,23 @@ public class IndexModel : PageModel
     {
         try
         {
+            // Obtener el ID del usuario actual de los Claims
+            var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(currentUserIdClaim) || !int.TryParse(currentUserIdClaim, out int currentUserId))
+            {
+                ErrorMessage = "No se pudo identificar al usuario actual.";
+                return RedirectToPage();
+            }
+
+            // Validar que el usuario no intente eliminarse a sí mismo
+            if (id == currentUserId)
+            {
+                ErrorMessage = "No puede eliminar su propia cuenta mientras tiene la sesión iniciada.";
+                _logger.LogWarning("User {UserId} attempted to delete their own account", currentUserId);
+                return RedirectToPage();
+            }
+
             var deleted = await _userApiService.DeleteUserAsync(id);
 
             if (!deleted)

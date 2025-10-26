@@ -2,6 +2,7 @@
 @model Web.BackOffice.Pages.Users.IndexModel
 @{
     ViewData["Title"] = "Gestionar Usuarios";
+    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -51,9 +52,18 @@ else
             <tbody>
                 @foreach (var user in Model.Users)
                 {
-                    <tr>
+                    var isCurrentUser = currentUserId == user.Id.ToString();
+                    <tr class="@(isCurrentUser ? "table-primary" : "")">
                         <td>@user.Id</td>
-                        <td>@user.FullName</td>
+                        <td>
+                            @user.FullName
+                            @if (isCurrentUser)
+                            {
+                                <span class="badge bg-success ms-2">
+                                    <i class="bi bi-person-check"></i> Tú
+                                </span>
+                            }
+                        </td>
                         <td>@user.Email</td>
                         <td>@user.DateOfBirth.ToString("dd/MM/yyyy")</td>
                         <td>@user.TenantId</td>
@@ -66,35 +76,47 @@ else
                                 <a asp-page="/Users/Edit" asp-route-id="@user.Id" class="btn btn-sm btn-warning" title="Editar">
                                     <i class="bi bi-pencil"></i> Editar
                                 </a>
-                                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal@(user.Id)" title="Eliminar">
-                                    <i class="bi bi-trash"></i> Eliminar
-                                </button>
+                                @if (isCurrentUser)
+                                {
+                                    <button type="button" class="btn btn-sm btn-danger" disabled title="No puedes eliminar tu propia cuenta">
+                                        <i class="bi bi-trash"></i> Eliminar
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal@(user.Id)" title="Eliminar">
+                                        <i class="bi bi-trash"></i> Eliminar
+                                    </button>
+                                }
                             </div>
                         </td>
                     </tr>
 
-                    <!-- Modal de confirmación para eliminar -->
-                    <div class="modal fade" id="deleteModal@(user.Id)" tabindex="-1" aria-labelledby="deleteModalLabel@(user.Id)" aria-hidden="true">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="deleteModalLabel@(user.Id)">Confirmar eliminación</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    ¿Está seguro que desea eliminar al usuario <strong>@user.FullName</strong> (@user.Email)?
-                                    <br><br>
-                                    <span class="text-danger">Esta acción no se puede deshacer.</span>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                    <form method="post" asp-page-handler="Delete" asp-route-id="@user.Id" class="d-inline">
-                                        <button type="submit" class="btn btn-danger">Eliminar</button>
-                                    </form>
+                    @if (!isCurrentUser)
+                    {
+                        <!-- Modal de confirmación para eliminar -->
+                        <div class="modal fade" id="deleteModal@(user.Id)" tabindex="-1" aria-labelledby="deleteModalLabel@(user.Id)" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="deleteModalLabel@(user.Id)">Confirmar eliminación</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ¿Está seguro que desea eliminar al usuario <strong>@user.FullName</strong> (@user.Email)?
+                                        <br><br>
+                                        <span class="text-danger">Esta acción no se puede deshacer.</span>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <form method="post" asp-page-handler="Delete" asp-route-id="@user.Id" class="d-inline">
+                                            <button type="submit" class="btn btn-danger">Eliminar</button>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    }
                 }
             </tbody>
         </table>
