@@ -1,0 +1,112 @@
+@page "/login"
+@using System.ComponentModel.DataAnnotations
+@inject NavigationManager Navigation
+
+<PageTitle>Iniciar Sesión</PageTitle>
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <i class="bi bi-person-circle"></i>
+            <h2>Iniciar Sesión</h2>
+            <p>Accede a tu cuenta del Portal</p>
+        </div>
+
+        <EditForm Model="@loginModel" OnValidSubmit="HandleLogin" class="login-form">
+            <DataAnnotationsValidator />
+            
+            <div class="form-group">
+                <label for="email" class="form-label">
+                    <i class="bi bi-envelope"></i> Correo Electrónico
+                </label>
+                <InputText id="email" @bind-Value="loginModel.Email" class="form-control" placeholder="tu@email.com" />
+                <ValidationMessage For="@(() => loginModel.Email)" />
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">
+                    <i class="bi bi-lock"></i> Contraseña
+                </label>
+                <InputText id="password" type="password" @bind-Value="loginModel.Password" class="form-control" placeholder="••••••••" />
+                <ValidationMessage For="@(() => loginModel.Password)" />
+            </div>
+
+            <div class="form-check mb-3">
+                <InputCheckbox id="remember" @bind-Value="loginModel.RememberMe" class="form-check-input" />
+                <label class="form-check-label" for="remember">
+                    Recordarme
+                </label>
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i> @errorMessage
+                </div>
+            }
+
+            <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                }
+                Iniciar Sesión
+            </button>
+        </EditForm>
+
+        <div class="login-footer">
+            <a href="/forgot-password">¿Olvidaste tu contraseña?</a>
+            <div class="divider"></div>
+            <p>¿No tienes cuenta? <a href="/register" class="fw-bold">Regístrate aquí</a></p>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginModel loginModel = new();
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+
+        try
+        {
+            // TODO: Implementar lógica real de autenticación
+            await Task.Delay(1000); // Simular llamada API
+
+            // Simulación de validación
+            if (loginModel.Email == "demo@portal.com" && loginModel.Password == "demo123")
+            {
+                Navigation.NavigateTo("/");
+            }
+            else
+            {
+                errorMessage = "Credenciales incorrectas. Prueba con: demo@portal.com / demo123";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error al iniciar sesión. Intenta nuevamente.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private class LoginModel
+    {
+        [Required(ErrorMessage = "El correo es requerido")]
+        [EmailAddress(ErrorMessage = "Formato de correo inválido")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La contraseña es requerida")]
+        [MinLength(6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres")]
+        public string Password { get; set; } = string.Empty;
+
+        public bool RememberMe { get; set; }
+    }
+}

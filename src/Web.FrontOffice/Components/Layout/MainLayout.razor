@@ -1,4 +1,5 @@
 ﻿@inherits LayoutComponentBase
+@using Web.FrontOffice.Components.Shared
 
 <div class="page">
     <div class="sidebar">
@@ -6,13 +7,39 @@
     </div>
 
     <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
+        <Header />
 
         <article class="content px-4">
             @Body
         </article>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h5>Portal de Acceso</h5>
+                    <p>Sistema integrado de gestión de accesos y beneficios</p>
+                </div>
+                <div class="footer-section">
+                    <h6>Enlaces rápidos</h6>
+                    <ul class="footer-links">
+                        <li><a href="/access-nfc">Acceso NFC</a></li>
+                        <li><a href="/benefits">Beneficios</a></li>
+                        <li><a href="/profile">Mi Perfil</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h6>Soporte</h6>
+                    <ul class="footer-links">
+                        <li><a href="#">Ayuda</a></li>
+                        <li><a href="#">Contacto</a></li>
+                        <li><a href="#">Términos de uso</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <p class="footer-copyright">© 2025 Portal de Acceso. Todos los derechos reservados.</p>
+                </div>
+            </div>
+        </footer>
     </main>
 </div>
 

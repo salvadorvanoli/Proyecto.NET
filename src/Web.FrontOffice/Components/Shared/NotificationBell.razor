@@ -1,0 +1,140 @@
+@* Campana de notificaciones con dropdown *@
+
+<div class="notification-bell">
+    <div class="dropdown">
+        <button class="btn btn-link notification-button" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell"></i>
+            @if (unreadCount > 0)
+            {
+                <span class="notification-badge">@unreadCount</span>
+            }
+        </button>
+        <div class="dropdown-menu dropdown-menu-end notification-dropdown" aria-labelledby="notificationDropdown">
+            <div class="dropdown-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Notificaciones</h6>
+                @if (notifications.Any(n => !n.IsRead))
+                {
+                    <button class="btn btn-link btn-sm p-0" @onclick="MarkAllAsRead">Marcar todas como leídas</button>
+                }
+            </div>
+            <div class="notification-list">
+                @if (notifications.Any())
+                {
+                    @foreach (var notification in notifications)
+                    {
+                        <div class="dropdown-item notification-item @(notification.IsRead ? "read" : "unread")" @onclick="() => MarkAsRead(notification.Id)">
+                            <div class="notification-icon">
+                                <i class="bi @GetNotificationIcon(notification.Type)"></i>
+                            </div>
+                            <div class="notification-content">
+                                <div class="notification-title">@notification.Title</div>
+                                <div class="notification-message">@notification.Message</div>
+                                <div class="notification-time">@notification.TimeAgo</div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="dropdown-item-text text-center text-muted py-4">
+                        No tienes notificaciones
+                    </div>
+                }
+            </div>
+            @if (notifications.Any())
+            {
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item text-center text-primary" href="/notifications">Ver todas las notificaciones</a>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private int unreadCount => notifications.Count(n => !n.IsRead);
+    private List<NotificationItem> notifications = new();
+
+    protected override void OnInitialized()
+    {
+        LoadNotifications();
+    }
+
+    private void LoadNotifications()
+    {
+        notifications = new List<NotificationItem>
+        {
+            new NotificationItem
+            {
+                Id = 1,
+                Title = "Nuevo beneficio disponible",
+                Message = "Tienes un 20% de descuento en la cafetería",
+                Type = NotificationType.Benefit,
+                TimeAgo = "Hace 5 min",
+                IsRead = false
+            },
+            new NotificationItem
+            {
+                Id = 2,
+                Title = "Acceso registrado",
+                Message = "Entrada registrada en Edificio Principal",
+                Type = NotificationType.Access,
+                TimeAgo = "Hace 1 hora",
+                IsRead = false
+            },
+            new NotificationItem
+            {
+                Id = 3,
+                Title = "Actualización de sistema",
+                Message = "Nueva funcionalidad disponible en tu perfil",
+                Type = NotificationType.System,
+                TimeAgo = "Hace 2 días",
+                IsRead = true
+            }
+        };
+    }
+
+    private void MarkAsRead(int notificationId)
+    {
+        var notification = notifications.FirstOrDefault(n => n.Id == notificationId);
+        if (notification != null)
+        {
+            notification.IsRead = true;
+        }
+    }
+
+    private void MarkAllAsRead()
+    {
+        foreach (var notification in notifications)
+        {
+            notification.IsRead = true;
+        }
+    }
+
+    private string GetNotificationIcon(NotificationType type)
+    {
+        return type switch
+        {
+            NotificationType.Benefit => "bi-gift",
+            NotificationType.Access => "bi-door-open",
+            NotificationType.System => "bi-info-circle",
+            _ => "bi-bell"
+        };
+    }
+
+    private class NotificationItem
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public NotificationType Type { get; set; }
+        public string TimeAgo { get; set; } = string.Empty;
+        public bool IsRead { get; set; }
+    }
+
+    private enum NotificationType
+    {
+        Benefit,
+        Access,
+        System
+    }
+}

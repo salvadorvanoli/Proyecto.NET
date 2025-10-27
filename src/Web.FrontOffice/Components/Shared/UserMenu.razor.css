@@ -1,0 +1,51 @@
+.user-menu {
+    display: flex;
+    align-items: center;
+}
+
+.user-button {
+    color: #2c3e50;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    font-size: 1.5rem;
+    transition: color 0.3s ease;
+}
+
+.user-button:hover {
+    color: #3498db;
+}
+
+.user-name {
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.dropdown-menu {
+    min-width: 200px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+}
+
+.dropdown-item i {
+    font-size: 1.1rem;
+    width: 20px;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+.btn-primary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}

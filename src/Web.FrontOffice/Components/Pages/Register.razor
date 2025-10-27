@@ -1,0 +1,159 @@
+@page "/register"
+@using System.ComponentModel.DataAnnotations
+@inject NavigationManager Navigation
+
+<PageTitle>Registrarse</PageTitle>
+
+<div class="register-container">
+    <div class="register-card">
+        <div class="register-header">
+            <i class="bi bi-person-plus-fill"></i>
+            <h2>Crear Cuenta</h2>
+            <p>Únete al Portal de Acceso</p>
+        </div>
+
+        <EditForm Model="@registerModel" OnValidSubmit="HandleRegister" class="register-form">
+            <DataAnnotationsValidator />
+            
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label for="firstName" class="form-label">
+                        <i class="bi bi-person"></i> Nombre
+                    </label>
+                    <InputText id="firstName" @bind-Value="registerModel.FirstName" class="form-control" placeholder="Juan" />
+                    <ValidationMessage For="@(() => registerModel.FirstName)" />
+                </div>
+
+                <div class="col-md-6 form-group">
+                    <label for="lastName" class="form-label">
+                        <i class="bi bi-person"></i> Apellido
+                    </label>
+                    <InputText id="lastName" @bind-Value="registerModel.LastName" class="form-control" placeholder="Pérez" />
+                    <ValidationMessage For="@(() => registerModel.LastName)" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="email" class="form-label">
+                    <i class="bi bi-envelope"></i> Correo Electrónico
+                </label>
+                <InputText id="email" @bind-Value="registerModel.Email" class="form-control" placeholder="tu@email.com" />
+                <ValidationMessage For="@(() => registerModel.Email)" />
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">
+                    <i class="bi bi-lock"></i> Contraseña
+                </label>
+                <InputText id="password" type="password" @bind-Value="registerModel.Password" class="form-control" placeholder="••••••••" />
+                <ValidationMessage For="@(() => registerModel.Password)" />
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword" class="form-label">
+                    <i class="bi bi-lock-fill"></i> Confirmar Contraseña
+                </label>
+                <InputText id="confirmPassword" type="password" @bind-Value="registerModel.ConfirmPassword" class="form-control" placeholder="••••••••" />
+                <ValidationMessage For="@(() => registerModel.ConfirmPassword)" />
+            </div>
+
+            <div class="form-check mb-3">
+                <InputCheckbox id="terms" @bind-Value="registerModel.AcceptTerms" class="form-check-input" />
+                <label class="form-check-label" for="terms">
+                    Acepto los <a href="/terms" target="_blank">términos y condiciones</a>
+                </label>
+                <ValidationMessage For="@(() => registerModel.AcceptTerms)" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i> @errorMessage
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="alert alert-success" role="alert">
+                    <i class="bi bi-check-circle"></i> @successMessage
+                </div>
+            }
+
+            <button type="submit" class="btn btn-primary w-100" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                }
+                Crear Cuenta
+            </button>
+        </EditForm>
+
+        <div class="register-footer">
+            <p>¿Ya tienes cuenta? <a href="/login" class="fw-bold">Inicia sesión aquí</a></p>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterModel registerModel = new();
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+    private bool isLoading = false;
+
+    private async Task HandleRegister()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        try
+        {
+            // Validar que las contraseñas coincidan
+            if (registerModel.Password != registerModel.ConfirmPassword)
+            {
+                errorMessage = "Las contraseñas no coinciden";
+                isLoading = false;
+                return;
+            }
+
+            // TODO: Implementar lógica real de registro
+            await Task.Delay(1500); // Simular llamada API
+
+            successMessage = "¡Cuenta creada exitosamente! Redirigiendo...";
+            await Task.Delay(1500);
+            Navigation.NavigateTo("/login");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Error al crear la cuenta. Intenta nuevamente.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private class RegisterModel
+    {
+        [Required(ErrorMessage = "El nombre es requerido")]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El apellido es requerido")]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El correo es requerido")]
+        [EmailAddress(ErrorMessage = "Formato de correo inválido")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La contraseña es requerida")]
+        [MinLength(6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres")]
+        public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Confirma tu contraseña")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+
+        [Required]
+        [Range(typeof(bool), "true", "true", ErrorMessage = "Debes aceptar los términos y condiciones")]
+        public bool AcceptTerms { get; set; }
+    }
+}
