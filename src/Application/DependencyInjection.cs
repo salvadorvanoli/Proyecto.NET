@@ -1,6 +1,7 @@
 ﻿using Application.Auth.Services;
 using Application.Common.Interfaces;
 using Application.Users.Services;
+using Application.Roles.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application;
@@ -18,6 +19,7 @@ public static class DependencyInjection
         // Register services
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IRoleService, RoleService>();
 
         return services;
     }

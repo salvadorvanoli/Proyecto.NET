@@ -115,4 +115,20 @@ public static class DomainConstants
         // Other patterns can be added here as needed
         // public const string PhoneNumber = @"^\+?[1-9]\d{1,14}$";
     }
+
+    /// <summary>
+    /// System roles that cannot be edited or deleted.
+    /// </summary>
+    public static class SystemRoles
+    {
+        public const string AdministradorBackoffice = "AdministradorBackoffice";
+
+        /// <summary>
+        /// Check if a role name is a protected system role.
+        /// </summary>
+        public static bool IsProtectedRole(string roleName)
+        {
+            return roleName == AdministradorBackoffice;
+        }
+    }
 }

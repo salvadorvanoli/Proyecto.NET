@@ -55,6 +55,14 @@ builder.Services.AddHttpClient<IUserApiService, UserApiService>(client =>
 })
 .AddHttpMessageHandler<TenantHeaderHandler>();
 
+// Configure HttpClient for Role API with TenantHeaderHandler
+builder.Services.AddHttpClient<IRoleApiService, RoleApiService>(client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5236/"); // URL de tu Web.Api
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+})
+.AddHttpMessageHandler<TenantHeaderHandler>();
+
 // Configure HttpClient for Auth API (no necesita TenantHeaderHandler porque es para login)
 builder.Services.AddHttpClient<IAuthApiService, AuthApiService>(client =>
 {
