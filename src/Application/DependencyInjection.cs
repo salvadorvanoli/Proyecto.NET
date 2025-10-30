@@ -2,6 +2,7 @@
 using Application.Common.Interfaces;
 using Application.Users.Services;
 using Application.Roles.Services;
+using Application.News.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application;
@@ -20,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IRoleService, RoleService>();
+        services.AddScoped<INewsService, NewsService>();
 
         return services;
     }

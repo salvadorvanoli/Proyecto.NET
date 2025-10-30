@@ -1,0 +1,113 @@
+﻿@page "{id:int}"
+@model Web.BackOffice.Pages.News.EditModel
+@{
+    ViewData["Title"] = "Editar Noticia";
+}
+
+<h1 class="display-4 mb-4">Editar Noticia</h1>
+
+@if (Model.ErrorMessage != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Model.News != null && Model.News.Id > 0)
+{
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        <input type="hidden" asp-for="News.Id" />
+
+                        <div class="mb-3">
+                            <label asp-for="News.Title" class="form-label">Título</label>
+                            <input asp-for="News.Title" class="form-control" required />
+                            <span asp-validation-for="News.Title" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="News.Content" class="form-label">Contenido</label>
+                            <textarea asp-for="News.Content" class="form-control" rows="10" required></textarea>
+                            <span asp-validation-for="News.Content" class="text-danger"></span>
+                            <div class="form-text">Máximo 5000 caracteres.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="News.PublishDate" class="form-label">Fecha de Publicación</label>
+                            <input asp-for="News.PublishDate" class="form-control" type="datetime-local" required />
+                            <span asp-validation-for="News.PublishDate" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="News.ImageUrl" class="form-label">URL de la Imagen</label>
+                            <input asp-for="News.ImageUrl" class="form-control" type="url" placeholder="https://ejemplo.com/imagen.jpg" />
+                            <span asp-validation-for="News.ImageUrl" class="text-danger"></span>
+                            <div class="form-text">Ingrese la URL completa de la imagen (opcional).</div>
+                        </div>
+
+                        <!-- Preview de imagen -->
+                        <div class="mb-3" id="imagePreviewContainer" style="@(string.IsNullOrWhiteSpace(Model.News.ImageUrl) ? "display: none;" : "")">
+                            <label class="form-label">Vista previa de la imagen</label>
+                            <div>
+                                <img id="imagePreview" src="@Model.News.ImageUrl" alt="Preview" class="img-thumbnail" style="max-width: 300px; max-height: 300px;" />
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Guardar Cambios
+                            </button>
+                            <a asp-page="/News/Index" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i> Noticia no encontrada.
+    </div>
+    <a asp-page="/News/Index" class="btn btn-secondary">Volver al Listado</a>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Preview de imagen cuando se ingresa la URL
+        const imageUrlInput = document.querySelector('input[name="News.ImageUrl"]');
+        const imagePreview = document.getElementById('imagePreview');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+
+        imageUrlInput.addEventListener('input', function() {
+            const url = this.value.trim();
+            if (url && isValidUrl(url)) {
+                imagePreview.src = url;
+                imagePreviewContainer.style.display = 'block';
+                imagePreview.onerror = function() {
+                    imagePreviewContainer.style.display = 'none';
+                };
+            } else {
+                imagePreviewContainer.style.display = 'none';
+            }
+        });
+
+        function isValidUrl(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+    </script>
+}
+

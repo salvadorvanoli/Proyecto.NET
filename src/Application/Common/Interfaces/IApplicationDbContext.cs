@@ -1,5 +1,6 @@
 ﻿using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using DomainNews = Domain.Entities.News;
 
 namespace Application.Common.Interfaces;
 
@@ -18,7 +19,7 @@ public interface IApplicationDbContext
     DbSet<ControlPoint> ControlPoints { get; }
     DbSet<AccessRule> AccessRules { get; }
     DbSet<AccessEvent> AccessEvents { get; }
-    DbSet<News> News { get; }
+    DbSet<DomainNews> News { get; }
     DbSet<Notification> Notifications { get; }
     DbSet<Consumption> Consumptions { get; }
     DbSet<Benefit> Benefits { get; }
