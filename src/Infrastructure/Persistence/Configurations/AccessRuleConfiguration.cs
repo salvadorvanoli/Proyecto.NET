@@ -20,14 +20,18 @@ public class AccessRuleConfiguration : IEntityTypeConfiguration<AccessRule>
         builder.Property(ar => ar.Id)
             .ValueGeneratedOnAdd();
 
-        // Properties for TimeRange (nullable)
-        builder.Property<TimeOnly?>("StartTime")
-            .HasColumnName("StartTime");
+        // Ignore the complex properties - we'll map them as separate columns
+        builder.Ignore(ar => ar.TimeRange);
+        builder.Ignore(ar => ar.ValidityPeriod);
 
-        builder.Property<TimeOnly?>("EndTime")
-            .HasColumnName("EndTime");
+        // Map TimeRange properties as individual nullable columns
+        builder.Property<TimeOnly?>("TimeRangeStartTime")
+            .HasColumnName("TimeRangeStartTime");
 
-        // Properties for DateRange (nullable)
+        builder.Property<TimeOnly?>("TimeRangeEndTime")
+            .HasColumnName("TimeRangeEndTime");
+
+        // Map DateRange properties as individual nullable columns
         builder.Property<DateOnly?>("ValidityStartDate")
             .HasColumnName("ValidityStartDate");
 

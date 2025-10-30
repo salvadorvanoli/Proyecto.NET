@@ -1,0 +1,88 @@
+﻿@page "{id:int}"
+@model Web.BackOffice.Pages.News.DetailsModel
+@{
+    ViewData["Title"] = "Detalles de la Noticia";
+}
+
+<h1 class="display-4 mb-4">Detalles de la Noticia</h1>
+
+@if (Model.ErrorMessage != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Model.News != null)
+{
+    <div class="row">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Información de la Noticia</h5>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrWhiteSpace(Model.News.ImageUrl))
+                    {
+                        <div class="mb-4 text-center">
+                            <img src="@Model.News.ImageUrl" alt="@Model.News.Title" class="img-fluid rounded" style="max-height: 400px; object-fit: cover;" />
+                        </div>
+                    }
+
+                    <dl class="row">
+                        <dt class="col-sm-3">ID:</dt>
+                        <dd class="col-sm-9">@Model.News.Id</dd>
+
+                        <dt class="col-sm-3">Título:</dt>
+                        <dd class="col-sm-9"><strong>@Model.News.Title</strong></dd>
+
+                        <dt class="col-sm-3">Contenido:</dt>
+                        <dd class="col-sm-9">
+                            <div class="border rounded p-3 bg-light">
+                                @Model.News.Content
+                            </div>
+                        </dd>
+
+                        <dt class="col-sm-3">Fecha de Publicación:</dt>
+                        <dd class="col-sm-9">@Model.News.PublishDate.ToString("dd/MM/yyyy HH:mm")</dd>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.News.ImageUrl))
+                        {
+                            <dt class="col-sm-3">URL de la Imagen:</dt>
+                            <dd class="col-sm-9">
+                                <a href="@Model.News.ImageUrl" target="_blank" class="text-break">@Model.News.ImageUrl</a>
+                            </dd>
+                        }
+
+                        <dt class="col-sm-3">Tenant ID:</dt>
+                        <dd class="col-sm-9">@Model.News.TenantId</dd>
+
+                        <dt class="col-sm-3">Fecha de Creación:</dt>
+                        <dd class="col-sm-9">@Model.News.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")</dd>
+
+                        <dt class="col-sm-3">Última Actualización:</dt>
+                        <dd class="col-sm-9">@Model.News.UpdatedAt.ToString("dd/MM/yyyy HH:mm:ss")</dd>
+                    </dl>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex gap-2">
+                        <a asp-page="/News/Edit" asp-route-id="@Model.News.Id" class="btn btn-warning">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                        <a asp-page="/News/Index" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Volver al Listado
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i> Noticia no encontrada.
+    </div>
+    <a asp-page="/News/Index" class="btn btn-secondary">Volver al Listado</a>
+}

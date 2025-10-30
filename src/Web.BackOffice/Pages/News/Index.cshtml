@@ -1,0 +1,227 @@
+﻿@page
+@model Web.BackOffice.Pages.News.IndexModel
+@{
+    ViewData["Title"] = "Gestionar Noticias";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="display-4">Gestionar Noticias</h1>
+    <a asp-page="/News/Create" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Crear Noticia
+    </a>
+</div>
+
+@if (Model.ErrorMessage != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Model.SuccessMessage != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Barra de búsqueda -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-10">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text"
+                           class="form-control"
+                           name="searchTerm"
+                           value="@Model.SearchTerm"
+                           placeholder="Buscar noticias por título o contenido..." />
+                    <button class="btn btn-primary" type="submit">Buscar</button>
+                    @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+                    {
+                        <a asp-page="/News/Index" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Limpiar
+                        </a>
+                    }
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Información de resultados -->
+@if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+{
+    <div class="alert alert-info">
+        <i class="bi bi-filter"></i> Mostrando <strong>@Model.TotalNews</strong> resultado(s) para "<strong>@Model.SearchTerm</strong>"
+    </div>
+}
+
+@if (Model.DisplayedNews == null || !Model.DisplayedNews.Any())
+{
+    @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-search"></i> No se encontraron noticias que coincidan con "<strong>@Model.SearchTerm</strong>".
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> No hay noticias registradas en el sistema.
+        </div>
+    }
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Imagen</th>
+                    <th>Título</th>
+                    <th>Fecha de Publicación</th>
+                    <th>Creado</th>
+                    <th>Actualizado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var news in Model.DisplayedNews)
+                {
+                    <tr>
+                        <td>@news.Id</td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(news.ImageUrl))
+                            {
+                                <img src="@news.ImageUrl" alt="@news.Title" class="img-thumbnail" style="max-width: 80px; max-height: 80px; object-fit: cover;" />
+                            }
+                            else
+                            {
+                                <span class="text-muted"><i class="bi bi-image"></i> Sin imagen</span>
+                            }
+                        </td>
+                        <td>
+                            <strong>@news.Title</strong>
+                            <br />
+                            <small class="text-muted">@(news.Content.Length > 50 ? news.Content.Substring(0, 50) + "..." : news.Content)</small>
+                        </td>
+                        <td>@news.PublishDate.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@news.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@news.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a asp-page="/News/Details" asp-route-id="@news.Id" class="btn btn-sm btn-info" title="Ver detalles">
+                                    <i class="bi bi-eye"></i> Ver
+                                </a>
+                                <a asp-page="/News/Edit" asp-route-id="@news.Id" class="btn btn-sm btn-warning" title="Editar">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </a>
+                                <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal@(news.Id)" title="Eliminar">
+                                    <i class="bi bi-trash"></i> Eliminar
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Modal de confirmación para eliminar -->
+                    <div class="modal fade" id="deleteModal@(news.Id)" tabindex="-1" aria-labelledby="deleteModalLabel@(news.Id)" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="deleteModalLabel@(news.Id)">Confirmar eliminación</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    ¿Está seguro que desea eliminar la noticia <strong>@news.Title</strong>?
+                                    <br><br>
+                                    <span class="text-danger">Esta acción no se puede deshacer.</span>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                    <form method="post" asp-page-handler="Delete" asp-route-id="@news.Id" class="d-inline">
+                                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginación -->
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="Paginación de noticias" class="mt-3">
+            <ul class="pagination justify-content-center">
+                <!-- Botón Primera Página -->
+                <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                    <a class="page-link" asp-page="/News/Index"
+                       asp-route-pageNumber="1"
+                       asp-route-searchTerm="@Model.SearchTerm">
+                        <i class="bi bi-chevron-double-left"></i>
+                    </a>
+                </li>
+
+                <!-- Botón Anterior -->
+                <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                    <a class="page-link" asp-page="/News/Index"
+                       asp-route-pageNumber="@(Model.CurrentPage - 1)"
+                       asp-route-searchTerm="@Model.SearchTerm">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+
+                <!-- Páginas numeradas -->
+                @{
+                    var startPage = Math.Max(1, Model.CurrentPage - 2);
+                    var endPage = Math.Min(Model.TotalPages, Model.CurrentPage + 2);
+                }
+
+                @for (int i = startPage; i <= endPage; i++)
+                {
+                    <li class="page-item @(Model.CurrentPage == i ? "active" : "")">
+                        <a class="page-link" asp-page="/News/Index"
+                           asp-route-pageNumber="@i"
+                           asp-route-searchTerm="@Model.SearchTerm">
+                            @i
+                        </a>
+                    </li>
+                }
+
+                <!-- Botón Siguiente -->
+                <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-page="/News/Index"
+                       asp-route-pageNumber="@(Model.CurrentPage + 1)"
+                       asp-route-searchTerm="@Model.SearchTerm">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+
+                <!-- Botón Última Página -->
+                <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-page="/News/Index"
+                       asp-route-pageNumber="@Model.TotalPages"
+                       asp-route-searchTerm="@Model.SearchTerm">
+                        <i class="bi bi-chevron-double-right"></i>
+                    </a>
+                </li>
+            </ul>
+            <div class="text-center text-muted">
+                Página @Model.CurrentPage de @Model.TotalPages (Total: @Model.TotalNews noticia(s))
+            </div>
+        </nav>
+    }
+}
+
+<div class="mt-4">
+    <a asp-page="/Menu" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver al Menú
+    </a>
+</div>

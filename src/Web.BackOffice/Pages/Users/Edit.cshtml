@@ -1,0 +1,77 @@
+﻿@page "{id:int}"
+@model Web.BackOffice.Pages.Users.EditModel
+@{
+    ViewData["Title"] = "Editar Usuario";
+}
+
+<h1 class="display-4 mb-4">Editar Usuario</h1>
+
+@if (Model.ErrorMessage != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Model.User != null && Model.User.Id > 0)
+{
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        <input type="hidden" asp-for="User.Id" />
+
+                        <div class="mb-3">
+                            <label asp-for="User.Email" class="form-label">Email</label>
+                            <input asp-for="User.Email" class="form-control" type="email" required />
+                            <span asp-validation-for="User.Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="User.FirstName" class="form-label">Nombre</label>
+                                <input asp-for="User.FirstName" class="form-control" required />
+                                <span asp-validation-for="User.FirstName" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="User.LastName" class="form-label">Apellido</label>
+                                <input asp-for="User.LastName" class="form-control" required />
+                                <span asp-validation-for="User.LastName" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="User.DateOfBirth" class="form-label">Fecha de Nacimiento</label>
+                            <input asp-for="User.DateOfBirth" class="form-control" type="date" required />
+                            <span asp-validation-for="User.DateOfBirth" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Guardar Cambios
+                            </button>
+                            <a asp-page="/Users/Index" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i> Usuario no encontrado.
+    </div>
+    <a asp-page="/Users/Index" class="btn btn-secondary">Volver al Listado</a>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

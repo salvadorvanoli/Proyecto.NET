@@ -1,4 +1,7 @@
+using Application.Common.Interfaces;
 using Infrastructure.Persistence;
+using Infrastructure.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +18,9 @@ public static class DependencyInjection
     /// </summary>
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        // Add HTTP Context Accessor for tenant resolution
+        services.AddHttpContextAccessor();
+
         // Add Entity Framework
         services.AddDbContext<ApplicationDbContext>(options =>
         {
@@ -27,6 +33,13 @@ public static class DependencyInjection
             options.EnableDetailedErrors();
 #endif
         });
+
+        // Register ApplicationDbContext as IApplicationDbContext
+        services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+
+        // Register infrastructure services
+        services.AddScoped<ITenantProvider, TenantProvider>();
+        services.AddSingleton<IPasswordHasher, PasswordHasher>();
 
         return services;
     }

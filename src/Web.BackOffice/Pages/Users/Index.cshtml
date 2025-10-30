@@ -1,0 +1,235 @@
+﻿@page
+@model Web.BackOffice.Pages.Users.IndexModel
+@{
+    ViewData["Title"] = "Gestionar Usuarios";
+    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="display-4">Gestionar Usuarios</h1>
+    <a asp-page="/Users/Create" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Crear Usuario
+    </a>
+</div>
+
+@if (Model.ErrorMessage != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Model.SuccessMessage != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Barra de búsqueda -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-10">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text"
+                           class="form-control"
+                           name="searchTerm"
+                           value="@Model.SearchTerm"
+                           placeholder="Buscar usuarios por nombre o email..." />
+                    <button class="btn btn-primary" type="submit">Buscar</button>
+                    @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+                    {
+                        <a asp-page="/Users/Index" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Limpiar
+                        </a>
+                    }
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Información de resultados -->
+@if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+{
+    <div class="alert alert-info">
+        <i class="bi bi-filter"></i> Mostrando <strong>@Model.TotalUsers</strong> resultado(s) para "<strong>@Model.SearchTerm</strong>"
+    </div>
+}
+
+@if (Model.DisplayedUsers == null || !Model.DisplayedUsers.Any())
+{
+    @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-search"></i> No se encontraron usuarios que coincidan con "<strong>@Model.SearchTerm</strong>".
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> No hay usuarios registrados en el sistema.
+        </div>
+    }
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre Completo</th>
+                    <th>Email</th>
+                    <th>Fecha de Nacimiento</th>
+                    <th>Tenant ID</th>
+                    <th>Creado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model.DisplayedUsers)
+                {
+                    var isCurrentUser = currentUserId == user.Id.ToString();
+                    <tr class="@(isCurrentUser ? "table-primary" : "")">
+                        <td>@user.Id</td>
+                        <td>
+                            @user.FullName
+                            @if (isCurrentUser)
+                            {
+                                <span class="badge bg-success ms-2">
+                                    <i class="bi bi-person-check"></i> Tú
+                                </span>
+                            }
+                        </td>
+                        <td>@user.Email</td>
+                        <td>@user.DateOfBirth.ToString("dd/MM/yyyy")</td>
+                        <td>@user.TenantId</td>
+                        <td>@user.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a asp-page="/Users/Details" asp-route-id="@user.Id" class="btn btn-sm btn-info" title="Ver detalles">
+                                    <i class="bi bi-eye"></i> Ver
+                                </a>
+                                <a asp-page="/Users/Edit" asp-route-id="@user.Id" class="btn btn-sm btn-warning" title="Editar">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </a>
+                                @if (isCurrentUser)
+                                {
+                                    <button type="button" class="btn btn-sm btn-danger" disabled title="No puedes eliminar tu propia cuenta">
+                                        <i class="bi bi-trash"></i> Eliminar
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal@(user.Id)" title="Eliminar">
+                                        <i class="bi bi-trash"></i> Eliminar
+                                    </button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+
+                    @if (!isCurrentUser)
+                    {
+                        <!-- Modal de confirmación para eliminar -->
+                        <div class="modal fade" id="deleteModal@(user.Id)" tabindex="-1" aria-labelledby="deleteModalLabel@(user.Id)" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="deleteModalLabel@(user.Id)">Confirmar eliminación</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ¿Está seguro que desea eliminar al usuario <strong>@user.FullName</strong> (@user.Email)?
+                                        <br><br>
+                                        <span class="text-danger">Esta acción no se puede deshacer.</span>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <form method="post" asp-page-handler="Delete" asp-route-id="@user.Id" class="d-inline">
+                                            <button type="submit" class="btn btn-danger">Eliminar</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginación -->
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="Paginación de usuarios" class="mt-3">
+            <ul class="pagination justify-content-center">
+                <!-- Botón Primera Página -->
+                <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                    <a class="page-link" asp-page="/Users/Index"
+                       asp-route-pageNumber="1"
+                       asp-route-searchTerm="@Model.SearchTerm">
+                        <i class="bi bi-chevron-double-left"></i>
+                    </a>
+                </li>
+
+                <!-- Botón Anterior -->
+                <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                    <a class="page-link" asp-page="/Users/Index"
+                       asp-route-pageNumber="@(Model.CurrentPage - 1)"
+                       asp-route-searchTerm="@Model.SearchTerm">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+
+                <!-- Páginas numeradas -->
+                @{
+                    var startPage = Math.Max(1, Model.CurrentPage - 2);
+                    var endPage = Math.Min(Model.TotalPages, Model.CurrentPage + 2);
+                }
+
+                @for (int i = startPage; i <= endPage; i++)
+                {
+                    <li class="page-item @(Model.CurrentPage == i ? "active" : "")">
+                        <a class="page-link" asp-page="/Users/Index"
+                           asp-route-pageNumber="@i"
+                           asp-route-searchTerm="@Model.SearchTerm">
+                            @i
+                        </a>
+                    </li>
+                }
+
+                <!-- Botón Siguiente -->
+                <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-page="/Users/Index"
+                       asp-route-pageNumber="@(Model.CurrentPage + 1)"
+                       asp-route-searchTerm="@Model.SearchTerm">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+
+                <!-- Botón Última Página -->
+                <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-page="/Users/Index"
+                       asp-route-pageNumber="@Model.TotalPages"
+                       asp-route-searchTerm="@Model.SearchTerm">
+                        <i class="bi bi-chevron-double-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="text-center text-muted small">
+            Mostrando usuarios @((Model.CurrentPage - 1) * 10 + 1) - @(Math.Min(Model.CurrentPage * 10, Model.TotalUsers)) de @Model.TotalUsers
+        </div>
+    }
+}
+
+<div class="mt-4">
+    <a asp-page="/Menu" class="btn btn-secondary">Volver al Menú</a>
+</div>
