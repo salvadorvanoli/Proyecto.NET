@@ -10,6 +10,7 @@ public class IndexModel : PageModel
 {
     private readonly IUserApiService _userApiService;
     private readonly ILogger<IndexModel> _logger;
+    private const int PageSize = 10;
 
     public IndexModel(IUserApiService userApiService, ILogger<IndexModel> logger)
     {
@@ -18,6 +19,16 @@ public class IndexModel : PageModel
     }
 
     public IEnumerable<UserDto> Users { get; set; } = Enumerable.Empty<UserDto>();
+    public IEnumerable<UserDto> DisplayedUsers { get; set; } = Enumerable.Empty<UserDto>();
+
+    // Paginación
+    public int CurrentPage { get; set; } = 1;
+    public int TotalPages { get; set; }
+    public int TotalUsers { get; set; }
+
+    // Búsqueda
+    [BindProperty(SupportsGet = true)]
+    public string? SearchTerm { get; set; }
 
     [TempData]
     public string? SuccessMessage { get; set; }
@@ -25,11 +36,33 @@ public class IndexModel : PageModel
     [TempData]
     public string? ErrorMessage { get; set; }
 
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnGetAsync(int pageNumber = 1)
     {
         try
         {
             Users = await _userApiService.GetAllUsersAsync();
+
+            // Aplicar búsqueda si hay término de búsqueda
+            var filteredUsers = Users.ToList();
+            if (!string.IsNullOrWhiteSpace(SearchTerm))
+            {
+                filteredUsers = filteredUsers.Where(u =>
+                    u.FullName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    u.Email.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)
+                ).ToList();
+            }
+
+            // Calcular paginación
+            TotalUsers = filteredUsers.Count;
+            TotalPages = (int)Math.Ceiling(TotalUsers / (double)PageSize);
+            CurrentPage = Math.Max(1, Math.Min(pageNumber, TotalPages == 0 ? 1 : TotalPages));
+
+            // Obtener usuarios de la página actual
+            DisplayedUsers = filteredUsers
+                .Skip((CurrentPage - 1) * PageSize)
+                .Take(PageSize)
+                .ToList();
+
             return Page();
         }
         catch (Exception ex)
