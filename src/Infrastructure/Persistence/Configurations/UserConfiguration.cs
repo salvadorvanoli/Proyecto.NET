@@ -66,9 +66,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .HasForeignKey<User>(u => u.CredentialId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        // Many-to-many relationship with Role
+        // Many-to-many relationship with Role (unidirectional from User)
         builder.HasMany(u => u.Roles)
-            .WithMany(r => r.Users)
+            .WithMany()
             .UsingEntity(
                 "UserRoles",
                 l => l.HasOne(typeof(Role)).WithMany().HasForeignKey("RoleId")

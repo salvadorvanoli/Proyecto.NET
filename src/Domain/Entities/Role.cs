@@ -12,10 +12,6 @@ public class Role : BaseEntity
     /// </summary>
     public string Name { get; protected set; }
 
-    // Navigation properties
-    public virtual ICollection<User> Users { get; protected set; } = new List<User>();
-    public virtual ICollection<AccessRule> AccessRules { get; protected set; } = new List<AccessRule>();
-
     protected Role() : base()
     {
         Name = string.Empty;

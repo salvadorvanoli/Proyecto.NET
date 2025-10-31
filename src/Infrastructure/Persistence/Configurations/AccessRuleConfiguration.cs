@@ -42,23 +42,15 @@ public class AccessRuleConfiguration : IEntityTypeConfiguration<AccessRule>
         builder.Property(ar => ar.TenantId)
             .IsRequired();
 
-        builder.Property(ar => ar.ControlPointId)
-            .IsRequired();
-
         // Relationships
         builder.HasOne(ar => ar.Tenant)
             .WithMany()
             .HasForeignKey(ar => ar.TenantId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne(ar => ar.ControlPoint)
-            .WithMany(cp => cp.AccessRules)
-            .HasForeignKey(ar => ar.ControlPointId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // Many-to-many relationship with Role
+        // Many-to-many relationship with Role (unidirectional from AccessRule)
         builder.HasMany(ar => ar.Roles)
-            .WithMany(r => r.AccessRules)
+            .WithMany()
             .UsingEntity(
                 "AccessRuleRoles",
                 l => l.HasOne(typeof(Role)).WithMany().HasForeignKey("RoleId"),
@@ -67,6 +59,5 @@ public class AccessRuleConfiguration : IEntityTypeConfiguration<AccessRule>
 
         // Indexes
         builder.HasIndex(ar => ar.TenantId);
-        builder.HasIndex(ar => ar.ControlPointId);
     }
 }

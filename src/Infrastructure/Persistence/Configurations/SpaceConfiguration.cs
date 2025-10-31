@@ -64,7 +64,7 @@ public class SpaceConfiguration : IEntityTypeConfiguration<Space>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(s => s.SpaceType)
-            .WithMany(st => st.Spaces)
+            .WithMany()
             .HasForeignKey(s => s.SpaceTypeId)
             .OnDelete(DeleteBehavior.Restrict);
 

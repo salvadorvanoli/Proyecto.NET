@@ -12,9 +12,6 @@ public class SpaceType : BaseEntity
     /// </summary>
     public string Name { get; protected set; }
 
-    // Navigation properties
-    public virtual ICollection<Space> Spaces { get; protected set; } = new List<Space>();
-
     protected SpaceType() : base()
     {
         Name = string.Empty;
