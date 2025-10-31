@@ -3,6 +3,7 @@
   <!-- Common properties are inherited from Directory.Build.props -->
 
   <ItemGroup>
+    <ProjectReference Include="..\Application\Application.csproj" />
     <ProjectReference Include="..\Shared\Shared.csproj" />
   </ItemGroup>
 
