@@ -1,5 +1,10 @@
 @page "/historial-accesos"
 @using Web.FrontOffice.Components.Shared
+@using Application.AccessEvents.DTOs
+@using Web.FrontOffice.Services.Interfaces
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IAccessEventApiService AccessEventApiService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveServer
 
 <Microsoft.AspNetCore.Components.Web.PageTitle>Historial de Accesos</Microsoft.AspNetCore.Components.Web.PageTitle>
@@ -7,49 +12,70 @@
 <div class="access-history-container">
     <PageHeader Title="Historial de Accesos" Subtitle="Registro completo de tus accesos al sistema" />
 
-    <Card>
-        <div class="access-stats">
-            <div class="stat-item">
-                <span class="stat-value">@eventosAcceso.Count</span>
-                <span class="stat-label">Total de Accesos</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value">@eventosAcceso.Count(e => e.Resultado == ResultadoAcceso.PERMITIDO)</span>
-                <span class="stat-label">Permitidos</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-value">@eventosAcceso.Count(e => e.Resultado == ResultadoAcceso.DENEGADO)</span>
-                <span class="stat-label">Denegados</span>
-            </div>
+    @if (isLoading)
+    {
+        <div class="loading">
+            <p>Cargando historial...</p>
         </div>
-    </Card>
+    }
+    else if (error != null)
+    {
+        <div class="alert alert-danger">
+            <p>@error</p>
+        </div>
+    }
+    else if (!accessEvents.Any())
+    {
+        <div class="no-data">
+            <p>No hay eventos de acceso registrados.</p>
+        </div>
+    }
+    else
+    {
+        <Card>
+            <div class="access-stats">
+                <div class="stat-item">
+                    <span class="stat-value">@accessEvents.Count</span>
+                    <span class="stat-label">Total de Accesos</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">@accessEvents.Count(e => e.Result == "Granted")</span>
+                    <span class="stat-label">Permitidos</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">@accessEvents.Count(e => e.Result == "Denied")</span>
+                    <span class="stat-label">Denegados</span>
+                </div>
+            </div>
+        </Card>
 
-    <Card Title="Registro de Eventos">
-        <div class="access-list">
-            @foreach (var evento in eventosAcceso.OrderByDescending(e => e.Fecha))
-            {
-                <div class="access-item @(evento.Resultado == ResultadoAcceso.PERMITIDO ? "access-allowed" : "access-denied")">
-                    <div class="access-info">
-                        <div class="access-icon-wrapper">
-                            <span class="access-icon">@(evento.Resultado == ResultadoAcceso.PERMITIDO ? "✓" : "✗")</span>
-                        </div>
-                        <div class="access-content">
-                            <div class="access-details">
-                                <span class="access-location">@evento.PuntoControl</span>
-                                <div class="access-datetime">
-                                    <span class="access-date">@evento.Fecha.ToString("dd/MM/yyyy")</span>
-                                    <span class="access-separator">•</span>
-                                    <span class="access-time">@evento.Fecha.ToString("HH:mm:ss")</span>
+        <Card Title="Registro de Eventos">
+            <div class="access-list">
+                @foreach (var evento in accessEvents)
+                {
+                    <div class="access-item @(evento.Result == "Granted" ? "access-allowed" : "access-denied")">
+                        <div class="access-info">
+                            <div class="access-icon-wrapper">
+                                <span class="access-icon">@(evento.Result == "Granted" ? "✓" : "✗")</span>
+                            </div>
+                            <div class="access-content">
+                                <div class="access-details">
+                                    <span class="access-location">@evento.ControlPoint.Name</span>
+                                    <div class="access-datetime">
+                                        <span class="access-date">@evento.EventDateTime.ToString("dd/MM/yyyy")</span>
+                                        <span class="access-separator">•</span>
+                                        <span class="access-time">@evento.EventDateTime.ToString("HH:mm:ss")</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                        <Badge Text="@(evento.Result == "Granted" ? "PERMITIDO" : "DENEGADO")"
+                               Type="@(evento.Result == "Granted" ? "success" : "danger")" />
                     </div>
-                    <Badge Text="@evento.Resultado.ToString()"
-                           Type="@(evento.Resultado == ResultadoAcceso.PERMITIDO ? "success" : "danger")" />
-                </div>
-            }
-        </div>
-    </Card>
+                }
+            </div>
+        </Card>
+    }
 
     <div class="back-action">
         <a href="/perfil" class="action-link">
@@ -59,80 +85,50 @@
 </div>
 
 @code {
-    private List<EventoAcceso> eventosAcceso = new List<EventoAcceso>
-    {
-        new EventoAcceso
-        {
-            Fecha = new DateTime(2025, 10, 18, 14, 30, 0),
-            Resultado = ResultadoAcceso.PERMITIDO,
-            PuntoControl = "Entrada Principal"
-        },
-        new EventoAcceso
-        {
-            Fecha = new DateTime(2025, 10, 18, 9, 15, 0),
-            Resultado = ResultadoAcceso.PERMITIDO,
-            PuntoControl = "Entrada Principal"
-        },
-        new EventoAcceso
-        {
-            Fecha = new DateTime(2025, 10, 17, 18, 45, 0),
-            Resultado = ResultadoAcceso.PERMITIDO,
-            PuntoControl = "Salida Principal"
-        },
-        new EventoAcceso
-        {
-            Fecha = new DateTime(2025, 10, 17, 9, 0, 0),
-            Resultado = ResultadoAcceso.PERMITIDO,
-            PuntoControl = "Entrada Principal"
-        },
-        new EventoAcceso
-        {
-            Fecha = new DateTime(2025, 10, 16, 19, 30, 0),
-            Resultado = ResultadoAcceso.PERMITIDO,
-            PuntoControl = "Salida Estacionamiento"
-        },
-        new EventoAcceso
-        {
-            Fecha = new DateTime(2025, 10, 16, 15, 20, 0),
-            Resultado = ResultadoAcceso.DENEGADO,
-            PuntoControl = "Área Restringida"
-        },
-        new EventoAcceso
-        {
-            Fecha = new DateTime(2025, 10, 16, 9, 10, 0),
-            Resultado = ResultadoAcceso.PERMITIDO,
-            PuntoControl = "Entrada Estacionamiento"
-        },
-        new EventoAcceso
-        {
-            Fecha = new DateTime(2025, 10, 15, 18, 50, 0),
-            Resultado = ResultadoAcceso.PERMITIDO,
-            PuntoControl = "Salida Principal"
-        },
-        new EventoAcceso
-        {
-            Fecha = new DateTime(2025, 10, 15, 9, 5, 0),
-            Resultado = ResultadoAcceso.PERMITIDO,
-            PuntoControl = "Entrada Principal"
-        },
-        new EventoAcceso
-        {
-            Fecha = new DateTime(2025, 10, 14, 20, 0, 0),
-            Resultado = ResultadoAcceso.DENEGADO,
-            PuntoControl = "Laboratorio B"
-        }
-    };
+    private List<AccessEventResponse> accessEvents = new();
+    private bool isLoading = true;
+    private string? error = null;
 
-    public class EventoAcceso
+    protected override async Task OnInitializedAsync()
     {
-        public DateTime Fecha { get; set; }
-        public ResultadoAcceso Resultado { get; set; }
-        public string PuntoControl { get; set; } = string.Empty;
+        await CargarHistorial();
     }
 
-    public enum ResultadoAcceso
+    private async Task CargarHistorial()
     {
-        PERMITIDO,
-        DENEGADO
+        try
+        {
+            isLoading = true;
+            error = null;
+
+            // TODO: Obtener el userId desde el AuthenticationState cuando se implemente el login
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
+                {
+                    accessEvents = await AccessEventApiService.GetUserAccessEventsAsync(userId);
+                }
+                else
+                {
+                    error = "No se pudo obtener el ID del usuario.";
+                }
+            }
+            else
+            {
+                error = "Debe iniciar sesión para ver su historial de accesos.";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = $"Error al cargar el historial: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 }

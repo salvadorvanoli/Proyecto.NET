@@ -1,5 +1,10 @@
 @page "/mis-beneficios"
 @using Web.FrontOffice.Components.Shared
+@using Application.Benefits.DTOs
+@using Web.FrontOffice.Services.Interfaces
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IBenefitApiService BenefitApiService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @rendermode InteractiveServer
 
 <Microsoft.AspNetCore.Components.Web.PageTitle>Mis Beneficios</Microsoft.AspNetCore.Components.Web.PageTitle>
@@ -7,40 +12,94 @@
 <div class="benefits-container">
     <PageHeader Title="Mis Beneficios" Subtitle="Beneficios disponibles y consumidos" />
 
-    <div class="benefits-grid">
-        @foreach (var beneficio in beneficios)
-        {
-            <Card Title="@beneficio.TipoBeneficio.Nombre">
-                <div class="benefit-content">
-                    <p class="benefit-description">@beneficio.TipoBeneficio.Descripcion</p>
+    @if (isLoading)
+    {
+        <div class="loading">
+            <p>Cargando beneficios...</p>
+        </div>
+    }
+    else if (error != null)
+    {
+        <div class="alert alert-danger">
+            <p>@error</p>
+        </div>
+    }
+    else if (!benefits.Any())
+    {
+        <div class="no-data">
+            <p>No hay beneficios disponibles en este momento.</p>
+        </div>
+    }
+    else
+    {
+        <div class="benefits-grid">
+            @foreach (var benefit in benefits)
+            {
+                <Card Title="@benefit.BenefitType.Name">
+                    <div class="benefit-content">
+                        <p class="benefit-description">@benefit.BenefitType.Description</p>
 
-                    <div class="benefit-details">
-                        <InfoField Label="Vigencia Desde" Value="@beneficio.Vigencia.Inicio.ToString("dd/MM/yyyy")" />
-                        <InfoField Label="Vigencia Hasta" Value="@beneficio.Vigencia.Fin.ToString("dd/MM/yyyy")" />
-                        <InfoField Label="Cupos Disponibles" Value="@beneficio.Cupos.ToString()" />
-                    </div>
-
-                    @if (beneficio.Consumos.Any())
-                    {
-                        <div class="consumptions">
-                            <h4>Consumos Realizados</h4>
-                            @foreach (var consumo in beneficio.Consumos)
+                        <div class="benefit-details">
+                            @if (benefit.ValidityPeriod != null)
                             {
-                                <div class="consumption-item">
-                                    <span>Cantidad: @consumo.Cantidad</span>
-                                    <span>Fecha: @consumo.Uso.Fecha.ToString("dd/MM/yyyy HH:mm")</span>
-                                </div>
+                                <InfoField Label="Vigencia Desde" Value="@benefit.ValidityPeriod.StartDate.ToString("dd/MM/yyyy")" />
+                                <InfoField Label="Vigencia Hasta" Value="@benefit.ValidityPeriod.EndDate.ToString("dd/MM/yyyy")" />
+                            }
+                            else
+                            {
+                                <InfoField Label="Vigencia" Value="Permanente" />
+                            }
+                            <InfoField Label="Cupos Disponibles" Value="@benefit.Quotas.ToString()" />
+                            <InfoField Label="Total Consumido" Value="@benefit.TotalConsumed.ToString()" />
+                        </div>
+
+                        <div class="benefit-status">
+                            @if (benefit.CanBeConsumed)
+                            {
+                                <span class="badge badge-success">Disponible</span>
+                            }
+                            else if (!benefit.IsValid)
+                            {
+                                <span class="badge badge-warning">Expirado</span>
+                            }
+                            else if (!benefit.HasAvailableQuotas)
+                            {
+                                <span class="badge badge-danger">Sin Cupos</span>
                             }
                         </div>
-                    }
-                    else
-                    {
-                        <p class="no-data">No has utilizado este beneficio aún</p>
-                    }
-                </div>
-            </Card>
-        }
-    </div>
+
+                        @if (benefit.Consumptions.Any())
+                        {
+                            <div class="consumptions">
+                                <h4>Mis Consumos</h4>
+                                @foreach (var consumption in benefit.Consumptions)
+                                {
+                                    <div class="consumption-item">
+                                        <span>Cantidad: @consumption.Amount</span>
+                                        <span>Fecha: @consumption.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                        @if (consumption.Usages.Any())
+                                        {
+                                            <div class="usages">
+                                                <small>Usos registrados: @consumption.Usages.Count</small>
+                                                @foreach (var usage in consumption.Usages)
+                                                {
+                                                    <small>- @usage.UsageDateTime.ToString("dd/MM/yyyy HH:mm")</small>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="no-data">No has utilizado este beneficio aún</p>
+                        }
+                    </div>
+                </Card>
+            }
+        </div>
+    }
 
     <div class="back-action">
         <a href="/perfil" class="action-link">
@@ -50,102 +109,50 @@
 </div>
 
 @code {
-    private List<Beneficio> beneficios = new List<Beneficio>
+    private List<BenefitResponse> benefits = new();
+    private bool isLoading = true;
+    private string? error = null;
+
+    protected override async Task OnInitializedAsync()
     {
-        new Beneficio
+        await CargarBeneficios();
+    }
+
+    private async Task CargarBeneficios()
+    {
+        try
         {
-            TipoBeneficio = new TipoBeneficio
+            isLoading = true;
+            error = null;
+
+            // TODO: Obtener el userId desde el AuthenticationState cuando se implemente el login
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
             {
-                Nombre = "Descuento Gimnasio",
-                Descripcion = "20% de descuento en todas las membresías mensuales"
-            },
-            Vigencia = new DateRange
-            {
-                Inicio = new DateTime(2025, 1, 1),
-                Fin = new DateTime(2025, 12, 31)
-            },
-            Cupos = 8,
-            Consumos = new List<Consumo>
-            {
-                new Consumo
+                var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
                 {
-                    Cantidad = 1,
-                    Uso = new Uso { Fecha = new DateTime(2025, 9, 15, 10, 30, 0) }
-                },
-                new Consumo
+                    benefits = await BenefitApiService.GetUserBenefitsAsync(userId);
+                }
+                else
                 {
-                    Cantidad = 1,
-                    Uso = new Uso { Fecha = new DateTime(2025, 10, 1, 11, 0, 0) }
+                    error = "No se pudo obtener el ID del usuario.";
                 }
             }
-        },
-        new Beneficio
-        {
-            TipoBeneficio = new TipoBeneficio
+            else
             {
-                Nombre = "Estacionamiento Gratuito",
-                Descripcion = "Acceso gratuito al estacionamiento durante horarios laborales"
-            },
-            Vigencia = new DateRange
-            {
-                Inicio = new DateTime(2025, 1, 1),
-                Fin = new DateTime(2025, 12, 31)
-            },
-            Cupos = 15,
-            Consumos = new List<Consumo>()
-        },
-        new Beneficio
-        {
-            TipoBeneficio = new TipoBeneficio
-            {
-                Nombre = "Cafetería VIP",
-                Descripcion = "Bebida gratis por día en la cafetería del edificio"
-            },
-            Vigencia = new DateRange
-            {
-                Inicio = new DateTime(2025, 10, 1),
-                Fin = new DateTime(2025, 10, 31)
-            },
-            Cupos = 22,
-            Consumos = new List<Consumo>
-            {
-                new Consumo
-                {
-                    Cantidad = 1,
-                    Uso = new Uso { Fecha = new DateTime(2025, 10, 16, 9, 0, 0) }
-                }
+                error = "Debe iniciar sesión para ver sus beneficios.";
             }
         }
-    };
-
-    public class Beneficio
-    {
-        public TipoBeneficio TipoBeneficio { get; set; } = new();
-        public DateRange Vigencia { get; set; } = new();
-        public int Cupos { get; set; }
-        public List<Consumo> Consumos { get; set; } = new();
-    }
-
-    public class TipoBeneficio
-    {
-        public string Nombre { get; set; } = string.Empty;
-        public string Descripcion { get; set; } = string.Empty;
-    }
-
-    public class DateRange
-    {
-        public DateTime Inicio { get; set; }
-        public DateTime Fin { get; set; }
-    }
-
-    public class Consumo
-    {
-        public int Cantidad { get; set; }
-        public Uso Uso { get; set; } = new();
-    }
-
-    public class Uso
-    {
-        public DateTime Fecha { get; set; }
+        catch (Exception ex)
+        {
+            error = $"Error al cargar los beneficios: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 }
