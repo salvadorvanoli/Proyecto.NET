@@ -22,13 +22,18 @@ public class News : BaseEntity
     /// </summary>
     public DateTime PublishDate { get; protected set; }
 
+    /// <summary>
+    /// URL or path to the news article image.
+    /// </summary>
+    public string? ImageUrl { get; protected set; }
+
     protected News() : base()
     {
         Title = string.Empty;
         Content = string.Empty;
     }
 
-    public News(int tenantId, string title, string content, DateTime publishDate) : base(tenantId)
+    public News(int tenantId, string title, string content, DateTime publishDate, string? imageUrl = null) : base(tenantId)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException(
@@ -43,12 +48,13 @@ public class News : BaseEntity
         Title = title.Trim();
         Content = content.Trim();
         PublishDate = publishDate;
+        ImageUrl = imageUrl?.Trim();
     }
 
     /// <summary>
     /// Updates the news article content.
     /// </summary>
-    public void UpdateContent(string title, string content)
+    public void UpdateContent(string title, string content, string? imageUrl = null)
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException(
@@ -62,6 +68,7 @@ public class News : BaseEntity
 
         Title = title.Trim();
         Content = content.Trim();
+        ImageUrl = imageUrl?.Trim();
         UpdateTimestamp();
     }
 

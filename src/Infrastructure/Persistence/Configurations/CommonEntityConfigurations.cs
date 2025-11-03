@@ -16,6 +16,7 @@ public class NewsConfiguration : IEntityTypeConfiguration<News>
         builder.Property(n => n.Title).IsRequired().HasMaxLength(DomainConstants.StringLengths.TitleMaxLength);
         builder.Property(n => n.Content).IsRequired();
         builder.Property(n => n.PublishDate).IsRequired();
+        builder.Property(n => n.ImageUrl).HasMaxLength(500);
         builder.Property(n => n.TenantId).IsRequired();
 
         builder.HasOne(n => n.Tenant).WithMany().HasForeignKey(n => n.TenantId).OnDelete(DeleteBehavior.Restrict);
