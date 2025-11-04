@@ -5,6 +5,7 @@ using Application.Roles.Services;
 using Application.News.Services;
 using Application.SpaceTypes.Services;
 using Application.Spaces.Services;
+using Application.ControlPoints.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application;
@@ -26,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<INewsService, NewsService>();
         services.AddScoped<ISpaceTypeService, SpaceTypeService>();
         services.AddScoped<ISpaceService, SpaceService>();
+        services.AddScoped<IControlPointService, ControlPointService>();
 
         return services;
     }
