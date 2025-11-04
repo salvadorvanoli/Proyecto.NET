@@ -1,0 +1,64 @@
+@page
+@model Web.BackOffice.Pages.Spaces.CreateModel
+@{
+    ViewData["Title"] = "Crear Espacio";
+}
+
+<div class="mb-4">
+    <h1 class="display-4">Crear Nuevo Espacio</h1>
+</div>
+
+@if (Model.ErrorMessage != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label asp-for="Input.Name" class="form-label">Nombre del Espacio</label>
+                        <input asp-for="Input.Name" class="form-control" placeholder="Ej: Sala 101, Oficina Principal, etc." />
+                        <span asp-validation-for="Input.Name" class="text-danger"></span>
+                        <div class="form-text">
+                            El nombre debe ser descriptivo y único dentro del tenant (mínimo 2 caracteres).
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.SpaceTypeId" class="form-label">Tipo de Espacio</label>
+                        <select asp-for="Input.SpaceTypeId" class="form-select">
+                            <option value="">-- Seleccione un tipo de espacio --</option>
+                            @foreach (var spaceType in Model.SpaceTypes)
+                            {
+                                <option value="@spaceType.Id">@spaceType.Name</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Input.SpaceTypeId" class="text-danger"></span>
+                        <div class="form-text">
+                            Seleccione el tipo de espacio que mejor describa este espacio.
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Crear Espacio
+                        </button>
+                        <a asp-page="/Spaces/Index" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

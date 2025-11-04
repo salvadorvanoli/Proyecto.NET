@@ -1,0 +1,130 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.ComponentModel.DataAnnotations;
+using Web.BackOffice.Models;
+using Web.BackOffice.Services;
+
+namespace Web.BackOffice.Pages.Spaces;
+
+public class EditModel : PageModel
+{
+    private readonly ISpaceApiService _spaceApiService;
+    private readonly ISpaceTypeApiService _spaceTypeApiService;
+    private readonly ILogger<EditModel> _logger;
+
+    public EditModel(
+        ISpaceApiService spaceApiService,
+        ISpaceTypeApiService spaceTypeApiService,
+        ILogger<EditModel> logger)
+    {
+        _spaceApiService = spaceApiService;
+        _spaceTypeApiService = spaceTypeApiService;
+        _logger = logger;
+    }
+
+    [BindProperty]
+    public InputModel Input { get; set; } = new();
+
+    public IEnumerable<SpaceTypeDto> SpaceTypes { get; set; } = Enumerable.Empty<SpaceTypeDto>();
+
+    [TempData]
+    public string? ErrorMessage { get; set; }
+
+    public class InputModel
+    {
+        public int Id { get; set; }
+
+        [Required(ErrorMessage = "El nombre del espacio es requerido")]
+        [StringLength(200, MinimumLength = 2, ErrorMessage = "El nombre debe tener entre 2 y 200 caracteres")]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Debe seleccionar un tipo de espacio")]
+        [Range(1, int.MaxValue, ErrorMessage = "Debe seleccionar un tipo de espacio válido")]
+        [Display(Name = "Tipo de Espacio")]
+        public int SpaceTypeId { get; set; }
+    }
+
+    public async Task<IActionResult> OnGetAsync(int id)
+    {
+        try
+        {
+            var spaceTask = _spaceApiService.GetSpaceByIdAsync(id);
+            var spaceTypesTask = _spaceTypeApiService.GetAllSpaceTypesAsync();
+
+            await Task.WhenAll(spaceTask, spaceTypesTask);
+
+            var space = await spaceTask;
+            SpaceTypes = await spaceTypesTask;
+
+            if (space == null)
+            {
+                TempData["ErrorMessage"] = $"No se encontró el espacio con ID {id}.";
+                return RedirectToPage("/Spaces/Index");
+            }
+
+            Input = new InputModel
+            {
+                Id = space.Id,
+                Name = space.Name,
+                SpaceTypeId = space.SpaceTypeId
+            };
+
+            return Page();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading space {SpaceId}", id);
+            TempData["ErrorMessage"] = "Error al cargar el espacio.";
+            return RedirectToPage("/Spaces/Index");
+        }
+    }
+
+    public async Task<IActionResult> OnPostAsync()
+    {
+        if (!ModelState.IsValid)
+        {
+            // Reload space types if validation fails
+            try
+            {
+                SpaceTypes = await _spaceTypeApiService.GetAllSpaceTypesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading space types");
+                ErrorMessage = "Error al cargar los tipos de espacio.";
+            }
+            return Page();
+        }
+
+        try
+        {
+            var updateSpaceDto = new UpdateSpaceDto
+            {
+                Name = Input.Name,
+                SpaceTypeId = Input.SpaceTypeId
+            };
+
+            await _spaceApiService.UpdateSpaceAsync(Input.Id, updateSpaceDto);
+
+            TempData["SuccessMessage"] = $"Espacio '{Input.Name}' actualizado exitosamente.";
+            return RedirectToPage("/Spaces/Index");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating space {SpaceId}", Input.Id);
+            ErrorMessage = "Error al actualizar el espacio. Verifique que el nombre no esté en uso.";
+            
+            // Reload space types
+            try
+            {
+                SpaceTypes = await _spaceTypeApiService.GetAllSpaceTypesAsync();
+            }
+            catch (Exception loadEx)
+            {
+                _logger.LogError(loadEx, "Error loading space types after update failure");
+            }
+
+            return Page();
+        }
+    }
+}

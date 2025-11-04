@@ -3,6 +3,8 @@ using Application.Common.Interfaces;
 using Application.Users.Services;
 using Application.Roles.Services;
 using Application.News.Services;
+using Application.SpaceTypes.Services;
+using Application.Spaces.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application;
@@ -22,6 +24,8 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<INewsService, NewsService>();
+        services.AddScoped<ISpaceTypeService, SpaceTypeService>();
+        services.AddScoped<ISpaceService, SpaceService>();
 
         return services;
     }
