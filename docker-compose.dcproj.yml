@@ -1,0 +1,53 @@
+# ============================================
+# Configuración de Visual Studio para Docker
+# ============================================
+# Este archivo configura el soporte de Docker en Visual Studio
+
+services:
+  web.api:
+    image: ${DOCKER_REGISTRY-}webapi
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: final-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+    ports:
+      - "5000:80"
+      - "5001:443"
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
+
+  web.backoffice:
+    image: ${DOCKER_REGISTRY-}webbackoffice
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: final-backoffice
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+    ports:
+      - "5002:80"
+      - "5003:443"
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
+
+  web.frontoffice:
+    image: ${DOCKER_REGISTRY-}webfrontoffice
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: final-frontoffice
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+    ports:
+      - "5004:80"
+      - "5005:443"
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
