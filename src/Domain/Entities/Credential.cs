@@ -33,7 +33,7 @@ public class Credential : BaseEntity
     {
         if (userId <= DomainConstants.NumericValidation.TransientEntityId)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "User ID"),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "ID de usuario"),
                 nameof(userId));
 
         UserId = userId;

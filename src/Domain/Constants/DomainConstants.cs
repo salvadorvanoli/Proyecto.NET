@@ -78,31 +78,31 @@ public static class DomainConstants
     public static class ErrorMessages
     {
         // Null/Empty validation
-        public const string CannotBeNullOrEmpty = "{0} cannot be null or empty.";
+        public const string CannotBeNullOrEmpty = "{0} no puede ser nulo o vacío.";
 
         // Length validation
-        public const string MinLengthRequired = "{0} must be at least {1} characters long.";
-        public const string MaxLengthExceeded = "{0} cannot exceed {1} characters.";
-        public const string LengthMustBeBetween = "{0} must be between {1} and {2} characters.";
+        public const string MinLengthRequired = "{0} debe tener al menos {1} caracteres.";
+        public const string MaxLengthExceeded = "{0} no puede exceder {1} caracteres.";
+        public const string LengthMustBeBetween = "{0} debe tener entre {1} y {2} caracteres.";
 
         // Numeric validation
-        public const string MustBeGreaterThanZero = "{0} must be greater than zero.";
-        public const string MustBeGreaterThanOrEqualTo = "{0} must be greater than or equal to {1}.";
-        public const string MustBeLessThanOrEqualTo = "{0} must be less than or equal to {1}.";
-        public const string MustBeBetween = "{0} must be between {1} and {2}.";
+        public const string MustBeGreaterThanZero = "{0} debe ser mayor que cero.";
+        public const string MustBeGreaterThanOrEqualTo = "{0} debe ser mayor o igual a {1}.";
+        public const string MustBeLessThanOrEqualTo = "{0} debe ser menor o igual a {1}.";
+        public const string MustBeBetween = "{0} debe estar entre {1} y {2}.";
 
         // Date/Time validation
-        public const string DateCannotBeBefore = "{0} cannot be before {1}.";
-        public const string DateCannotBeAfter = "{0} cannot be after {1}.";
-        public const string DateCannotBeInTheFuture = "{0} cannot be in the future.";
-        public const string InvalidDateFormat = "Invalid date format for {0}.";
-        public const string InvalidTimeFormat = "Invalid {0} format: {1}";
-        public const string TimeCannotBeNullOrEmpty = "{0} cannot be null or empty.";
+        public const string DateCannotBeBefore = "{0} no puede ser anterior a {1}.";
+        public const string DateCannotBeAfter = "{0} no puede ser posterior a {1}.";
+        public const string DateCannotBeInTheFuture = "{0} no puede estar en el futuro.";
+        public const string InvalidDateFormat = "Formato de fecha inválido para {0}.";
+        public const string InvalidTimeFormat = "Formato de {0} inválido: {1}";
+        public const string TimeCannotBeNullOrEmpty = "{0} no puede ser nulo o vacío.";
 
         // Entity validation
-        public const string InvalidEmailFormat = "Invalid email format.";
-        public const string InvalidCharacters = "{0} contains invalid characters.";
-        public const string MustBelongToSameTenant = "{0} must belong to the same tenant.";
+        public const string InvalidEmailFormat = "Formato de email inválido.";
+        public const string InvalidCharacters = "{0} contiene caracteres inválidos.";
+        public const string MustBelongToSameTenant = "{0} debe pertenecer al mismo tenant.";
     }
 
     /// <summary>
