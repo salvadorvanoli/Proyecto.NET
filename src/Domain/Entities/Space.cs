@@ -1,5 +1,4 @@
 using Domain.Constants;
-using Domain.DataTypes;
 
 namespace Domain.Entities;
 
@@ -12,11 +11,6 @@ public class Space : BaseEntity
     /// Name of the space.
     /// </summary>
     public string Name { get; protected set; }
-
-    /// <summary>
-    /// Location of the space.
-    /// </summary>
-    public Location Location { get; protected set; }
 
     /// <summary>
     /// Foreign key to the space type.
@@ -32,7 +26,7 @@ public class Space : BaseEntity
         Name = string.Empty;
     }
 
-    public Space(int tenantId, string name, Location location, int spaceTypeId) : base(tenantId)
+    public Space(int tenantId, string name, int spaceTypeId) : base(tenantId)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException(
@@ -56,14 +50,13 @@ public class Space : BaseEntity
                 nameof(spaceTypeId));
 
         Name = trimmedName;
-        Location = location;
         SpaceTypeId = spaceTypeId;
     }
 
     /// <summary>
     /// Updates the space information.
     /// </summary>
-    public void UpdateInformation(string name, Location location)
+    public void UpdateInformation(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException(
@@ -82,7 +75,6 @@ public class Space : BaseEntity
                 nameof(name));
 
         Name = trimmedName;
-        Location = location;
         UpdateTimestamp();
     }
 
