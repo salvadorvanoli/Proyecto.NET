@@ -6,6 +6,7 @@ using Application.News.Services;
 using Application.SpaceTypes.Services;
 using Application.Spaces.Services;
 using Application.ControlPoints.Services;
+using Application.AccessRules.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application;
@@ -28,6 +29,7 @@ public static class DependencyInjection
         services.AddScoped<ISpaceTypeService, SpaceTypeService>();
         services.AddScoped<ISpaceService, SpaceService>();
         services.AddScoped<IControlPointService, ControlPointService>();
+        services.AddScoped<IAccessRuleService, AccessRuleService>();
 
         return services;
     }
