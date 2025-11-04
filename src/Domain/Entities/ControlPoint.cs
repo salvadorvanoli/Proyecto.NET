@@ -31,12 +31,12 @@ public class ControlPoint : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Control point name"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Nombre"),
                 nameof(name));
 
         if (spaceId <= DomainConstants.NumericValidation.TransientEntityId)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "Space ID"),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "ID de espacio"),
                 nameof(spaceId));
 
         Name = name.Trim();
@@ -50,7 +50,7 @@ public class ControlPoint : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Control point name"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Nombre"),
                 nameof(name));
 
         Name = name.Trim();
@@ -64,7 +64,7 @@ public class ControlPoint : BaseEntity
     {
         if (spaceId <= DomainConstants.NumericValidation.TransientEntityId)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "Space ID"),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "ID de espacio"),
                 nameof(spaceId));
 
         SpaceId = spaceId;

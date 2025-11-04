@@ -15,40 +15,40 @@ public readonly record struct PersonalData
     {
         if (string.IsNullOrWhiteSpace(firstName))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "First name"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Nombre"),
                 nameof(firstName));
 
         if (string.IsNullOrWhiteSpace(lastName))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Last name"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Apellido"),
                 nameof(lastName));
 
         if (!IsValidName(firstName))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.InvalidCharacters, "First name"),
+                string.Format(DomainConstants.ErrorMessages.InvalidCharacters, "Nombre"),
                 nameof(firstName));
 
         if (!IsValidName(lastName))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.InvalidCharacters, "Last name"),
+                string.Format(DomainConstants.ErrorMessages.InvalidCharacters, "Apellido"),
                 nameof(lastName));
 
         var today = DateOnly.FromDateTime(DateTime.Today);
 
         if (birthDate > today)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.DateCannotBeInTheFuture, "Birth date"),
+                string.Format(DomainConstants.ErrorMessages.DateCannotBeInTheFuture, "Fecha de nacimiento"),
                 nameof(birthDate));
 
         var age = CalculateAge(birthDate, today);
         if (age > DomainConstants.DateTimeValidation.MaxAge)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeLessThanOrEqualTo, "Age", DomainConstants.DateTimeValidation.MaxAge),
+                string.Format(DomainConstants.ErrorMessages.MustBeLessThanOrEqualTo, "Edad", DomainConstants.DateTimeValidation.MaxAge),
                 nameof(birthDate));
 
         if (age < DomainConstants.DateTimeValidation.MinAge)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.DateCannotBeInTheFuture, "Birth date"),
+                string.Format(DomainConstants.ErrorMessages.DateCannotBeInTheFuture, "Fecha de nacimiento"),
                 nameof(birthDate));
 
         FirstName = firstName.Trim();

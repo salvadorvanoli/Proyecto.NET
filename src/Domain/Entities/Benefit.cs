@@ -34,12 +34,12 @@ public class Benefit : BaseEntity
     {
         if (benefitTypeId <= DomainConstants.NumericValidation.TransientEntityId)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "Benefit type ID"),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "ID"),
                 nameof(benefitTypeId));
 
         if (quotas <= DomainConstants.NumericValidation.MinQuota)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Quotas", DomainConstants.NumericValidation.MinQuota),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Cuotas", DomainConstants.NumericValidation.MinQuota),
                 nameof(quotas));
 
         BenefitTypeId = benefitTypeId;
@@ -63,7 +63,7 @@ public class Benefit : BaseEntity
     {
         if (quotas <= DomainConstants.NumericValidation.MinQuota)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Quotas", DomainConstants.NumericValidation.MinQuota),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Cuotas", DomainConstants.NumericValidation.MinQuota),
                 nameof(quotas));
 
         Quotas += quotas;
@@ -77,7 +77,7 @@ public class Benefit : BaseEntity
     {
         if (amount <= DomainConstants.NumericValidation.MinAmount)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Amount", DomainConstants.NumericValidation.MinAmount),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Cantidad", DomainConstants.NumericValidation.MinAmount),
                 nameof(amount));
 
         Quotas += amount;
@@ -91,11 +91,11 @@ public class Benefit : BaseEntity
     {
         if (amount <= DomainConstants.NumericValidation.MinAmount)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Amount", DomainConstants.NumericValidation.MinAmount),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Cantidad", DomainConstants.NumericValidation.MinAmount),
                 nameof(amount));
 
         if (amount > Quotas)
-            throw new InvalidOperationException("Not enough quotas available.");
+            throw new InvalidOperationException("No hay suficientes cuotas disponibles.");
 
         Quotas -= amount;
         UpdateTimestamp();

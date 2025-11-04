@@ -42,13 +42,13 @@ public class Notification : BaseEntity
         : base(tenantId)
     {
         if (string.IsNullOrWhiteSpace(title))
-            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, nameof(title)), nameof(title));
+            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Título"), nameof(title));
 
         if (string.IsNullOrWhiteSpace(message))
-            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, nameof(message)), nameof(message));
+            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Contenido"), nameof(message));
 
         if (userId <= DomainConstants.NumericValidation.TransientEntityId)
-            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "User ID"), nameof(userId));
+            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "ID de usuario"), nameof(userId));
 
         Title = title.Trim();
         Message = message.Trim();
@@ -89,10 +89,10 @@ public class Notification : BaseEntity
     public void UpdateContent(string title, string message)
     {
         if (string.IsNullOrWhiteSpace(title))
-            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, nameof(title)), nameof(title));
+            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Título"), nameof(title));
 
         if (string.IsNullOrWhiteSpace(message))
-            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, nameof(message)), nameof(message));
+            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Contenido"), nameof(message));
 
         Title = title.Trim();
         Message = message.Trim();

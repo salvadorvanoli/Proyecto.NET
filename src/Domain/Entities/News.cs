@@ -37,12 +37,12 @@ public class News : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Title"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Título"),
                 nameof(title));
 
         if (string.IsNullOrWhiteSpace(content))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Content"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Contenido"),
                 nameof(content));
 
         Title = title.Trim();
@@ -58,12 +58,12 @@ public class News : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Title"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Título"),
                 nameof(title));
 
         if (string.IsNullOrWhiteSpace(content))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Content"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Contenido"),
                 nameof(content));
 
         Title = title.Trim();

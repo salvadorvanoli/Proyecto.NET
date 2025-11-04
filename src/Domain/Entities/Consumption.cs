@@ -30,12 +30,12 @@ public class Consumption : BaseEntity
     {
         if (amount <= DomainConstants.NumericValidation.MinAmount)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Amount", DomainConstants.NumericValidation.MinAmount),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Cantidad", DomainConstants.NumericValidation.MinAmount),
                 nameof(amount));
 
         if (usageId <= DomainConstants.NumericValidation.TransientEntityId)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "Usage ID"),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "ID de consumo"),
                 nameof(usageId));
 
         Amount = amount;
@@ -50,7 +50,7 @@ public class Consumption : BaseEntity
     {
         if (amount <= DomainConstants.NumericValidation.MinAmount)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Amount", DomainConstants.NumericValidation.MinAmount),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Cantidad", DomainConstants.NumericValidation.MinAmount),
                 nameof(amount));
 
         Amount = amount;

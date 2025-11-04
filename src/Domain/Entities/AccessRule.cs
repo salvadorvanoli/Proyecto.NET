@@ -60,7 +60,7 @@ public class AccessRule : BaseEntity
 
         if (role.TenantId != TenantId)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBelongToSameTenant, "Role"),
+                string.Format(DomainConstants.ErrorMessages.MustBelongToSameTenant, "Rol"),
                 nameof(role));
 
         if (!Roles.Contains(role))

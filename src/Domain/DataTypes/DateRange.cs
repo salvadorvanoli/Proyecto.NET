@@ -13,16 +13,16 @@ public readonly record struct DateRange
     public DateRange(DateOnly startDate, DateOnly endDate)
     {
         if (startDate > endDate)
-            throw new ArgumentException("Start date must be before or equal to end date.", nameof(startDate));
+            throw new ArgumentException("La fecha de inicio debe ser anterior o igual a la fecha de fin.", nameof(startDate));
 
         if (startDate < new DateOnly(DomainConstants.DateTimeValidation.MinYear, DomainConstants.DateTimeValidation.MinMonth, DomainConstants.DateTimeValidation.MinDay))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.DateCannotBeBefore, "Start date", $"{DomainConstants.DateTimeValidation.MinYear}-01-01"),
+                string.Format(DomainConstants.ErrorMessages.DateCannotBeBefore, "Fecha de inicio", $"{DomainConstants.DateTimeValidation.MinYear}-01-01"),
                 nameof(startDate));
 
         if (endDate > new DateOnly(DomainConstants.DateTimeValidation.MaxYear, DomainConstants.DateTimeValidation.MaxMonth, DomainConstants.DateTimeValidation.MaxDay))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.DateCannotBeAfter, "End date", $"{DomainConstants.DateTimeValidation.MaxYear}-12-31"),
+                string.Format(DomainConstants.ErrorMessages.DateCannotBeAfter, "Fecha de fin", $"{DomainConstants.DateTimeValidation.MaxYear}-12-31"),
                 nameof(endDate));
 
         StartDate = startDate;

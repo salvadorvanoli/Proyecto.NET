@@ -21,12 +21,12 @@ public readonly record struct TimeRange
     {
         if (string.IsNullOrWhiteSpace(startTime))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.TimeCannotBeNullOrEmpty, "Start time"),
+                string.Format(DomainConstants.ErrorMessages.TimeCannotBeNullOrEmpty, "Hora de inicio"),
                 nameof(startTime));
 
         if (string.IsNullOrWhiteSpace(endTime))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.TimeCannotBeNullOrEmpty, "End time"),
+                string.Format(DomainConstants.ErrorMessages.TimeCannotBeNullOrEmpty, "Hora de fin"),
                 nameof(endTime));
 
         TimeOnly parsedStart;
@@ -34,12 +34,12 @@ public readonly record struct TimeRange
 
         if (!TimeOnly.TryParse(startTime, out parsedStart))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.InvalidTimeFormat, "start time", startTime),
+                string.Format(DomainConstants.ErrorMessages.InvalidTimeFormat, "hora de inicio", startTime),
                 nameof(startTime));
 
         if (!TimeOnly.TryParse(endTime, out parsedEnd))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.InvalidTimeFormat, "end time", endTime),
+                string.Format(DomainConstants.ErrorMessages.InvalidTimeFormat, "hora de fin", endTime),
                 nameof(endTime));
 
         StartTime = parsedStart;
