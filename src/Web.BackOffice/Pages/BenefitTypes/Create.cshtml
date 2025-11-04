@@ -1,0 +1,57 @@
+@page
+@model Web.BackOffice.Pages.BenefitTypes.CreateModel
+@{
+    ViewData["Title"] = "Nuevo Tipo de Beneficio";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-gift"></i> Nuevo Tipo de Beneficio
+                </h1>
+                <a asp-page="Index" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Volver
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <form method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="BenefitType.Name" class="form-label">
+                                Nombre <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="BenefitType.Name" class="form-control" placeholder="Ej: Descuento, Acceso Premium, Consumo Gratis" />
+                            <span asp-validation-for="BenefitType.Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="BenefitType.Description" class="form-label">
+                                Descripción <span class="text-danger">*</span>
+                            </label>
+                            <textarea asp-for="BenefitType.Description" class="form-control" rows="3" placeholder="Descripción del tipo de beneficio"></textarea>
+                            <span asp-validation-for="BenefitType.Description" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a asp-page="Index" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Guardar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

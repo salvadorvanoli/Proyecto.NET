@@ -88,6 +88,13 @@ builder.Services.AddHttpClient<IAccessRuleApiService, AccessRuleApiService>(clie
 })
 .AddHttpMessageHandler<TenantHeaderHandler>();
 
+builder.Services.AddHttpClient<IBenefitTypeApiService, BenefitTypeApiService>(client =>
+{
+    client.BaseAddress = new Uri("http://localhost:5236/");
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+})
+.AddHttpMessageHandler<TenantHeaderHandler>();
+
 builder.Services.AddHttpClient<IAuthApiService, AuthApiService>(client =>
 {
     client.BaseAddress = new Uri("http://localhost:5236/");
