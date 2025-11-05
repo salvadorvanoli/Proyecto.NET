@@ -47,11 +47,18 @@ public class RoleService : IRoleService
         // Create the role entity
         var role = new Role(tenantId, request.Name);
 
-        // Add to database
         _context.Roles.Add(role);
         await _context.SaveChangesAsync(cancellationToken);
 
-        return MapToResponse(role);
+        return new RoleResponse
+        {
+            Id = role.Id,
+            Name = role.Name,
+            TenantId = role.TenantId,
+            UserCount = 0,
+            CreatedAt = role.CreatedAt,
+            UpdatedAt = role.UpdatedAt
+        };
     }
 
     public async Task<RoleResponse?> GetRoleByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -59,11 +66,25 @@ public class RoleService : IRoleService
         var tenantId = _tenantProvider.GetCurrentTenantId();
 
         var role = await _context.Roles
-            .Include(r => r.Users)
             .Where(r => r.Id == id && r.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
-        return role != null ? MapToResponse(role) : null;
+        if (role == null)
+            return null;
+
+        var userCount = await _context.Users
+            .Where(u => u.TenantId == tenantId && u.Roles.Any(r => r.Id == id))
+            .CountAsync(cancellationToken);
+
+        return new RoleResponse
+        {
+            Id = role.Id,
+            Name = role.Name,
+            TenantId = role.TenantId,
+            UserCount = userCount,
+            CreatedAt = role.CreatedAt,
+            UpdatedAt = role.UpdatedAt
+        };
     }
 
     public async Task<IEnumerable<RoleResponse>> GetRolesByTenantAsync(CancellationToken cancellationToken = default)
@@ -71,20 +92,36 @@ public class RoleService : IRoleService
         var tenantId = _tenantProvider.GetCurrentTenantId();
 
         var roles = await _context.Roles
-            .Include(r => r.Users)
             .Where(r => r.TenantId == tenantId)
             .ToListAsync(cancellationToken);
 
-        return roles.Select(MapToResponse);
+        var roleResponses = new List<RoleResponse>();
+        
+        foreach (var role in roles)
+        {
+            var userCount = await _context.Users
+                .Where(u => u.TenantId == tenantId && u.Roles.Any(r => r.Id == role.Id))
+                .CountAsync(cancellationToken);
+
+            roleResponses.Add(new RoleResponse
+            {
+                Id = role.Id,
+                Name = role.Name,
+                TenantId = role.TenantId,
+                UserCount = userCount,
+                CreatedAt = role.CreatedAt,
+                UpdatedAt = role.UpdatedAt
+            });
+        }
+
+        return roleResponses;
     }
 
     public async Task<RoleResponse> UpdateRoleAsync(int id, UpdateRoleRequest request, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 
-        // Find the role
         var role = await _context.Roles
-            .Include(r => r.Users)
             .Where(r => r.Id == id && r.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -93,7 +130,6 @@ public class RoleService : IRoleService
             throw new InvalidOperationException($"Role with ID {id} not found in current tenant.");
         }
 
-        // Check if name is being changed and if it already exists
         if (role.Name.ToLower() != request.Name.ToLower())
         {
             var nameExists = await _context.Roles
@@ -109,7 +145,19 @@ public class RoleService : IRoleService
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return MapToResponse(role);
+        var userCount = await _context.Users
+            .Where(u => u.TenantId == tenantId && u.Roles.Any(r => r.Id == id))
+            .CountAsync(cancellationToken);
+
+        return new RoleResponse
+        {
+            Id = role.Id,
+            Name = role.Name,
+            TenantId = role.TenantId,
+            UserCount = userCount,
+            CreatedAt = role.CreatedAt,
+            UpdatedAt = role.UpdatedAt
+        };
     }
 
     public async Task<bool> DeleteRoleAsync(int id, CancellationToken cancellationToken = default)
@@ -117,7 +165,6 @@ public class RoleService : IRoleService
         var tenantId = _tenantProvider.GetCurrentTenantId();
 
         var role = await _context.Roles
-            .Include(r => r.Users)
             .Where(r => r.Id == id && r.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -126,10 +173,13 @@ public class RoleService : IRoleService
             return false;
         }
 
-        // Check if role has users assigned
-        if (role.Users.Any())
+        var userCount = await _context.Users
+            .Where(u => u.TenantId == tenantId && u.Roles.Any(r => r.Id == id))
+            .CountAsync(cancellationToken);
+
+        if (userCount > 0)
         {
-            throw new InvalidOperationException($"Cannot delete role '{role.Name}' because it has {role.Users.Count} user(s) assigned. Please remove all users from this role first.");
+            throw new InvalidOperationException($"Cannot delete role '{role.Name}' because it has {userCount} user(s) assigned. Please remove all users from this role first.");
         }
 
         _context.Roles.Remove(role);
@@ -192,23 +242,9 @@ public class RoleService : IRoleService
             Id = r.Id,
             Name = r.Name,
             TenantId = r.TenantId,
-            UserCount = 0, // Not needed in this context
+            UserCount = 0,
             CreatedAt = r.CreatedAt,
             UpdatedAt = r.UpdatedAt
         });
     }
-
-    private static RoleResponse MapToResponse(Role role)
-    {
-        return new RoleResponse
-        {
-            Id = role.Id,
-            Name = role.Name,
-            TenantId = role.TenantId,
-            UserCount = role.Users.Count,
-            CreatedAt = role.CreatedAt,
-            UpdatedAt = role.UpdatedAt
-        };
-    }
 }
-

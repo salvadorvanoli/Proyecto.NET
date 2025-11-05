@@ -1,12 +1,12 @@
 ﻿# Guía para Revisar la Base de Datos
 
-## 📊 Información de la Base de Datos
+## Información de la Base de Datos
 
 **Motor:** SQL Server LocalDB  
 **Nombre de la Base de Datos:** `ProyectoNetDb`  
 **Cadena de Conexión:** `Server=(localdb)\mssqllocaldb;Database=ProyectoNetDb;Trusted_Connection=true;MultipleActiveResultSets=true`
 
-## 🛠️ Herramientas para Conectarte
+## Herramientas para Conectarte
 
 ### 1. SQL Server Management Studio (SSMS)
 - **Descargar:** https://aka.ms/ssmsfullsetup
@@ -52,7 +52,7 @@ GO
 quit
 ```
 
-## 📋 Tablas Principales del Sistema
+## Tablas Principales del Sistema
 
 Cuando ejecutes las migraciones, se crearán estas tablas:
 
@@ -138,7 +138,7 @@ Y más tablas para:
 - **BenefitTypes** - Tipos de beneficios
 - **Usages** - Usos
 
-## 🔍 Consultas Útiles
+## Consultas Útiles
 
 He creado un script SQL en `scripts/revisar_base_datos.sql` que puedes ejecutar para:
 - Ver todas las tablas
@@ -182,7 +182,7 @@ FROM INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_NAME = 'Users';
 ```
 
-## 🚀 Comandos para Gestionar Migraciones
+## Comandos para Gestionar Migraciones
 
 ```bash
 # Ver migraciones aplicadas
@@ -198,14 +198,14 @@ dotnet ef database update [MigrationName] --project src\Infrastructure\Infrastru
 dotnet ef database drop --project src\Infrastructure\Infrastructure.csproj --startup-project src\Web.Api\Web.Api.csproj
 ```
 
-## 📍 Ubicación de LocalDB
+## Ubicación de LocalDB
 
 LocalDB guarda las bases de datos en:
 ```
 C:\Users\[TuUsuario]\AppData\Local\Microsoft\Microsoft SQL Server Local DB\Instances\mssqllocaldb
 ```
 
-## 🔄 Verificar que LocalDB esté corriendo
+## Verificar que LocalDB esté corriendo
 
 ```bash
 # Ver todas las instancias de LocalDB
@@ -221,14 +221,14 @@ sqllocaldb start mssqllocaldb
 sqllocaldb stop mssqllocaldb
 ```
 
-## 💡 Tips
+## Tips
 
 1. **Ver datos en tiempo real:** Usa Azure Data Studio o SSMS para explorar las tablas mientras desarrollas
 2. **Entity Framework Core Tools:** Puedes generar un diagrama de la base de datos con herramientas como EF Core Power Tools
 3. **Seed Data:** Considera crear un script de seed data para tener datos de prueba automáticamente
 4. **Backups:** LocalDB es para desarrollo, para producción usa SQL Server completo o Azure SQL
 
-## 🎨 Diagrama ER (Conceptual)
+## Diagrama ER (Conceptual)
 
 ```
 Tenants (1) ──< Users (N)

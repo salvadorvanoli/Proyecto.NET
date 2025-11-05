@@ -8,37 +8,53 @@ namespace Domain.Entities;
 public class Usage : BaseEntity
 {
     /// <summary>
-    /// Date and time when the usage occurred.
+    /// Quantity of the benefit being used.
     /// </summary>
-    public DateTime UsageDateTime { get; protected set; }
+    public int Quantity { get; protected set; }
 
     /// <summary>
-    /// Foreign key to the consumption this usage belongs to.
+    /// Foreign key to the benefit being used.
     /// </summary>
-    public int ConsumptionId { get; protected set; }
+    public int BenefitId { get; protected set; }
+
+    /// <summary>
+    /// Foreign key to the user who made the usage.
+    /// </summary>
+    public int UserId { get; protected set; }
 
     // Navigation properties
-    public virtual Consumption Consumption { get; protected set; } = null!;
+    public virtual Benefit Benefit { get; protected set; } = null!;
+    public virtual ICollection<Consumption> Consumptions { get; protected set; } = new List<Consumption>();
 
     protected Usage() : base()
     {
     }
 
-    public Usage(int tenantId, int consumptionId, DateTime usageDateTime) : base(tenantId)
+    public Usage(int tenantId, int benefitId, int userId, int quantity) : base(tenantId)
     {
-        if (consumptionId <= DomainConstants.NumericValidation.TransientEntityId)
-            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "Consumption ID"), nameof(consumptionId));
+        if (benefitId <= DomainConstants.NumericValidation.TransientEntityId)
+            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "Benefit ID"), nameof(benefitId));
 
-        ConsumptionId = consumptionId;
-        UsageDateTime = usageDateTime;
+        if (userId <= DomainConstants.NumericValidation.TransientEntityId)
+            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "User ID"), nameof(userId));
+
+        if (quantity < DomainConstants.NumericValidation.MinQuantity)
+            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Quantity", DomainConstants.NumericValidation.MinQuantity), nameof(quantity));
+
+        BenefitId = benefitId;
+        UserId = userId;
+        Quantity = quantity;
     }
 
-    /// <summary>
-    /// Creates a usage with the current timestamp.
-    /// </summary>
-    public static Usage CreateNow(int tenantId, int consumptionId)
+    public void UpdateQuantity(int quantity)
     {
-        return new Usage(tenantId, consumptionId, DateTime.UtcNow);
+        if (quantity < DomainConstants.NumericValidation.MinQuantity)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Quantity", DomainConstants.NumericValidation.MinQuantity),
+                nameof(quantity));
+
+        Quantity = quantity;
+        UpdateTimestamp();
     }
 }
 

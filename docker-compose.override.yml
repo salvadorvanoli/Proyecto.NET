@@ -1,0 +1,28 @@
+services:
+  sqlserver:
+    environment:
+      - MSSQL_COLLATION=Modern_Spanish_CI_AS
+    volumes:
+      - ./scripts/db:/docker-entrypoint-initdb.d:ro
+
+  web-api:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
+      - DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER=true
+    volumes:
+      - ~/.aspnet/https:/https:ro
+
+  web-backoffice:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
+    volumes:
+      - ~/.aspnet/https:/https:ro
+
+  web-frontoffice:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - DOTNET_USE_POLLING_FILE_WATCHER=true
+    volumes:
+      - ~/.aspnet/https:/https:ro

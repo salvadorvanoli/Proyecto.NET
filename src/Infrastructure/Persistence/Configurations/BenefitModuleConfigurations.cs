@@ -19,6 +19,7 @@ public class BenefitTypeConfiguration : IEntityTypeConfiguration<BenefitType>
         builder.Property(bt => bt.TenantId).IsRequired();
 
         builder.HasOne(bt => bt.Tenant).WithMany().HasForeignKey(bt => bt.TenantId).OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(bt => bt.TenantId);
         builder.HasIndex(bt => new { bt.Name, bt.TenantId }).IsUnique();
     }
@@ -47,7 +48,7 @@ public class BenefitConfiguration : IEntityTypeConfiguration<Benefit>
             .HasColumnName("ValidityEndDate");
 
         builder.HasOne(b => b.Tenant).WithMany().HasForeignKey(b => b.TenantId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne(b => b.BenefitType).WithMany(bt => bt.Benefits).HasForeignKey(b => b.BenefitTypeId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(b => b.BenefitType).WithMany().HasForeignKey(b => b.BenefitTypeId).OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(b => b.TenantId);
         builder.HasIndex(b => b.BenefitTypeId);
@@ -63,16 +64,14 @@ public class ConsumptionConfiguration : IEntityTypeConfiguration<Consumption>
         builder.Property(c => c.Id).ValueGeneratedOnAdd();
 
         builder.Property(c => c.Amount).IsRequired();
+        builder.Property(c => c.ConsumptionDateTime).IsRequired();
         builder.Property(c => c.TenantId).IsRequired();
-        builder.Property(c => c.BenefitId).IsRequired();
-        builder.Property(c => c.UserId).IsRequired();
+        builder.Property(c => c.UsageId).IsRequired();
 
         builder.HasOne(c => c.Tenant).WithMany().HasForeignKey(c => c.TenantId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne(c => c.Benefit).WithMany(b => b.Consumptions).HasForeignKey(c => c.BenefitId).OnDelete(DeleteBehavior.Cascade);
-        builder.HasOne(c => c.User).WithMany(u => u.Consumptions).HasForeignKey(c => c.UserId).OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(c => c.TenantId);
-        builder.HasIndex(c => new { c.UserId, c.BenefitId });
+        builder.HasIndex(c => c.UsageId);
     }
 }
 
@@ -84,15 +83,17 @@ public class UsageConfiguration : IEntityTypeConfiguration<Usage>
         builder.HasKey(u => u.Id);
         builder.Property(u => u.Id).ValueGeneratedOnAdd();
 
-        builder.Property(u => u.UsageDateTime).IsRequired();
+        builder.Property(u => u.Quantity).IsRequired();
         builder.Property(u => u.TenantId).IsRequired();
-        builder.Property(u => u.ConsumptionId).IsRequired();
+        builder.Property(u => u.BenefitId).IsRequired();
+        builder.Property(u => u.UserId).IsRequired();
 
         builder.HasOne(u => u.Tenant).WithMany().HasForeignKey(u => u.TenantId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne(u => u.Consumption).WithMany(c => c.Usages).HasForeignKey(u => u.ConsumptionId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(u => u.Benefit).WithMany().HasForeignKey(u => u.BenefitId).OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(u => u.TenantId);
-        builder.HasIndex(u => u.ConsumptionId);
-        builder.HasIndex(u => u.UsageDateTime);
+        builder.HasIndex(u => u.BenefitId);
+        builder.HasIndex(u => u.UserId);
+        builder.HasIndex(u => u.Quantity);
     }
 }

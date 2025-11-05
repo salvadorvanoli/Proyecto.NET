@@ -67,6 +67,7 @@ public static class DomainConstants
 
         // Quantity validation
         public const int MinQuota = 0;
+        public const int MinQuantity = 0;
         public const int MinAmount = 0;
     }
 

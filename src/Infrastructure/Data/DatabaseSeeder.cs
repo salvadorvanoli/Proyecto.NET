@@ -15,8 +15,11 @@ public static class DatabaseSeeder
 {
     public static async Task SeedAsync(IServiceProvider serviceProvider, IHostEnvironment environment)
     {
-        // Only seed in development
-        if (!environment.IsDevelopment())
+        // Seed in development OR if explicitly enabled via environment variable
+        var shouldSeed = environment.IsDevelopment() || 
+                        Environment.GetEnvironmentVariable("SEED_DATABASE") == "true";
+        
+        if (!shouldSeed)
         {
             return;
         }
@@ -25,106 +28,65 @@ public static class DatabaseSeeder
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
 
-        // Ensure database is created
+        // Database should already be migrated by Program.cs
+        // Just ensure it exists
         await context.Database.EnsureCreatedAsync();
 
         // Seed Tenants
         if (!await context.Tenants.AnyAsync())
         {
-            var tenants = new[]
-            {
-                new Tenant("Empresa Demo 1"),
-                new Tenant("Empresa Demo 2"),
-                new Tenant("Empresa Demo 3")
-            };
-
-            context.Tenants.AddRange(tenants);
+            var tenant = new Tenant("Tenant Demo");
+            context.Tenants.Add(tenant);
             await context.SaveChangesAsync();
+            
+            Console.WriteLine($"Tenant creado: {tenant.Name} (ID: {tenant.Id})");
         }
 
         // Seed Admin Users for BackOffice
-        // Check if BackOffice admin users already exist
         var backofficeAdminExists = await context.Users
             .AnyAsync(u => u.Email.StartsWith("admin") && u.Email.EndsWith("@backoffice.com"));
 
         if (!backofficeAdminExists)
         {
-            Console.WriteLine("🔧 Creating BackOffice admin users...");
+            Console.WriteLine("Creando usuario admin para BackOffice...");
 
-            var tenants = await context.Tenants.ToListAsync();
-            var adminUsers = new List<User>();
-            var tenantNames = new[] { "Uno", "Dos", "Tres" };
+            var tenant = await context.Tenants.FirstAsync();
+            var passwordHash = passwordHasher.HashPassword("Admin123!");
+            var personalData = new PersonalData(
+                "Administrador",
+                "BackOffice",
+                new DateOnly(1990, 1, 1)
+            );
 
-            for (int i = 0; i < tenants.Count; i++)
-            {
-                var tenant = tenants[i];
-                var passwordHash = passwordHasher.HashPassword("Admin123!");
-                var personalData = new PersonalData(
-                    "Administrador",
-                    $"BackOffice {tenantNames[i]}", // Usar nombre sin números
-                    new DateOnly(1990, 1, 1)
-                );
+            var adminUser = new User(
+                tenant.Id,
+                $"admin@backoffice.com",
+                passwordHash,
+                personalData
+            );
 
-                var adminUser = new User(
-                    tenant.Id,
-                    $"admin{tenant.Id}@backoffice.com",
-                    passwordHash,
-                    personalData
-                );
-
-                adminUsers.Add(adminUser);
-                Console.WriteLine($"   Creating user: admin{tenant.Id}@backoffice.com");
-            }
-
-            context.Users.AddRange(adminUsers);
+            context.Users.Add(adminUser);
             await context.SaveChangesAsync();
 
-            // Seed Roles for BackOffice (one per tenant)
-            var adminRoles = new List<Role>();
-            foreach (var tenant in tenants)
-            {
-                // Check if role already exists
-                var existingRole = await context.Roles
-                    .FirstOrDefaultAsync(r => r.TenantId == tenant.Id && r.Name == "AdministradorBackoffice");
+            Console.WriteLine($"   Usuario creado: admin@backoffice.com");
 
-                if (existingRole == null)
-                {
-                    var adminRole = new Role(tenant.Id, "AdministradorBackoffice");
-                    adminRoles.Add(adminRole);
-                    context.Roles.Add(adminRole);
-                }
-                else
-                {
-                    adminRoles.Add(existingRole);
-                }
-            }
-
+            // Seed Role for BackOffice
+            var adminRole = new Role(tenant.Id, "AdministradorBackoffice");
+            context.Roles.Add(adminRole);
             await context.SaveChangesAsync();
 
-            // Reload admin users with their IDs
-            var savedAdminUsers = await context.Users
-                .Where(u => u.Email.StartsWith("admin") && u.Email.EndsWith("@backoffice.com"))
-                .OrderBy(u => u.TenantId)
-                .ToListAsync();
+            // Reload admin user with ID
+            var savedAdminUser = await context.Users
+                .FirstAsync(u => u.Email == "admin@backoffice.com");
 
-            // Assign admin role to corresponding admin users
-            for (int i = 0; i < savedAdminUsers.Count && i < adminRoles.Count; i++)
-            {
-                var user = savedAdminUsers[i];
-                var role = adminRoles.FirstOrDefault(r => r.TenantId == user.TenantId);
-
-                if (role != null)
-                {
-                    user.AssignRole(role);
-                }
-            }
-
+            savedAdminUser.AssignRole(adminRole);
             await context.SaveChangesAsync();
-            Console.WriteLine("✅ BackOffice admin users created successfully!");
+
+            Console.WriteLine("Usuario admin de BackOffice creado exitosamente!");
         }
         else
         {
-            Console.WriteLine("ℹ️  BackOffice admin users already exist, skipping creation.");
+            Console.WriteLine("Usuario admin de BackOffice ya existe, omitiendo creacion.");
         }
 
         Console.WriteLine("\n📋 Usuarios de BackOffice disponibles:");
@@ -139,15 +101,13 @@ public static class DatabaseSeeder
             Console.WriteLine($"   Email: {user.Email} | Password: Admin123! | TenantId: {user.TenantId} | Roles: {roles}");
         }
 
-        Console.WriteLine("\n📋 Otros usuarios en el sistema:");
-        var otherUsers = await context.Users
-            .Include(u => u.Roles)
+        var otherUsersCount = await context.Users
             .Where(u => !u.Email.Contains("@backoffice.com"))
-            .ToListAsync();
-
-        foreach (var user in otherUsers)
+            .CountAsync();
+            
+        if (otherUsersCount > 0)
         {
-            Console.WriteLine($"   Email: {user.Email} | TenantId: {user.TenantId}");
+            Console.WriteLine($"\nOtros usuarios en el sistema: {otherUsersCount}");
         }
 
         // Seed Benefit Types

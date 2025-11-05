@@ -33,7 +33,7 @@ public class User : BaseEntity
     public virtual ICollection<Role> Roles { get; protected set; } = new List<Role>();
     public virtual ICollection<Notification> Notifications { get; protected set; } = new List<Notification>();
     public virtual ICollection<AccessEvent> AccessEvents { get; protected set; } = new List<AccessEvent>();
-    public virtual ICollection<Consumption> Consumptions { get; protected set; } = new List<Consumption>();
+    public virtual ICollection<Usage> Usages { get; protected set; } = new List<Usage>();
 
     protected User() : base()
     {

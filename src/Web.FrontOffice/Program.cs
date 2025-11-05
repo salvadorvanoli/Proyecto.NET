@@ -1,10 +1,10 @@
 using Web.FrontOffice.Components;
 using Web.FrontOffice.Services.Api;
 using Web.FrontOffice.Services.Interfaces;
+using Web.FrontOffice.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -53,10 +53,10 @@ builder.Services.AddHttpClient<IAccessEventApiService, AccessEventApiService>(cl
     client.BaseAddress = new Uri(apiBaseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
+builder.Services.AddFrontOfficeHealthChecks(builder.Configuration);
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
@@ -66,7 +66,7 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
-
+app.MapFrontOfficeHealthChecks();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

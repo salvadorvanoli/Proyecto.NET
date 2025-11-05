@@ -1,6 +1,6 @@
 # Credencial Digital - .NET 8
 
-## 🧩 Descripción general
+## Descripción general
 Sistema integral para la gestión de **credenciales digitales** en entornos académicos o empresariales.
 Permite a estudiantes y funcionarios acceder a servicios institucionales (accesos, comedor, biblioteca, beneficios) mediante una aplicación web y móvil integrada.
 
@@ -8,7 +8,7 @@ Arquitectura basada en **Clean Architecture + .NET 8**, con separación clara de
 
 ---
 
-## 📁 Estructura de proyectos
+## Estructura de proyectos
 
 | Proyecto | Propósito | Dependencias |
 |-----------|------------|---------------|
@@ -23,7 +23,7 @@ Arquitectura basada en **Clean Architecture + .NET 8**, con separación clara de
 
 ---
 
-## ⚙️ Tecnologías principales
+## Tecnologías principales
 - **.NET 8 LTS**
 - **Entity Framework Core 8**
 - **ASP.NET Core Identity + JWT**
@@ -35,7 +35,7 @@ Arquitectura basada en **Clean Architecture + .NET 8**, con separación clara de
 
 ---
 
-## 🧭 Flujo general
+## Flujo general
 1. **Web.Api** expone endpoints REST para autenticación, usuarios, credenciales y beneficios.
 2. **Web.FrontOffice** (Blazor) consume estos endpoints y brinda la interfaz al usuario.
 3. **Mobile** (MAUI) consume la misma API y sincroniza datos localmente en modo offline.
@@ -46,7 +46,7 @@ Arquitectura basada en **Clean Architecture + .NET 8**, con separación clara de
 
 ---
 
-## 🧰 Configuración inicial
+## Configuración inicial
 1. Clonar el repositorio.
 2. Restaurar dependencias:
    ```bash

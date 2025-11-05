@@ -37,6 +37,7 @@ public class SpaceTypeConfiguration : IEntityTypeConfiguration<SpaceType>
         builder.Property(st => st.TenantId).IsRequired();
 
         builder.HasOne(st => st.Tenant).WithMany().HasForeignKey(st => st.TenantId).OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(st => st.TenantId);
         builder.HasIndex(st => new { st.Name, st.TenantId }).IsUnique();
     }
@@ -56,6 +57,15 @@ public class ControlPointConfiguration : IEntityTypeConfiguration<ControlPoint>
 
         builder.HasOne(cp => cp.Tenant).WithMany().HasForeignKey(cp => cp.TenantId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(cp => cp.Space).WithMany(s => s.ControlPoints).HasForeignKey(cp => cp.SpaceId).OnDelete(DeleteBehavior.Cascade);
+        
+        // Many-to-many relationship with AccessRule (unidirectional from ControlPoint)
+        builder.HasMany(cp => cp.AccessRules)
+            .WithMany()
+            .UsingEntity(
+                "AccessRuleControlPoints",
+                l => l.HasOne(typeof(AccessRule)).WithMany().HasForeignKey("AccessRuleId"),
+                r => r.HasOne(typeof(ControlPoint)).WithMany().HasForeignKey("ControlPointId"),
+                j => j.HasKey("ControlPointId", "AccessRuleId"));
 
         builder.HasIndex(cp => cp.TenantId);
         builder.HasIndex(cp => cp.SpaceId);
@@ -99,6 +109,7 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
         builder.Property(r => r.TenantId).IsRequired();
 
         builder.HasOne(r => r.Tenant).WithMany().HasForeignKey(r => r.TenantId).OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(r => r.TenantId);
         builder.HasIndex(r => new { r.Name, r.TenantId }).IsUnique();
     }
@@ -139,7 +150,6 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         builder.Property(n => n.UserId).IsRequired();
 
         builder.HasOne(n => n.Tenant).WithMany().HasForeignKey(n => n.TenantId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne(n => n.User).WithMany().HasForeignKey(n => n.UserId).OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(n => n.TenantId);
         builder.HasIndex(n => new { n.UserId, n.IsRead });

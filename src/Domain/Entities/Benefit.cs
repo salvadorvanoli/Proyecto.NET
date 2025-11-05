@@ -25,7 +25,6 @@ public class Benefit : BaseEntity
 
     // Navigation properties
     public virtual BenefitType BenefitType { get; protected set; } = null!;
-    public virtual ICollection<Consumption> Consumptions { get; protected set; } = new List<Consumption>();
 
     protected Benefit() : base()
     {
@@ -40,7 +39,7 @@ public class Benefit : BaseEntity
 
         if (quotas <= DomainConstants.NumericValidation.MinQuota)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "Quotas"),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Quotas", DomainConstants.NumericValidation.MinQuota),
                 nameof(quotas));
 
         BenefitTypeId = benefitTypeId;
@@ -64,7 +63,7 @@ public class Benefit : BaseEntity
     {
         if (quotas <= DomainConstants.NumericValidation.MinQuota)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "Quotas"),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Quotas", DomainConstants.NumericValidation.MinQuota),
                 nameof(quotas));
 
         Quotas += quotas;
@@ -78,7 +77,7 @@ public class Benefit : BaseEntity
     {
         if (amount <= DomainConstants.NumericValidation.MinAmount)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "Amount"),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Amount", DomainConstants.NumericValidation.MinAmount),
                 nameof(amount));
 
         Quotas += amount;
@@ -92,7 +91,7 @@ public class Benefit : BaseEntity
     {
         if (amount <= DomainConstants.NumericValidation.MinAmount)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "Amount"),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Amount", DomainConstants.NumericValidation.MinAmount),
                 nameof(amount));
 
         if (amount > Quotas)
@@ -116,10 +115,5 @@ public class Benefit : BaseEntity
     /// Checks if the benefit can be consumed (is valid and has quotas).
     /// </summary>
     public bool CanBeConsumed => IsValid && HasAvailableQuotas;
-
-    /// <summary>
-    /// Gets the total consumed amount for this benefit.
-    /// </summary>
-    public int TotalConsumed => Consumptions.Sum(c => c.Amount);
 }
 

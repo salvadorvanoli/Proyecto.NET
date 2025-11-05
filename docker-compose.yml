@@ -1,0 +1,170 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: proyectonet-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=${SQL_SERVER_PASSWORD}
+      - MSSQL_PID=${MSSQL_PID:-Developer}
+    ports:
+      - "${SQL_PORT:-1433}:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - proyectonet-network
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"${SQL_SERVER_PASSWORD}\" -Q 'SELECT 1' -C || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+
+  web-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: final-api
+      args:
+        BUILD_CONFIGURATION: ${BUILD_CONFIGURATION:-Release}
+    container_name: proyectonet-api
+    ports:
+      - "${API_HTTP_PORT:-5000}:8080"
+      - "${API_HTTPS_PORT:-5443}:8081"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=${DB_NAME:-ProyectoNetDb};User Id=sa;Password=${SQL_SERVER_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true
+      - Logging__Console__FormatterName=simple
+      - SEED_DATABASE=${SEED_DATABASE:-false}
+      - Cors__AllowedOrigins__0=${CORS_ORIGIN_1:-}
+      - Cors__AllowedOrigins__1=${CORS_ORIGIN_2:-}
+      - Cors__AllowedOrigins__2=${CORS_ORIGIN_3:-}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - proyectonet-network
+    restart: unless-stopped
+    labels:
+      - "com.proyecto.net.service=api"
+      - "com.proyecto.net.description=API REST Backend"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  web-backoffice:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: final-backoffice
+      args:
+        BUILD_CONFIGURATION: ${BUILD_CONFIGURATION:-Release}
+    container_name: proyectonet-backoffice
+    ports:
+      - "${BACKOFFICE_HTTP_PORT:-5001}:8080"
+      - "${BACKOFFICE_HTTPS_PORT:-5444}:8081"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=${DB_NAME:-ProyectoNetDb};User Id=sa;Password=${SQL_SERVER_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true
+      - ApiSettings__BaseUrl=${API_INTERNAL_URL:-http://web-api:8080}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      web-api:
+        condition: service_started
+    networks:
+      - proyectonet-network
+    restart: unless-stopped
+    labels:
+      - "com.proyecto.net.service=backoffice"
+      - "com.proyecto.net.description=Panel de Administración"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  web-frontoffice:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: final-frontoffice
+      args:
+        BUILD_CONFIGURATION: ${BUILD_CONFIGURATION:-Release}
+    container_name: proyectonet-frontoffice
+    ports:
+      - "${FRONTOFFICE_HTTP_PORT:-5002}:8080"
+      - "${FRONTOFFICE_HTTPS_PORT:-5445}:8081"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
+      - ASPNETCORE_URLS=http://+:8080
+      - ApiSettings__BaseUrl=${API_INTERNAL_URL:-http://web-api:8080}
+    depends_on:
+      web-api:
+        condition: service_started
+    networks:
+      - proyectonet-network
+    restart: unless-stopped
+    labels:
+      - "com.proyecto.net.service=frontoffice"
+      - "com.proyecto.net.description=Aplicación de Usuarios"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  seq:
+    image: datalust/seq:latest
+    container_name: proyectonet-seq
+    ports:
+      - "5341:80"
+    environment:
+      - ACCEPT_EULA=Y
+    volumes:
+      - seq-data:/data
+    networks:
+      - proyectonet-network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+
+networks:
+  proyectonet-network:
+    driver: bridge
+    name: proyectonet-network
+
+volumes:
+  sqlserver-data:
+    name: proyectonet-sqlserver-data
+  seq-data:
+    name: proyectonet-seq-data

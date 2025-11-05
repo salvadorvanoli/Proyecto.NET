@@ -8,49 +8,39 @@ namespace Domain.Entities;
 public class Consumption : BaseEntity
 {
     /// <summary>
-    /// Amount consumed from the benefit.
+    /// Amount consumed.
     /// </summary>
     public int Amount { get; protected set; }
 
     /// <summary>
-    /// Foreign key to the benefit being consumed.
+    /// Date and time when the consumption occurred.
     /// </summary>
-    public int BenefitId { get; protected set; }
+    public DateTime ConsumptionDateTime { get; protected set; }
 
     /// <summary>
-    /// Foreign key to the user who made the consumption.
+    /// Foreign key to the usage this consumption belongs to.
     /// </summary>
-    public int UserId { get; protected set; }
-
-    // Navigation properties
-    public virtual Benefit Benefit { get; protected set; } = null!;
-    public virtual User User { get; protected set; } = null!;
-    public virtual ICollection<Usage> Usages { get; protected set; } = new List<Usage>();
+    public int UsageId { get; protected set; }
 
     protected Consumption() : base()
     {
     }
 
-    public Consumption(int tenantId, int amount, int benefitId, int userId) : base(tenantId)
+    public Consumption(int tenantId, int amount, DateTime consumptionDateTime, int usageId) : base(tenantId)
     {
         if (amount <= DomainConstants.NumericValidation.MinAmount)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "Amount"),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Amount", DomainConstants.NumericValidation.MinAmount),
                 nameof(amount));
 
-        if (benefitId <= DomainConstants.NumericValidation.TransientEntityId)
+        if (usageId <= DomainConstants.NumericValidation.TransientEntityId)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "Benefit ID"),
-                nameof(benefitId));
-
-        if (userId <= DomainConstants.NumericValidation.TransientEntityId)
-            throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "User ID"),
-                nameof(userId));
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "Usage ID"),
+                nameof(usageId));
 
         Amount = amount;
-        BenefitId = benefitId;
-        UserId = userId;
+        ConsumptionDateTime = consumptionDateTime;
+        UsageId = usageId;
     }
 
     /// <summary>
@@ -60,36 +50,11 @@ public class Consumption : BaseEntity
     {
         if (amount <= DomainConstants.NumericValidation.MinAmount)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "Amount"),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Amount", DomainConstants.NumericValidation.MinAmount),
                 nameof(amount));
 
         Amount = amount;
         UpdateTimestamp();
     }
-
-    /// <summary>
-    /// Adds a usage record to this consumption.
-    /// </summary>
-    public void AddUsage(Usage usage)
-    {
-        if (usage == null)
-            throw new ArgumentNullException(nameof(usage));
-
-        if (usage.TenantId != TenantId)
-            throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBelongToSameTenant, "Usage"),
-                nameof(usage));
-
-        if (!Usages.Contains(usage))
-        {
-            Usages.Add(usage);
-            UpdateTimestamp();
-        }
-    }
-
-    /// <summary>
-    /// Gets the total usage count for this consumption.
-    /// </summary>
-    public int TotalUsages => Usages.Count;
 }
 

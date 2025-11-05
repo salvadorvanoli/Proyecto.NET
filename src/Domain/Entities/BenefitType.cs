@@ -17,9 +17,6 @@ public class BenefitType : BaseEntity
     /// </summary>
     public string Description { get; protected set; }
 
-    // Navigation properties
-    public virtual ICollection<Benefit> Benefits { get; protected set; } = new List<Benefit>();
-
     protected BenefitType() : base()
     {
         Name = string.Empty;
