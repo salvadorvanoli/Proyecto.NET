@@ -1,5 +1,6 @@
-using Application.SpaceTypes.DTOs;
-using Application.SpaceTypes.Services;
+using Shared.DTOs.Requests;
+using Shared.DTOs.Responses;
+using Application.SpaceTypes;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Api.Controllers;
@@ -34,7 +35,7 @@ public class SpaceTypesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<SpaceTypeResponse>> CreateSpaceType(
-        [FromBody] CreateSpaceTypeRequest request,
+        [FromBody] SpaceTypeRequest request,
         CancellationToken cancellationToken)
     {
         try
@@ -122,7 +123,7 @@ public class SpaceTypesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<SpaceTypeResponse>> UpdateSpaceType(
         int id,
-        [FromBody] UpdateSpaceTypeRequest request,
+        [FromBody] SpaceTypeRequest request,
         CancellationToken cancellationToken)
     {
         try

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Shared.DTOs.Responses;
 using Web.BackOffice.Models;
 using Web.BackOffice.Services;
 
@@ -24,7 +25,7 @@ public class IndexModel : PageModel
 
     public IEnumerable<SpaceDto> Spaces { get; set; } = Enumerable.Empty<SpaceDto>();
     public IEnumerable<SpaceDto> DisplayedSpaces { get; set; } = Enumerable.Empty<SpaceDto>();
-    public IEnumerable<SpaceTypeDto> SpaceTypes { get; set; } = Enumerable.Empty<SpaceTypeDto>();
+    public IEnumerable<SpaceTypeResponse> SpaceTypes { get; set; } = Enumerable.Empty<SpaceTypeResponse>();
 
     // Paginación
     public int CurrentPage { get; set; } = 1;

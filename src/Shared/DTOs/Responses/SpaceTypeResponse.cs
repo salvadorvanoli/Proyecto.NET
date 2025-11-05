@@ -1,7 +1,7 @@
-namespace Application.SpaceTypes.DTOs;
+namespace Shared.DTOs.Responses;
 
 /// <summary>
-/// Response DTO for space type information.
+/// Response for space type information.
 /// </summary>
 public class SpaceTypeResponse
 {

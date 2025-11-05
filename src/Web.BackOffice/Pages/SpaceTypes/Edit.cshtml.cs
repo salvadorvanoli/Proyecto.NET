@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
-using Web.BackOffice.Models;
+using Shared.DTOs.Requests;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.SpaceTypes;
@@ -69,12 +69,12 @@ public class EditModel : PageModel
 
         try
         {
-            var updateSpaceTypeDto = new UpdateSpaceTypeDto
+            var request = new SpaceTypeRequest
             {
                 Name = Input.Name
             };
 
-            await _spaceTypeApiService.UpdateSpaceTypeAsync(Input.Id, updateSpaceTypeDto);
+            await _spaceTypeApiService.UpdateSpaceTypeAsync(Input.Id, request);
 
             return RedirectToPage("/SpaceTypes/Index");
         }

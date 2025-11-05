@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
-using Web.BackOffice.Models;
+using Shared.DTOs.Requests;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.SpaceTypes;
@@ -44,12 +44,12 @@ public class CreateModel : PageModel
 
         try
         {
-            var createSpaceTypeDto = new CreateSpaceTypeDto
+            var request = new SpaceTypeRequest
             {
                 Name = Input.Name
             };
 
-            var createdSpaceType = await _spaceTypeApiService.CreateSpaceTypeAsync(createSpaceTypeDto);
+            var createdSpaceType = await _spaceTypeApiService.CreateSpaceTypeAsync(request);
 
             TempData["SuccessMessage"] = $"Tipo de espacio '{createdSpaceType.Name}' creado exitosamente.";
             return RedirectToPage("/SpaceTypes/Index");

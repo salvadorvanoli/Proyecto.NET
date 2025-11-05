@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
-using Web.BackOffice.Models;
+using Shared.DTOs.Requests;
+using Shared.DTOs.Responses;
 
 namespace Web.BackOffice.Services;
 
@@ -18,12 +19,12 @@ public class SpaceTypeApiService : ISpaceTypeApiService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<SpaceTypeDto>> GetAllSpaceTypesAsync()
+    public async Task<IEnumerable<SpaceTypeResponse>> GetAllSpaceTypesAsync()
     {
         try
         {
-            var spaceTypes = await _httpClient.GetFromJsonAsync<IEnumerable<SpaceTypeDto>>(BaseUrl);
-            return spaceTypes ?? Enumerable.Empty<SpaceTypeDto>();
+            var spaceTypes = await _httpClient.GetFromJsonAsync<IEnumerable<SpaceTypeResponse>>(BaseUrl);
+            return spaceTypes ?? Enumerable.Empty<SpaceTypeResponse>();
         }
         catch (Exception ex)
         {
@@ -32,11 +33,11 @@ public class SpaceTypeApiService : ISpaceTypeApiService
         }
     }
 
-    public async Task<SpaceTypeDto?> GetSpaceTypeByIdAsync(int id)
+    public async Task<SpaceTypeResponse?> GetSpaceTypeByIdAsync(int id)
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<SpaceTypeDto>($"{BaseUrl}/{id}");
+            return await _httpClient.GetFromJsonAsync<SpaceTypeResponse>($"{BaseUrl}/{id}");
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -49,14 +50,14 @@ public class SpaceTypeApiService : ISpaceTypeApiService
         }
     }
 
-    public async Task<SpaceTypeDto> CreateSpaceTypeAsync(CreateSpaceTypeDto createSpaceTypeDto)
+    public async Task<SpaceTypeResponse> CreateSpaceTypeAsync(SpaceTypeRequest request)
     {
         try
         {
-            var response = await _httpClient.PostAsJsonAsync(BaseUrl, createSpaceTypeDto);
+            var response = await _httpClient.PostAsJsonAsync(BaseUrl, request);
             response.EnsureSuccessStatusCode();
 
-            var spaceType = await response.Content.ReadFromJsonAsync<SpaceTypeDto>();
+            var spaceType = await response.Content.ReadFromJsonAsync<SpaceTypeResponse>();
             return spaceType ?? throw new InvalidOperationException("Failed to deserialize space type response");
         }
         catch (Exception ex)
@@ -66,14 +67,14 @@ public class SpaceTypeApiService : ISpaceTypeApiService
         }
     }
 
-    public async Task<SpaceTypeDto> UpdateSpaceTypeAsync(int id, UpdateSpaceTypeDto updateSpaceTypeDto)
+    public async Task<SpaceTypeResponse> UpdateSpaceTypeAsync(int id, SpaceTypeRequest request)
     {
         try
         {
-            var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", updateSpaceTypeDto);
+            var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", request);
             response.EnsureSuccessStatusCode();
 
-            var spaceType = await response.Content.ReadFromJsonAsync<SpaceTypeDto>();
+            var spaceType = await response.Content.ReadFromJsonAsync<SpaceTypeResponse>();
             return spaceType ?? throw new InvalidOperationException("Failed to deserialize space type response");
         }
         catch (Exception ex)

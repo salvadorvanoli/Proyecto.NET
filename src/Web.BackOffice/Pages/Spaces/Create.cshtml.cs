@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
+using Shared.DTOs.Responses;
 using Web.BackOffice.Models;
 using Web.BackOffice.Services;
 
@@ -25,7 +26,7 @@ public class CreateModel : PageModel
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
-    public IEnumerable<SpaceTypeDto> SpaceTypes { get; set; } = Enumerable.Empty<SpaceTypeDto>();
+    public IEnumerable<SpaceTypeResponse> SpaceTypes { get; set; } = Enumerable.Empty<SpaceTypeResponse>();
 
     [TempData]
     public string? ErrorMessage { get; set; }

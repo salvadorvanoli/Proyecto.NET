@@ -3,7 +3,7 @@ using Application.Common.Interfaces;
 using Application.Users.Services;
 using Application.Roles.Services;
 using Application.News.Services;
-using Application.SpaceTypes.Services;
+using Application.SpaceTypes;
 using Application.Spaces.Services;
 using Application.ControlPoints.Services;
 using Application.AccessRules.Services;

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Web.BackOffice.Models;
+using Shared.DTOs.Responses;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.SpaceTypes;
@@ -16,7 +16,7 @@ public class DetailsModel : PageModel
         _logger = logger;
     }
 
-    public SpaceTypeDto? SpaceType { get; set; }
+    public SpaceTypeResponse? SpaceType { get; set; }
 
     [TempData]
     public string? ErrorMessage { get; set; }

@@ -1,6 +1,7 @@
-using Application.SpaceTypes.DTOs;
+using Shared.DTOs.Requests;
+using Shared.DTOs.Responses;
 
-namespace Application.SpaceTypes.Services;
+namespace Application.SpaceTypes;
 
 /// <summary>
 /// Service interface for space type operations.
@@ -10,7 +11,7 @@ public interface ISpaceTypeService
     /// <summary>
     /// Creates a new space type in the current tenant context.
     /// </summary>
-    Task<SpaceTypeResponse> CreateSpaceTypeAsync(CreateSpaceTypeRequest request, CancellationToken cancellationToken = default);
+    Task<SpaceTypeResponse> CreateSpaceTypeAsync(SpaceTypeRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a space type by ID.
@@ -25,7 +26,7 @@ public interface ISpaceTypeService
     /// <summary>
     /// Updates an existing space type.
     /// </summary>
-    Task<SpaceTypeResponse> UpdateSpaceTypeAsync(int id, UpdateSpaceTypeRequest request, CancellationToken cancellationToken = default);
+    Task<SpaceTypeResponse> UpdateSpaceTypeAsync(int id, SpaceTypeRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes a space type by ID.

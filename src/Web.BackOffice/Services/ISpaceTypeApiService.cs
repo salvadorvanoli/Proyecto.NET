@@ -1,4 +1,5 @@
-using Web.BackOffice.Models;
+using Shared.DTOs.Requests;
+using Shared.DTOs.Responses;
 
 namespace Web.BackOffice.Services;
 
@@ -7,9 +8,9 @@ namespace Web.BackOffice.Services;
 /// </summary>
 public interface ISpaceTypeApiService
 {
-    Task<IEnumerable<SpaceTypeDto>> GetAllSpaceTypesAsync();
-    Task<SpaceTypeDto?> GetSpaceTypeByIdAsync(int id);
-    Task<SpaceTypeDto> CreateSpaceTypeAsync(CreateSpaceTypeDto createSpaceTypeDto);
-    Task<SpaceTypeDto> UpdateSpaceTypeAsync(int id, UpdateSpaceTypeDto updateSpaceTypeDto);
+    Task<IEnumerable<SpaceTypeResponse>> GetAllSpaceTypesAsync();
+    Task<SpaceTypeResponse?> GetSpaceTypeByIdAsync(int id);
+    Task<SpaceTypeResponse> CreateSpaceTypeAsync(SpaceTypeRequest request);
+    Task<SpaceTypeResponse> UpdateSpaceTypeAsync(int id, SpaceTypeRequest request);
     Task<bool> DeleteSpaceTypeAsync(int id);
 }

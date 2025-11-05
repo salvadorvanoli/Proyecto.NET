@@ -1,9 +1,10 @@
 using Application.Common.Interfaces;
-using Application.SpaceTypes.DTOs;
+using Shared.DTOs.Requests;
+using Shared.DTOs.Responses;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.SpaceTypes.Services;
+namespace Application.SpaceTypes;
 
 /// <summary>
 /// Implementation of space type service for managing space type operations.
@@ -21,7 +22,7 @@ public class SpaceTypeService : ISpaceTypeService
         _tenantProvider = tenantProvider;
     }
 
-    public async Task<SpaceTypeResponse> CreateSpaceTypeAsync(CreateSpaceTypeRequest request, CancellationToken cancellationToken = default)
+    public async Task<SpaceTypeResponse> CreateSpaceTypeAsync(SpaceTypeRequest request, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 
@@ -117,7 +118,7 @@ public class SpaceTypeService : ISpaceTypeService
         return spaceTypeResponses;
     }
 
-    public async Task<SpaceTypeResponse> UpdateSpaceTypeAsync(int id, UpdateSpaceTypeRequest request, CancellationToken cancellationToken = default)
+    public async Task<SpaceTypeResponse> UpdateSpaceTypeAsync(int id, SpaceTypeRequest request, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 
