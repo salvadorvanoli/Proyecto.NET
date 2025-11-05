@@ -1,6 +1,5 @@
 using Application.Common.Interfaces;
-using Shared.DTOs.Requests;
-using Shared.DTOs.Responses;
+using Shared.DTOs.SpaceTypes;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 

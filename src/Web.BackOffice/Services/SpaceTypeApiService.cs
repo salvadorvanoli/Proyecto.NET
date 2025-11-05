@@ -1,6 +1,5 @@
 using System.Net.Http.Json;
-using Shared.DTOs.Requests;
-using Shared.DTOs.Responses;
+using Shared.DTOs.SpaceTypes;
 
 namespace Web.BackOffice.Services;
 

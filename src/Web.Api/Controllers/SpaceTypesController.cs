@@ -1,5 +1,4 @@
-using Shared.DTOs.Requests;
-using Shared.DTOs.Responses;
+using Shared.DTOs.SpaceTypes;
 using Application.SpaceTypes;
 using Microsoft.AspNetCore.Mvc;
 

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Shared.DTOs.Requests;
+namespace Shared.DTOs.SpaceTypes;
 
 /// <summary>
 /// Request for creating or updating a space type.

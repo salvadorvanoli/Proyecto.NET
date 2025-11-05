@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Shared.DTOs.Responses;
+using Shared.DTOs.SpaceTypes;
 using Web.BackOffice.Models;
 using Web.BackOffice.Services;
 

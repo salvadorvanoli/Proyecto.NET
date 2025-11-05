@@ -1,4 +1,4 @@
-namespace Shared.DTOs.Responses;
+namespace Shared.DTOs.SpaceTypes;
 
 /// <summary>
 /// Response for space type information.
