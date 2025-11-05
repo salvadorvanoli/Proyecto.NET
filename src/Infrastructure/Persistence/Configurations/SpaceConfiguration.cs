@@ -46,6 +46,6 @@ public class SpaceConfiguration : IEntityTypeConfiguration<Space>
         // Indexes
         builder.HasIndex(s => s.TenantId);
         builder.HasIndex(s => s.SpaceTypeId);
-        builder.HasIndex(s => new { s.Name, s.TenantId });
+        builder.HasIndex(s => new { s.Name, s.TenantId }).IsUnique();
     }
 }

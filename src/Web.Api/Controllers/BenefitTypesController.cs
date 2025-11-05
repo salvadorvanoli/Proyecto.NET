@@ -12,10 +12,12 @@ namespace Web.Api.Controllers;
 public class BenefitTypesController : ControllerBase
 {
     private readonly IBenefitTypeService _benefitTypeService;
+    private readonly ILogger<BenefitTypesController> _logger;
 
-    public BenefitTypesController(IBenefitTypeService benefitTypeService)
+    public BenefitTypesController(IBenefitTypeService benefitTypeService, ILogger<BenefitTypesController> logger)
     {
         _benefitTypeService = benefitTypeService;
+        _logger = logger;
     }
 
     /// <summary>
@@ -26,8 +28,17 @@ public class BenefitTypesController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<BenefitTypeResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<BenefitTypeResponse>>> GetBenefitTypes()
     {
-        var benefitTypes = await _benefitTypeService.GetBenefitTypesByTenantAsync();
-        return Ok(benefitTypes);
+        try
+        {
+            var benefitTypes = await _benefitTypeService.GetBenefitTypesByTenantAsync();
+            _logger.LogInformation("Retrieved {Count} benefit types", benefitTypes.Count());
+            return Ok(benefitTypes);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving benefit types");
+            return StatusCode(500, "An error occurred while retrieving benefit types");
+        }
     }
 
     /// <summary>
@@ -43,7 +54,9 @@ public class BenefitTypesController : ControllerBase
         var benefitType = await _benefitTypeService.GetBenefitTypeByIdAsync(id);
         
         if (benefitType == null)
+        {
             return NotFound(new { message = $"Benefit type with ID {id} not found." });
+        }
         
         return Ok(benefitType);
     }
@@ -62,14 +75,17 @@ public class BenefitTypesController : ControllerBase
         try
         {
             var benefitType = await _benefitTypeService.CreateBenefitTypeAsync(request);
+            _logger.LogInformation("Created benefit type with ID {Id}", benefitType.Id);
             return CreatedAtAction(nameof(GetBenefitTypeById), new { id = benefitType.Id }, benefitType);
         }
         catch (InvalidOperationException ex)
         {
+            _logger.LogWarning(ex, "Invalid operation while creating benefit type");
             return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error creating benefit type");
             return StatusCode(StatusCodes.Status500InternalServerError, 
                 new { message = "An error occurred while creating the benefit type.", details = ex.Message });
         }
@@ -91,17 +107,23 @@ public class BenefitTypesController : ControllerBase
         try
         {
             var benefitType = await _benefitTypeService.UpdateBenefitTypeAsync(id, request);
+            _logger.LogInformation("Updated benefit type with ID {Id}", id);
             return Ok(benefitType);
         }
         catch (InvalidOperationException ex)
         {
             if (ex.Message.Contains("not found"))
+            {
+                _logger.LogWarning(ex, "Benefit type with ID {Id} not found", id);
                 return NotFound(new { message = ex.Message });
+            }
             
+            _logger.LogWarning(ex, "Invalid operation while updating benefit type with ID {Id}", id);
             return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error updating benefit type with ID {Id}", id);
             return StatusCode(StatusCodes.Status500InternalServerError, 
                 new { message = "An error occurred while updating the benefit type.", details = ex.Message });
         }
@@ -124,16 +146,22 @@ public class BenefitTypesController : ControllerBase
             var result = await _benefitTypeService.DeleteBenefitTypeAsync(id);
             
             if (!result)
+            {
+                _logger.LogWarning("Benefit type with ID {Id} not found", id);
                 return NotFound(new { message = $"Benefit type with ID {id} not found." });
+            }
             
+            _logger.LogInformation("Deleted benefit type with ID {Id}", id);
             return NoContent();
         }
         catch (InvalidOperationException ex)
         {
+            _logger.LogWarning(ex, "Cannot delete benefit type with ID {Id}", id);
             return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error deleting benefit type with ID {Id}", id);
             return StatusCode(StatusCodes.Status500InternalServerError, 
                 new { message = "An error occurred while deleting the benefit type.", details = ex.Message });
         }

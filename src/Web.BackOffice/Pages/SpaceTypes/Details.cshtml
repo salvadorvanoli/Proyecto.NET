@@ -73,19 +73,6 @@
                 <i class="bi bi-arrow-left"></i> Volver a la Lista
             </a>
         </div>
-        
-        @if (Model.SpaceType.SpaceCount == 0)
-        {
-            <form method="post" 
-                  asp-page-handler="Delete" 
-                  asp-route-id="@Model.SpaceType.Id" 
-                  class="d-inline ms-2"
-                  onsubmit="return confirm('¿Está seguro que desea eliminar el tipo de espacio \'@Model.SpaceType.Name\'?');">
-                <button type="submit" class="btn btn-danger">
-                    <i class="bi bi-trash"></i> Eliminar
-                </button>
-            </form>
-        }
     </div>
 }
 else

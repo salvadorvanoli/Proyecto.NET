@@ -58,8 +58,8 @@ public class EditModel : PageModel
 
             if (space == null)
             {
-                TempData["ErrorMessage"] = $"No se encontró el espacio con ID {id}.";
-                return RedirectToPage("/Spaces/Index");
+                ErrorMessage = $"Espacio con ID {id} no encontrado.";
+                return Page();
             }
 
             Input = new InputModel
@@ -74,8 +74,8 @@ public class EditModel : PageModel
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading space {SpaceId}", id);
-            TempData["ErrorMessage"] = "Error al cargar el espacio.";
-            return RedirectToPage("/Spaces/Index");
+            ErrorMessage = "Error al cargar el espacio para editar.";
+            return Page();
         }
     }
 
@@ -106,13 +106,12 @@ public class EditModel : PageModel
 
             await _spaceApiService.UpdateSpaceAsync(Input.Id, updateSpaceDto);
 
-            TempData["SuccessMessage"] = $"Espacio '{Input.Name}' actualizado exitosamente.";
             return RedirectToPage("/Spaces/Index");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating space {SpaceId}", Input.Id);
-            ErrorMessage = "Error al actualizar el espacio. Verifique que el nombre no esté en uso.";
+            ErrorMessage = "Error al actualizar el espacio.";
             
             // Reload space types
             try

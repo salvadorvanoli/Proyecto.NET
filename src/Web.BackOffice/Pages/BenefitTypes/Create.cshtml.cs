@@ -8,17 +8,23 @@ namespace Web.BackOffice.Pages.BenefitTypes;
 public class CreateModel : PageModel
 {
     private readonly IBenefitTypeApiService _benefitTypeApiService;
+    private readonly ILogger<CreateModel> _logger;
 
-    public CreateModel(IBenefitTypeApiService benefitTypeApiService)
+    public CreateModel(IBenefitTypeApiService benefitTypeApiService, ILogger<CreateModel> logger)
     {
         _benefitTypeApiService = benefitTypeApiService;
+        _logger = logger;
     }
 
     [BindProperty]
     public CreateBenefitTypeDto BenefitType { get; set; } = new();
+    
+    [TempData]
+    public string? ErrorMessage { get; set; }
 
-    public void OnGet()
+    public IActionResult OnGet()
     {
+        return Page();
     }
 
     public async Task<IActionResult> OnPostAsync()
@@ -31,11 +37,13 @@ public class CreateModel : PageModel
         try
         {
             await _benefitTypeApiService.CreateBenefitTypeAsync(BenefitType);
+            _logger.LogInformation("Benefit type '{Name}' created successfully", BenefitType.Name);
             TempData["SuccessMessage"] = "Tipo de beneficio creado exitosamente.";
             return RedirectToPage("./Index");
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error creating benefit type '{Name}'", BenefitType.Name);
             ModelState.AddModelError(string.Empty, $"Error al crear el tipo de beneficio: {ex.Message}");
             return Page();
         }

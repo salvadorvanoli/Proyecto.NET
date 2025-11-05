@@ -29,6 +29,22 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
+    
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle"></i> @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle"></i> @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 
     <!-- Filter Form -->
     <div class="card mb-4">
@@ -75,10 +91,15 @@
         </div>
     </div>
 
-    @if (Model.AccessRules.Any())
+    @if (Model.DisplayedAccessRules.Any())
     {
         <div class="card">
             <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <p class="mb-0 text-muted">
+                        Mostrando @((Model.CurrentPage - 1) * 10 + 1) - @Math.Min(Model.CurrentPage * 10, Model.TotalAccessRules) de @Model.TotalAccessRules reglas de acceso
+                    </p>
+                </div>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
                         <thead class="table-light">
@@ -93,7 +114,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var accessRule in Model.AccessRules)
+                            @foreach (var accessRule in Model.DisplayedAccessRules)
                             {
                                 <tr class="@(!accessRule.IsActive ? "table-secondary" : "")">
                                     <td>
@@ -176,6 +197,80 @@
                         </tbody>
                     </table>
                 </div>
+                
+                @if (Model.TotalPages > 1)
+                {
+                    <nav aria-label="Paginación de reglas de acceso">
+                        <ul class="pagination justify-content-center mb-0">
+                            <!-- First Page -->
+                            <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" 
+                                   asp-page="./Index" 
+                                   asp-route-pageNumber="1"
+                                   asp-route-roleId="@Model.SelectedRoleId"
+                                   asp-route-controlPointId="@Model.SelectedControlPointId"
+                                   asp-route-active="@Model.ActiveFilter">
+                                    <i class="bi bi-chevron-double-left"></i>
+                                </a>
+                            </li>
+                            
+                            <!-- Previous Page -->
+                            <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" 
+                                   asp-page="./Index" 
+                                   asp-route-pageNumber="@(Model.CurrentPage - 1)"
+                                   asp-route-roleId="@Model.SelectedRoleId"
+                                   asp-route-controlPointId="@Model.SelectedControlPointId"
+                                   asp-route-active="@Model.ActiveFilter">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+
+                            @{
+                                var startPage = Math.Max(1, Model.CurrentPage - 2);
+                                var endPage = Math.Min(Model.TotalPages, Model.CurrentPage + 2);
+                            }
+
+                            @for (var i = startPage; i <= endPage; i++)
+                            {
+                                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                    <a class="page-link" 
+                                       asp-page="./Index" 
+                                       asp-route-pageNumber="@i"
+                                       asp-route-roleId="@Model.SelectedRoleId"
+                                       asp-route-controlPointId="@Model.SelectedControlPointId"
+                                       asp-route-active="@Model.ActiveFilter">
+                                        @i
+                                    </a>
+                                </li>
+                            }
+
+                            <!-- Next Page -->
+                            <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link" 
+                                   asp-page="./Index" 
+                                   asp-route-pageNumber="@(Model.CurrentPage + 1)"
+                                   asp-route-roleId="@Model.SelectedRoleId"
+                                   asp-route-controlPointId="@Model.SelectedControlPointId"
+                                   asp-route-active="@Model.ActiveFilter">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                            
+                            <!-- Last Page -->
+                            <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link" 
+                                   asp-page="./Index" 
+                                   asp-route-pageNumber="@Model.TotalPages"
+                                   asp-route-roleId="@Model.SelectedRoleId"
+                                   asp-route-controlPointId="@Model.SelectedControlPointId"
+                                   asp-route-active="@Model.ActiveFilter">
+                                    <i class="bi bi-chevron-double-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                }
             </div>
         </div>
     }

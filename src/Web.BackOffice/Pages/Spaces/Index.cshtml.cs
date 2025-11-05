@@ -112,16 +112,10 @@ public class IndexModel : PageModel
 
             return RedirectToPage();
         }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning(ex, "Failed to delete space {SpaceId}", id);
-            ErrorMessage = ex.Message;
-            return RedirectToPage();
-        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting space {SpaceId}", id);
-            ErrorMessage = "Error al eliminar el espacio. Por favor, intente nuevamente.";
+            ErrorMessage = "Error al eliminar el espacio.";
             return RedirectToPage();
         }
     }

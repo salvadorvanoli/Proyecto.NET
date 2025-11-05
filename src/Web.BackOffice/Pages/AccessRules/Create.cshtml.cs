@@ -11,15 +11,18 @@ public class CreateModel : PageModel
     private readonly IAccessRuleApiService _accessRuleApiService;
     private readonly IRoleApiService _roleApiService;
     private readonly IControlPointApiService _controlPointApiService;
+    private readonly ILogger<CreateModel> _logger;
 
     public CreateModel(
         IAccessRuleApiService accessRuleApiService,
         IRoleApiService roleApiService,
-        IControlPointApiService controlPointApiService)
+        IControlPointApiService controlPointApiService,
+        ILogger<CreateModel> logger)
     {
         _accessRuleApiService = accessRuleApiService;
         _roleApiService = roleApiService;
         _controlPointApiService = controlPointApiService;
+        _logger = logger;
     }
 
     [BindProperty]
@@ -33,94 +36,128 @@ public class CreateModel : PageModel
 
     [BindProperty]
     public bool UsePermanent { get; set; } = true;
+    
+    [TempData]
+    public string? ErrorMessage { get; set; }
 
-    public async Task OnGetAsync()
+    public async Task<IActionResult> OnGetAsync()
     {
-        await LoadSelectListsAsync();
+        try
+        {
+            await LoadSelectListsAsync();
+            return Page();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading data for access rule creation");
+            ErrorMessage = "Ocurrió un error al cargar los datos necesarios.";
+            return Page();
+        }
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
-        // Clear time values if 24x7 is checked
-        if (Use24x7)
+        try
         {
-            AccessRule.StartTime = null;
-            AccessRule.EndTime = null;
-        }
+            // Clear time values if 24x7 is checked
+            if (Use24x7)
+            {
+                AccessRule.StartTime = null;
+                AccessRule.EndTime = null;
+            }
 
-        // Clear date values if permanent is checked
-        if (UsePermanent)
-        {
-            AccessRule.StartDate = null;
-            AccessRule.EndDate = null;
-        }
+            // Clear date values if permanent is checked
+            if (UsePermanent)
+            {
+                AccessRule.StartDate = null;
+                AccessRule.EndDate = null;
+            }
 
-        if (!ModelState.IsValid)
+            if (!ModelState.IsValid)
+            {
+                await LoadSelectListsAsync();
+                return Page();
+            }
+
+            // Validate at least one role and control point selected
+            if (AccessRule.RoleIds == null || !AccessRule.RoleIds.Any())
+            {
+                ModelState.AddModelError(string.Empty, "Debe seleccionar al menos un rol.");
+                await LoadSelectListsAsync();
+                return Page();
+            }
+
+            if (AccessRule.ControlPointIds == null || !AccessRule.ControlPointIds.Any())
+            {
+                ModelState.AddModelError(string.Empty, "Debe seleccionar al menos un punto de control.");
+                await LoadSelectListsAsync();
+                return Page();
+            }
+
+            // Validate time range if not 24x7
+            if (!Use24x7 && (string.IsNullOrWhiteSpace(AccessRule.StartTime) || string.IsNullOrWhiteSpace(AccessRule.EndTime)))
+            {
+                ModelState.AddModelError(string.Empty, "Debe especificar un rango horario o marcar acceso 24/7.");
+                await LoadSelectListsAsync();
+                return Page();
+            }
+
+            // Validate date range if not permanent
+            if (!UsePermanent && (!AccessRule.StartDate.HasValue || !AccessRule.EndDate.HasValue))
+            {
+                ModelState.AddModelError(string.Empty, "Debe especificar un periodo de validez o marcar como permanente.");
+                await LoadSelectListsAsync();
+                return Page();
+            }
+
+            var result = await _accessRuleApiService.CreateAccessRuleAsync(AccessRule);
+
+            if (result == null)
+            {
+                ModelState.AddModelError(string.Empty, "No se pudo crear la regla de acceso.");
+                await LoadSelectListsAsync();
+                return Page();
+            }
+
+            _logger.LogInformation("Access rule created successfully with ID {Id}", result.Id);
+            TempData["SuccessMessage"] = "Regla de acceso creada exitosamente.";
+            return RedirectToPage("Index");
+        }
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Error creating access rule");
+            ModelState.AddModelError(string.Empty, "Ocurrió un error al crear la regla de acceso.");
             await LoadSelectListsAsync();
             return Page();
         }
-
-        // Validate at least one role and control point selected
-        if (AccessRule.RoleIds == null || !AccessRule.RoleIds.Any())
-        {
-            ModelState.AddModelError(string.Empty, "Debe seleccionar al menos un rol.");
-            await LoadSelectListsAsync();
-            return Page();
-        }
-
-        if (AccessRule.ControlPointIds == null || !AccessRule.ControlPointIds.Any())
-        {
-            ModelState.AddModelError(string.Empty, "Debe seleccionar al menos un punto de control.");
-            await LoadSelectListsAsync();
-            return Page();
-        }
-
-        // Validate time range if not 24x7
-        if (!Use24x7 && (string.IsNullOrWhiteSpace(AccessRule.StartTime) || string.IsNullOrWhiteSpace(AccessRule.EndTime)))
-        {
-            ModelState.AddModelError(string.Empty, "Debe especificar un rango horario o marcar acceso 24/7.");
-            await LoadSelectListsAsync();
-            return Page();
-        }
-
-        // Validate date range if not permanent
-        if (!UsePermanent && (!AccessRule.StartDate.HasValue || !AccessRule.EndDate.HasValue))
-        {
-            ModelState.AddModelError(string.Empty, "Debe especificar un periodo de validez o marcar como permanente.");
-            await LoadSelectListsAsync();
-            return Page();
-        }
-
-        var result = await _accessRuleApiService.CreateAccessRuleAsync(AccessRule);
-
-        if (result == null)
-        {
-            ModelState.AddModelError(string.Empty, "No se pudo crear la regla de acceso.");
-            await LoadSelectListsAsync();
-            return Page();
-        }
-
-        TempData["SuccessMessage"] = "Regla de acceso creada exitosamente.";
-        return RedirectToPage("Index");
     }
 
     private async Task LoadSelectListsAsync()
     {
-        var rolesTask = _roleApiService.GetAllRolesAsync();
-        var controlPointsTask = _controlPointApiService.GetControlPointsByTenantAsync();
+        try
+        {
+            var rolesTask = _roleApiService.GetAllRolesAsync();
+            var controlPointsTask = _controlPointApiService.GetControlPointsByTenantAsync();
 
-        await Task.WhenAll(rolesTask, controlPointsTask);
+            await Task.WhenAll(rolesTask, controlPointsTask);
 
-        var roles = await rolesTask;
-        var controlPoints = await controlPointsTask;
+            var roles = await rolesTask;
+            var controlPoints = await controlPointsTask;
 
-        Roles = new MultiSelectList(roles, "Id", "Name", AccessRule.RoleIds);
-        ControlPoints = new MultiSelectList(
-            controlPoints.Select(cp => new { cp.Id, DisplayName = $"{cp.Name} ({cp.SpaceName})" }),
-            "Id",
-            "DisplayName",
-            AccessRule.ControlPointIds
-        );
+            Roles = new MultiSelectList(roles, "Id", "Name", AccessRule.RoleIds);
+            ControlPoints = new MultiSelectList(
+                controlPoints.Select(cp => new { cp.Id, DisplayName = $"{cp.Name} ({cp.SpaceName})" }),
+                "Id",
+                "DisplayName",
+                AccessRule.ControlPointIds
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading roles and control points");
+            Roles = new MultiSelectList(new List<RoleDto>(), "Id", "Name");
+            ControlPoints = new MultiSelectList(new List<ControlPointDto>(), "Id", "Name");
+            throw;
+        }
     }
 }

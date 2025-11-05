@@ -60,7 +60,7 @@ public static class DatabaseSeeder
 
             var adminUser = new User(
                 tenant.Id,
-                $"admin@backoffice.com",
+                $"admin1@backoffice.com",
                 passwordHash,
                 personalData
             );
@@ -68,7 +68,7 @@ public static class DatabaseSeeder
             context.Users.Add(adminUser);
             await context.SaveChangesAsync();
 
-            Console.WriteLine($"   Usuario creado: admin@backoffice.com");
+            Console.WriteLine($"   Usuario creado: admin1@backoffice.com");
 
             // Seed Role for BackOffice
             var adminRole = new Role(tenant.Id, "AdministradorBackoffice");
@@ -77,7 +77,7 @@ public static class DatabaseSeeder
 
             // Reload admin user with ID
             var savedAdminUser = await context.Users
-                .FirstAsync(u => u.Email == "admin@backoffice.com");
+                .FirstAsync(u => u.Email == "admin1@backoffice.com");
 
             savedAdminUser.AssignRole(adminRole);
             await context.SaveChangesAsync();

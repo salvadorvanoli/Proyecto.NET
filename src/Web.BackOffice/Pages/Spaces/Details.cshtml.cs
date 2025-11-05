@@ -29,48 +29,17 @@ public class DetailsModel : PageModel
 
             if (Space == null)
             {
-                TempData["ErrorMessage"] = $"No se encontró el espacio con ID {id}.";
-                return RedirectToPage("/Spaces/Index");
+                ErrorMessage = $"Espacio con ID {id} no encontrado.";
+                return Page();
             }
 
             return Page();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading space {SpaceId}", id);
-            TempData["ErrorMessage"] = "Error al cargar el espacio.";
-            return RedirectToPage("/Spaces/Index");
-        }
-    }
-
-    public async Task<IActionResult> OnPostDeleteAsync(int id)
-    {
-        try
-        {
-            var deleted = await _spaceApiService.DeleteSpaceAsync(id);
-
-            if (!deleted)
-            {
-                TempData["ErrorMessage"] = $"No se pudo eliminar el espacio con ID {id}. Puede que no exista.";
-            }
-            else
-            {
-                TempData["SuccessMessage"] = "Espacio eliminado correctamente.";
-            }
-
-            return RedirectToPage("/Spaces/Index");
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning(ex, "Failed to delete space {SpaceId}", id);
-            TempData["ErrorMessage"] = ex.Message;
-            return RedirectToPage("/Spaces/Index");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting space {SpaceId}", id);
-            TempData["ErrorMessage"] = "Error al eliminar el espacio.";
-            return RedirectToPage("/Spaces/Index");
+            _logger.LogError(ex, "Error loading space details for ID {SpaceId}", id);
+            ErrorMessage = "Error al cargar los detalles del espacio.";
+            return Page();
         }
     }
 }

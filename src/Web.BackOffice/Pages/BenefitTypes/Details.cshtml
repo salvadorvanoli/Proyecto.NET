@@ -16,6 +16,14 @@
                 </a>
             </div>
 
+            @if (Model.ErrorMessage != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @Model.ErrorMessage
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
             <div class="card">
                 <div class="card-body">
                     <dl class="row">
@@ -61,26 +69,6 @@
                                 <i class="bi bi-arrow-left"></i> Volver al listado
                             </a>
                         </div>
-                        <div>
-                            @if (Model.BenefitType.BenefitCount == 0)
-                            {
-                                <button type="button" 
-                                        class="btn btn-danger" 
-                                        data-bs-toggle="modal" 
-                                        data-bs-target="#deleteModal">
-                                    <i class="bi bi-trash"></i> Eliminar
-                                </button>
-                            }
-                            else
-                            {
-                                <button type="button" 
-                                        class="btn btn-outline-secondary" 
-                                        title="No se puede eliminar: tiene beneficios asociados"
-                                        disabled>
-                                    <i class="bi bi-trash"></i> Eliminar
-                                </button>
-                            }
-                        </div>
                     </div>
                 </div>
             </div>
@@ -94,29 +82,6 @@
                     Elimine primero los beneficios antes de eliminar este tipo.
                 </div>
             }
-        </div>
-    </div>
-</div>
-
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteModalLabel">Confirmar Eliminación</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>¿Está seguro que desea eliminar el tipo de beneficio <strong>@Model.BenefitType.Name</strong>?</p>
-                <p class="text-danger"><i class="bi bi-exclamation-triangle"></i> Esta acción no se puede deshacer.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form method="post" asp-page-handler="Delete" style="display: inline;">
-                    <input type="hidden" name="id" value="@Model.BenefitType.Id" />
-                    <button type="submit" class="btn btn-danger">Eliminar</button>
-                </form>
-            </div>
         </div>
     </div>
 </div>

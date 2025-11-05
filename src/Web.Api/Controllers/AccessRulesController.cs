@@ -12,10 +12,12 @@ namespace Web.Api.Controllers;
 public class AccessRulesController : ControllerBase
 {
     private readonly IAccessRuleService _accessRuleService;
+    private readonly ILogger<AccessRulesController> _logger;
 
-    public AccessRulesController(IAccessRuleService accessRuleService)
+    public AccessRulesController(IAccessRuleService accessRuleService, ILogger<AccessRulesController> logger)
     {
         _accessRuleService = accessRuleService;
+        _logger = logger;
     }
 
     /// <summary>
@@ -26,8 +28,17 @@ public class AccessRulesController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<AccessRuleResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<AccessRuleResponse>>> GetAccessRules()
     {
-        var accessRules = await _accessRuleService.GetAccessRulesByTenantAsync();
-        return Ok(accessRules);
+        try
+        {
+            var accessRules = await _accessRuleService.GetAccessRulesByTenantAsync();
+            _logger.LogInformation("Retrieved {Count} access rules", accessRules.Count());
+            return Ok(accessRules);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving access rules");
+            return StatusCode(500, "An error occurred while retrieving access rules");
+        }
     }
 
     /// <summary>
@@ -43,7 +54,9 @@ public class AccessRulesController : ControllerBase
         var accessRule = await _accessRuleService.GetAccessRuleByIdAsync(id);
         
         if (accessRule == null)
+        {
             return NotFound(new { message = $"Access rule with ID {id} not found." });
+        }
         
         return Ok(accessRule);
     }
@@ -57,8 +70,17 @@ public class AccessRulesController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<AccessRuleResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<AccessRuleResponse>>> GetAccessRulesByControlPoint(int controlPointId)
     {
-        var accessRules = await _accessRuleService.GetAccessRulesByControlPointAsync(controlPointId);
-        return Ok(accessRules);
+        try
+        {
+            var accessRules = await _accessRuleService.GetAccessRulesByControlPointAsync(controlPointId);
+            _logger.LogInformation("Retrieved {Count} access rules for control point {ControlPointId}", accessRules.Count(), controlPointId);
+            return Ok(accessRules);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving access rules for control point {ControlPointId}", controlPointId);
+            return StatusCode(500, "An error occurred while retrieving access rules");
+        }
     }
 
     /// <summary>
@@ -70,8 +92,17 @@ public class AccessRulesController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<AccessRuleResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<AccessRuleResponse>>> GetAccessRulesByRole(int roleId)
     {
-        var accessRules = await _accessRuleService.GetAccessRulesByRoleAsync(roleId);
-        return Ok(accessRules);
+        try
+        {
+            var accessRules = await _accessRuleService.GetAccessRulesByRoleAsync(roleId);
+            _logger.LogInformation("Retrieved {Count} access rules for role {RoleId}", accessRules.Count(), roleId);
+            return Ok(accessRules);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving access rules for role {RoleId}", roleId);
+            return StatusCode(500, "An error occurred while retrieving access rules");
+        }
     }
 
     /// <summary>
@@ -88,14 +119,17 @@ public class AccessRulesController : ControllerBase
         try
         {
             var accessRule = await _accessRuleService.CreateAccessRuleAsync(request);
+            _logger.LogInformation("Created access rule with ID {Id}", accessRule.Id);
             return CreatedAtAction(nameof(GetAccessRuleById), new { id = accessRule.Id }, accessRule);
         }
         catch (InvalidOperationException ex)
         {
+            _logger.LogWarning(ex, "Invalid operation while creating access rule");
             return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error creating access rule");
             return StatusCode(StatusCodes.Status500InternalServerError, 
                 new { message = "An error occurred while creating the access rule.", details = ex.Message });
         }
@@ -117,17 +151,23 @@ public class AccessRulesController : ControllerBase
         try
         {
             var accessRule = await _accessRuleService.UpdateAccessRuleAsync(id, request);
+            _logger.LogInformation("Updated access rule with ID {Id}", id);
             return Ok(accessRule);
         }
         catch (InvalidOperationException ex)
         {
             if (ex.Message.Contains("not found"))
+            {
+                _logger.LogWarning(ex, "Access rule with ID {Id} not found", id);
                 return NotFound(new { message = ex.Message });
+            }
             
+            _logger.LogWarning(ex, "Invalid operation while updating access rule with ID {Id}", id);
             return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error updating access rule with ID {Id}", id);
             return StatusCode(StatusCodes.Status500InternalServerError, 
                 new { message = "An error occurred while updating the access rule.", details = ex.Message });
         }
@@ -149,12 +189,17 @@ public class AccessRulesController : ControllerBase
             var result = await _accessRuleService.DeleteAccessRuleAsync(id);
             
             if (!result)
+            {
+                _logger.LogWarning("Access rule with ID {Id} not found", id);
                 return NotFound(new { message = $"Access rule with ID {id} not found." });
+            }
             
+            _logger.LogInformation("Deleted access rule with ID {Id}", id);
             return NoContent();
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error deleting access rule with ID {Id}", id);
             return StatusCode(StatusCodes.Status500InternalServerError, 
                 new { message = "An error occurred while deleting the access rule.", details = ex.Message });
         }

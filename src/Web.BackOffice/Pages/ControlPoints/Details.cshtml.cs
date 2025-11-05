@@ -8,41 +8,41 @@ namespace Web.BackOffice.Pages.ControlPoints;
 public class DetailsModel : PageModel
 {
     private readonly IControlPointApiService _controlPointApiService;
+    private readonly ILogger<DetailsModel> _logger;
 
-    public DetailsModel(IControlPointApiService controlPointApiService)
+    public DetailsModel(IControlPointApiService controlPointApiService, ILogger<DetailsModel> logger)
     {
         _controlPointApiService = controlPointApiService;
+        _logger = logger;
     }
 
-    public ControlPointDto ControlPoint { get; set; } = new();
+    public ControlPointDto? ControlPoint { get; set; }
 
     [BindProperty(SupportsGet = true)]
     public int Id { get; set; }
 
+    [TempData]
+    public string? ErrorMessage { get; set; }
+
     public async Task<IActionResult> OnGetAsync()
     {
-        var controlPoint = await _controlPointApiService.GetControlPointByIdAsync(Id);
-
-        if (controlPoint == null)
+        try
         {
-            return NotFound();
+            ControlPoint = await _controlPointApiService.GetControlPointByIdAsync(Id);
+
+            if (ControlPoint == null)
+            {
+                ErrorMessage = $"Punto de control con ID {Id} no encontrado.";
+                return Page();
+            }
+
+            return Page();
         }
-
-        ControlPoint = controlPoint;
-        return Page();
-    }
-
-    public async Task<IActionResult> OnPostDeleteAsync()
-    {
-        var result = await _controlPointApiService.DeleteControlPointAsync(Id);
-
-        if (!result)
+        catch (Exception ex)
         {
-            TempData["ErrorMessage"] = "No se pudo eliminar el punto de control. Verifique que no tenga reglas o eventos de acceso asociados.";
-            return RedirectToPage(new { id = Id });
+            _logger.LogError(ex, "Error loading control point details for ID {ControlPointId}", Id);
+            ErrorMessage = "Error al cargar los detalles del punto de control.";
+            return Page();
         }
-
-        TempData["SuccessMessage"] = "Punto de control eliminado exitosamente.";
-        return RedirectToPage("Index");
     }
 }

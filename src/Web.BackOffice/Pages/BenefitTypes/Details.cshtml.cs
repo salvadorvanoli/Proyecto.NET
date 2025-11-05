@@ -8,39 +8,40 @@ namespace Web.BackOffice.Pages.BenefitTypes;
 public class DetailsModel : PageModel
 {
     private readonly IBenefitTypeApiService _benefitTypeApiService;
+    private readonly ILogger<DetailsModel> _logger;
 
-    public DetailsModel(IBenefitTypeApiService benefitTypeApiService)
+    public DetailsModel(IBenefitTypeApiService benefitTypeApiService, ILogger<DetailsModel> logger)
     {
         _benefitTypeApiService = benefitTypeApiService;
+        _logger = logger;
     }
 
     public BenefitTypeDto BenefitType { get; set; } = null!;
+    
+    [TempData]
+    public string? ErrorMessage { get; set; }
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
-        var benefitType = await _benefitTypeApiService.GetBenefitTypeByIdAsync(id);
-        
-        if (benefitType == null)
+        try
         {
-            TempData["ErrorMessage"] = "Tipo de beneficio no encontrado.";
-            return RedirectToPage("./Index");
+            var benefitType = await _benefitTypeApiService.GetBenefitTypeByIdAsync(id);
+            
+            if (benefitType == null)
+            {
+                _logger.LogWarning("Benefit type with ID {Id} not found", id);
+                ErrorMessage = "Tipo de beneficio no encontrado.";
+                return Page();
+            }
+
+            BenefitType = benefitType;
+            return Page();
         }
-
-        BenefitType = benefitType;
-        return Page();
-    }
-
-    public async Task<IActionResult> OnPostDeleteAsync(int id)
-    {
-        var result = await _benefitTypeApiService.DeleteBenefitTypeAsync(id);
-        
-        if (!result)
+        catch (Exception ex)
         {
-            TempData["ErrorMessage"] = "No se pudo eliminar el tipo de beneficio. Verifique que no tenga beneficios asociados.";
-            return RedirectToPage("./Details", new { id });
+            _logger.LogError(ex, "Error loading benefit type with ID {Id}", id);
+            ErrorMessage = "Ocurrió un error al cargar el tipo de beneficio.";
+            return Page();
         }
-
-        TempData["SuccessMessage"] = "Tipo de beneficio eliminado exitosamente.";
-        return RedirectToPage("./Index");
     }
 }

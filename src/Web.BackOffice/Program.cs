@@ -39,72 +39,75 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<TenantHeaderHandler>();
 
+// Get API URL from configuration
+var apiUrl = builder.Configuration.GetValue<string>("ApiSettings:BaseUrl") ?? "http://web-api:8080";
+
 builder.Services.AddHttpClient<IUserApiService, UserApiService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5236/");
+    client.BaseAddress = new Uri(apiUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
 .AddHttpMessageHandler<TenantHeaderHandler>();
 
 builder.Services.AddHttpClient<IRoleApiService, RoleApiService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5236/");
+    client.BaseAddress = new Uri(apiUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
 .AddHttpMessageHandler<TenantHeaderHandler>();
 
 builder.Services.AddHttpClient<INewsApiService, NewsApiService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5236/");
+    client.BaseAddress = new Uri(apiUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
 .AddHttpMessageHandler<TenantHeaderHandler>();
 
 builder.Services.AddHttpClient<ISpaceTypeApiService, SpaceTypeApiService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5236/");
+    client.BaseAddress = new Uri(apiUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
 .AddHttpMessageHandler<TenantHeaderHandler>();
 
 builder.Services.AddHttpClient<ISpaceApiService, SpaceApiService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5236/");
+    client.BaseAddress = new Uri(apiUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
 .AddHttpMessageHandler<TenantHeaderHandler>();
 
 builder.Services.AddHttpClient<IControlPointApiService, ControlPointApiService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5236/");
+    client.BaseAddress = new Uri(apiUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
 .AddHttpMessageHandler<TenantHeaderHandler>();
 
 builder.Services.AddHttpClient<IAccessRuleApiService, AccessRuleApiService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5236/");
+    client.BaseAddress = new Uri(apiUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
 .AddHttpMessageHandler<TenantHeaderHandler>();
 
 builder.Services.AddHttpClient<IBenefitTypeApiService, BenefitTypeApiService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5236/");
+    client.BaseAddress = new Uri(apiUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
 .AddHttpMessageHandler<TenantHeaderHandler>();
 
 builder.Services.AddHttpClient<IBenefitApiService, BenefitApiService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5236/");
+    client.BaseAddress = new Uri(apiUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
 .AddHttpMessageHandler<TenantHeaderHandler>();
 
 builder.Services.AddHttpClient<IAuthApiService, AuthApiService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5236/");
+    client.BaseAddress = new Uri(apiUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 

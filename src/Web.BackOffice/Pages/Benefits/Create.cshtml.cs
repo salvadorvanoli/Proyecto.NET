@@ -10,22 +10,40 @@ public class CreateModel : PageModel
 {
     private readonly IBenefitApiService _benefitApiService;
     private readonly IBenefitTypeApiService _benefitTypeApiService;
+    private readonly ILogger<CreateModel> _logger;
 
-    public CreateModel(IBenefitApiService benefitApiService, IBenefitTypeApiService benefitTypeApiService)
+    public CreateModel(
+        IBenefitApiService benefitApiService, 
+        IBenefitTypeApiService benefitTypeApiService,
+        ILogger<CreateModel> logger)
     {
         _benefitApiService = benefitApiService;
         _benefitTypeApiService = benefitTypeApiService;
+        _logger = logger;
     }
 
     [BindProperty]
     public CreateBenefitDto Benefit { get; set; } = new();
 
     public List<SelectListItem> BenefitTypes { get; set; } = new();
+    
+    [TempData]
+    public string? ErrorMessage { get; set; }
 
-    public async Task OnGetAsync()
+    public async Task<IActionResult> OnGetAsync()
     {
-        await LoadBenefitTypesAsync();
-        Benefit.IsPermanent = true; // Default to permanent
+        try
+        {
+            await LoadBenefitTypesAsync();
+            Benefit.IsPermanent = true; // Default to permanent
+            return Page();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading create benefit page");
+            ErrorMessage = "Ocurrió un error al cargar la página.";
+            return Page();
+        }
     }
 
     public async Task<IActionResult> OnPostAsync()
@@ -60,11 +78,13 @@ public class CreateModel : PageModel
         try
         {
             await _benefitApiService.CreateBenefitAsync(Benefit);
+            _logger.LogInformation("Created benefit for benefit type {BenefitTypeId}", Benefit.BenefitTypeId);
             TempData["SuccessMessage"] = "Beneficio creado exitosamente.";
             return RedirectToPage("./Index");
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Error creating benefit");
             ModelState.AddModelError(string.Empty, $"Error al crear el beneficio: {ex.Message}");
             await LoadBenefitTypesAsync();
             return Page();

@@ -101,7 +101,7 @@ El script automáticamente:
 
 En modo desarrollo, el sistema carga automáticamente:
 - **Tenant Demo**: Tenant de prueba para desarrollo
-- **Usuario Admin**: `admin@backoffice.com` / `Admin123!`
+- **Usuario Admin**: `admin1@backoffice.com` / `Admin123!`
 
 Los datos se cargan automáticamente al iniciar la API si `SEED_DATABASE=true` (configuración por defecto en desarrollo).
 

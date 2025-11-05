@@ -50,8 +50,8 @@ public class CreateModel : PageModel
 
             if (!SpaceTypes.Any())
             {
-                TempData["ErrorMessage"] = "No hay tipos de espacio disponibles. Por favor, cree al menos un tipo de espacio antes de crear un espacio.";
-                return RedirectToPage("/Spaces/Index");
+                ErrorMessage = "No hay tipos de espacio disponibles. Por favor, cree al menos un tipo de espacio antes de crear un espacio.";
+                return Page();
             }
 
             return Page();
@@ -59,8 +59,8 @@ public class CreateModel : PageModel
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading space types for space creation");
-            TempData["ErrorMessage"] = "Error al cargar los tipos de espacio.";
-            return RedirectToPage("/Spaces/Index");
+            ErrorMessage = "Error al cargar los tipos de espacio.";
+            return Page();
         }
     }
 
@@ -91,7 +91,6 @@ public class CreateModel : PageModel
 
             var createdSpace = await _spaceApiService.CreateSpaceAsync(createSpaceDto);
 
-            TempData["SuccessMessage"] = $"Espacio '{createdSpace.Name}' creado exitosamente.";
             return RedirectToPage("/Spaces/Index");
         }
         catch (Exception ex)

@@ -29,48 +29,17 @@ public class DetailsModel : PageModel
 
             if (SpaceType == null)
             {
-                TempData["ErrorMessage"] = $"No se encontró el tipo de espacio con ID {id}.";
-                return RedirectToPage("/SpaceTypes/Index");
+                ErrorMessage = $"Tipo de espacio con ID {id} no encontrado.";
+                return Page();
             }
 
             return Page();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error loading space type {SpaceTypeId}", id);
-            TempData["ErrorMessage"] = "Error al cargar el tipo de espacio.";
-            return RedirectToPage("/SpaceTypes/Index");
-        }
-    }
-
-    public async Task<IActionResult> OnPostDeleteAsync(int id)
-    {
-        try
-        {
-            var deleted = await _spaceTypeApiService.DeleteSpaceTypeAsync(id);
-
-            if (!deleted)
-            {
-                TempData["ErrorMessage"] = $"No se pudo eliminar el tipo de espacio con ID {id}. Puede que no exista.";
-            }
-            else
-            {
-                TempData["SuccessMessage"] = "Tipo de espacio eliminado correctamente.";
-            }
-
-            return RedirectToPage("/SpaceTypes/Index");
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogWarning(ex, "Failed to delete space type {SpaceTypeId}", id);
-            TempData["ErrorMessage"] = ex.Message;
-            return RedirectToPage("/SpaceTypes/Index");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting space type {SpaceTypeId}", id);
-            TempData["ErrorMessage"] = "Error al eliminar el tipo de espacio.";
-            return RedirectToPage("/SpaceTypes/Index");
+            _logger.LogError(ex, "Error loading space type details for ID {SpaceTypeId}", id);
+            ErrorMessage = "Error al cargar los detalles del tipo de espacio.";
+            return Page();
         }
     }
 }

@@ -83,7 +83,7 @@ public class BenefitTypeService : IBenefitTypeService
 
         // Check if benefit type with same name already exists
         var existingBenefitType = await _context.BenefitTypes
-            .Where(bt => bt.Name == request.Name && bt.TenantId == tenantId)
+            .Where(bt => bt.Name.ToLower() == request.Name.ToLower() && bt.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (existingBenefitType != null)
@@ -123,7 +123,7 @@ public class BenefitTypeService : IBenefitTypeService
 
         // Check if another benefit type with same name already exists
         var existingBenefitType = await _context.BenefitTypes
-            .Where(bt => bt.Name == request.Name && bt.TenantId == tenantId && bt.Id != id)
+            .Where(bt => bt.Name.ToLower() == request.Name.ToLower() && bt.TenantId == tenantId && bt.Id != id)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (existingBenefitType != null)

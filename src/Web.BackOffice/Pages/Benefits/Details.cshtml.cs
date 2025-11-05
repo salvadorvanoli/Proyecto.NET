@@ -8,39 +8,40 @@ namespace Web.BackOffice.Pages.Benefits;
 public class DetailsModel : PageModel
 {
     private readonly IBenefitApiService _benefitApiService;
+    private readonly ILogger<DetailsModel> _logger;
 
-    public DetailsModel(IBenefitApiService benefitApiService)
+    public DetailsModel(IBenefitApiService benefitApiService, ILogger<DetailsModel> logger)
     {
         _benefitApiService = benefitApiService;
+        _logger = logger;
     }
 
     public BenefitDto Benefit { get; set; } = null!;
+    
+    [TempData]
+    public string? ErrorMessage { get; set; }
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
-        var benefit = await _benefitApiService.GetBenefitByIdAsync(id);
-        
-        if (benefit == null)
+        try
         {
-            TempData["ErrorMessage"] = "Beneficio no encontrado.";
-            return RedirectToPage("./Index");
+            var benefit = await _benefitApiService.GetBenefitByIdAsync(id);
+            
+            if (benefit == null)
+            {
+                ErrorMessage = "Beneficio no encontrado.";
+                _logger.LogWarning("Benefit with ID {Id} not found", id);
+                return Page();
+            }
+
+            Benefit = benefit;
+            return Page();
         }
-
-        Benefit = benefit;
-        return Page();
-    }
-
-    public async Task<IActionResult> OnPostDeleteAsync(int id)
-    {
-        var result = await _benefitApiService.DeleteBenefitAsync(id);
-        
-        if (!result)
+        catch (Exception ex)
         {
-            TempData["ErrorMessage"] = "No se pudo eliminar el beneficio.";
-            return RedirectToPage("./Details", new { id });
+            _logger.LogError(ex, "Error loading benefit with ID {Id}", id);
+            ErrorMessage = "Ocurrió un error al cargar el beneficio.";
+            return Page();
         }
-
-        TempData["SuccessMessage"] = "Beneficio eliminado exitosamente.";
-        return RedirectToPage("./Index");
     }
 }
