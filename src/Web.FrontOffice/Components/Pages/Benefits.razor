@@ -3,8 +3,11 @@
 @using Application.Benefits.DTOs
 @using Web.FrontOffice.Services.Interfaces
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.WebUtilities
 @inject IBenefitApiService BenefitApiService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject ILogger<Benefits> Logger
 @rendermode InteractiveServer
 
 <Microsoft.AspNetCore.Components.Web.PageTitle>Mis Beneficios</Microsoft.AspNetCore.Components.Web.PageTitle>
@@ -22,6 +25,8 @@
     {
         <div class="alert alert-danger">
             <p>@error</p>
+            <hr />
+            <p><strong>💡 Para testing:</strong> Accede a <code>/mis-beneficios?devUserId=1</code> para cargar los beneficios del usuario con ID 1.</p>
         </div>
     }
     else if (!benefits.Any())
@@ -125,6 +130,27 @@
             isLoading = true;
             error = null;
 
+            Logger.LogInformation("CargarBeneficios iniciado. URI: {Uri}", Navigation.Uri);
+            
+            // TESTING: Modo rápido con query parameter ?devUserId=X
+            var uri = new Uri(Navigation.Uri);
+            var query = QueryHelpers.ParseQuery(uri.Query);
+
+            Logger.LogInformation("Query params: {QueryCount}", query.Count);
+            
+            if (query.TryGetValue("devUserId", out var devIdValues) && int.TryParse(devIdValues.FirstOrDefault(), out var devUserId))
+            {
+                Logger.LogInformation("Modo dev: cargando beneficios del usuario {UserId}", devUserId);
+                benefits = await BenefitApiService.GetUserBenefitsAsync(devUserId);
+                Logger.LogInformation("Beneficios cargados: {Count}", benefits.Count);
+                return;
+            }
+
+            Logger.LogWarning("No se encontró parámetro devUserId en la URL");
+            error = "⚠️ Para testing, accede a /mis-beneficios?devUserId=1";
+
+            // Código original de autenticación (comentado para testing)
+            /*
             // TODO: Obtener el userId desde el AuthenticationState cuando se implemente el login
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
@@ -145,9 +171,11 @@
             {
                 error = "Debe iniciar sesión para ver sus beneficios.";
             }
+            */
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "Error al cargar beneficios");
             error = $"Error al cargar los beneficios: {ex.Message}";
         }
         finally

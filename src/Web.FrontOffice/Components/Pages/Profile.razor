@@ -2,6 +2,7 @@
 @using Web.FrontOffice.Components.Shared
 @using Application.Users.DTOs
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.WebUtilities
 @rendermode InteractiveServer
 
 @inject IUserApiService UserApiService
@@ -29,6 +30,8 @@
             {
                 <p>No se pudo cargar la información del usuario.</p>
             }
+            <hr />
+            <p><strong>💡 Para testing:</strong> Accede a <code>/perfil?devUserId=1</code> para cargar el usuario con ID 1.</p>
         </div>
     }
     else
@@ -151,6 +154,45 @@
 
         try
         {
+            Logger.LogInformation("CargarUsuario iniciado. URI: {Uri}", Navigation.Uri);
+            
+            // TESTING: Modo rápido con query parameter ?devUserId=X
+            var uri = new Uri(Navigation.Uri);
+            var query = QueryHelpers.ParseQuery(uri.Query);
+
+            Logger.LogInformation("Query params: {QueryCount}", query.Count);
+            
+            if (query.TryGetValue("devUserId", out var devIdValues) && int.TryParse(devIdValues.FirstOrDefault(), out var devUserId))
+            {
+                Logger.LogInformation("Modo dev: cargando usuario {UserId}", devUserId);
+                usuario = await UserApiService.GetUserByIdAsync(devUserId);
+
+                if (usuario != null)
+                {
+                    Logger.LogInformation("Usuario cargado: {Email}", usuario.Email);
+                    editModel = new UpdateUserRequest
+                    {
+                        Email = usuario.Email,
+                        FirstName = usuario.FirstName,
+                        LastName = usuario.LastName,
+                        DateOfBirth = usuario.DateOfBirth
+                    };
+                }
+                else
+                {
+                    Logger.LogWarning("GetUserByIdAsync retornó null para userId {UserId}", devUserId);
+                    errorMessage = $"No se encontró el usuario con id {devUserId}.";
+                }
+
+                isLoading = false;
+                return;
+            }
+
+            Logger.LogWarning("No se encontró parámetro devUserId en la URL");
+            errorMessage = "⚠️ Para testing, accede a /perfil?devUserId=1";
+            
+            // Código original de autenticación (comentado para testing)
+            /*
             // Obtener el estado de autenticación
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
@@ -193,6 +235,7 @@
                 Logger.LogWarning("GetUserByIdAsync retornó null para userId {UserId}", userId);
                 errorMessage = "No se encontró el usuario.";
             }
+            */
         }
         catch (HttpRequestException ex)
         {

@@ -19,47 +19,52 @@ public class BenefitService : IBenefitService
 
     public async Task<List<BenefitResponse>> GetUserBenefitsAsync(int userId)
     {
-        // Get all benefits for the tenant
-        // In a more complex scenario, you might filter benefits based on user roles or assignments
+        // Get all benefits for the tenant with their usages and consumptions
         var benefits = await _context.Benefits
             .Include(b => b.BenefitType)
-            .Include(b => b.Consumptions.Where(c => c.UserId == userId))
-                .ThenInclude(c => c.Usages)
             .OrderBy(b => b.BenefitType.Name)
             .ToListAsync();
 
-        return benefits.Select(b => new BenefitResponse
+        var benefitIds = benefits.Select(b => b.Id).ToList();
+        
+        // Get usages for this user and these benefits
+        var usages = await _context.Usages
+            .Include(u => u.Consumptions)
+            .Where(u => u.UserId == userId && benefitIds.Contains(u.BenefitId))
+            .ToListAsync();
+
+        return benefits.Select(b =>
         {
-            Id = b.Id,
-            BenefitType = new BenefitTypeResponse
+            var benefitUsages = usages.Where(u => u.BenefitId == b.Id).ToList();
+            var consumptions = benefitUsages.SelectMany(u => u.Consumptions).ToList();
+            
+            return new BenefitResponse
             {
-                Id = b.BenefitType.Id,
-                Name = b.BenefitType.Name,
-                Description = b.BenefitType.Description
-            },
-            ValidityPeriod = b.ValidityPeriod.HasValue ? new DateRangeResponse
-            {
-                StartDate = b.ValidityPeriod.Value.StartDate,
-                EndDate = b.ValidityPeriod.Value.EndDate
-            } : null,
-            Quotas = b.Quotas,
-            IsValid = b.IsValid,
-            HasAvailableQuotas = b.HasAvailableQuotas,
-            CanBeConsumed = b.CanBeConsumed,
-            TotalConsumed = b.TotalConsumed,
-            Consumptions = b.Consumptions
-                .Where(c => c.UserId == userId)
-                .Select(c => new ConsumptionResponse
+                Id = b.Id,
+                BenefitType = new BenefitTypeResponse
+                {
+                    Id = b.BenefitType.Id,
+                    Name = b.BenefitType.Name,
+                    Description = b.BenefitType.Description
+                },
+                ValidityPeriod = b.ValidityPeriod.HasValue ? new DateRangeResponse
+                {
+                    StartDate = b.ValidityPeriod.Value.StartDate,
+                    EndDate = b.ValidityPeriod.Value.EndDate
+                } : null,
+                Quotas = b.Quotas,
+                IsValid = b.IsValid,
+                HasAvailableQuotas = b.HasAvailableQuotas,
+                CanBeConsumed = b.CanBeConsumed,
+                TotalConsumed = consumptions.Sum(c => c.Amount),
+                Consumptions = consumptions.Select(c => new ConsumptionResponse
                 {
                     Id = c.Id,
                     Amount = c.Amount,
                     CreatedAt = c.CreatedAt,
-                    Usages = c.Usages.Select(u => new UsageResponse
-                    {
-                        Id = u.Id,
-                        UsageDateTime = u.UsageDateTime
-                    }).ToList()
+                    Usages = new List<UsageResponse>()
                 }).ToList()
+            };
         }).ToList();
     }
 
@@ -67,41 +72,49 @@ public class BenefitService : IBenefitService
     {
         var benefits = await _context.Benefits
             .Include(b => b.BenefitType)
-            .Include(b => b.Consumptions)
-                .ThenInclude(c => c.Usages)
             .OrderBy(b => b.BenefitType.Name)
             .ToListAsync();
 
-        return benefits.Select(b => new BenefitResponse
+        var benefitIds = benefits.Select(b => b.Id).ToList();
+        
+        // Get all usages for these benefits
+        var usages = await _context.Usages
+            .Include(u => u.Consumptions)
+            .Where(u => benefitIds.Contains(u.BenefitId))
+            .ToListAsync();
+
+        return benefits.Select(b =>
         {
-            Id = b.Id,
-            BenefitType = new BenefitTypeResponse
+            var benefitUsages = usages.Where(u => u.BenefitId == b.Id).ToList();
+            var consumptions = benefitUsages.SelectMany(u => u.Consumptions).ToList();
+            
+            return new BenefitResponse
             {
-                Id = b.BenefitType.Id,
-                Name = b.BenefitType.Name,
-                Description = b.BenefitType.Description
-            },
-            ValidityPeriod = b.ValidityPeriod.HasValue ? new DateRangeResponse
-            {
-                StartDate = b.ValidityPeriod.Value.StartDate,
-                EndDate = b.ValidityPeriod.Value.EndDate
-            } : null,
-            Quotas = b.Quotas,
-            IsValid = b.IsValid,
-            HasAvailableQuotas = b.HasAvailableQuotas,
-            CanBeConsumed = b.CanBeConsumed,
-            TotalConsumed = b.TotalConsumed,
-            Consumptions = b.Consumptions.Select(c => new ConsumptionResponse
-            {
-                Id = c.Id,
-                Amount = c.Amount,
-                CreatedAt = c.CreatedAt,
-                Usages = c.Usages.Select(u => new UsageResponse
+                Id = b.Id,
+                BenefitType = new BenefitTypeResponse
                 {
-                    Id = u.Id,
-                    UsageDateTime = u.UsageDateTime
+                    Id = b.BenefitType.Id,
+                    Name = b.BenefitType.Name,
+                    Description = b.BenefitType.Description
+                },
+                ValidityPeriod = b.ValidityPeriod.HasValue ? new DateRangeResponse
+                {
+                    StartDate = b.ValidityPeriod.Value.StartDate,
+                    EndDate = b.ValidityPeriod.Value.EndDate
+                } : null,
+                Quotas = b.Quotas,
+                IsValid = b.IsValid,
+                HasAvailableQuotas = b.HasAvailableQuotas,
+                CanBeConsumed = b.CanBeConsumed,
+                TotalConsumed = consumptions.Sum(c => c.Amount),
+                Consumptions = consumptions.Select(c => new ConsumptionResponse
+                {
+                    Id = c.Id,
+                    Amount = c.Amount,
+                    CreatedAt = c.CreatedAt,
+                    Usages = new List<UsageResponse>()
                 }).ToList()
-            }).ToList()
+            };
         }).ToList();
     }
 
@@ -109,13 +122,19 @@ public class BenefitService : IBenefitService
     {
         var benefit = await _context.Benefits
             .Include(b => b.BenefitType)
-            .Include(b => b.Consumptions)
-                .ThenInclude(c => c.Usages)
             .Where(b => b.Id == benefitId)
             .FirstOrDefaultAsync();
 
         if (benefit == null)
             return null;
+
+        // Get usages and consumptions for this benefit
+        var usages = await _context.Usages
+            .Include(u => u.Consumptions)
+            .Where(u => u.BenefitId == benefitId)
+            .ToListAsync();
+
+        var consumptions = usages.SelectMany(u => u.Consumptions).ToList();
 
         return new BenefitResponse
         {
@@ -135,17 +154,13 @@ public class BenefitService : IBenefitService
             IsValid = benefit.IsValid,
             HasAvailableQuotas = benefit.HasAvailableQuotas,
             CanBeConsumed = benefit.CanBeConsumed,
-            TotalConsumed = benefit.TotalConsumed,
-            Consumptions = benefit.Consumptions.Select(c => new ConsumptionResponse
+            TotalConsumed = consumptions.Sum(c => c.Amount),
+            Consumptions = consumptions.Select(c => new ConsumptionResponse
             {
                 Id = c.Id,
                 Amount = c.Amount,
                 CreatedAt = c.CreatedAt,
-                Usages = c.Usages.Select(u => new UsageResponse
-                {
-                    Id = u.Id,
-                    UsageDateTime = u.UsageDateTime
-                }).ToList()
+                Usages = new List<UsageResponse>()
             }).ToList()
         };
     }

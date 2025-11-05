@@ -26,6 +26,8 @@ public class UserApiService : IUserApiService
             // TODO: El header X-Tenant-Id debería venir de la autenticación del usuario al hacer login
             // Por ahora se debe configurar un HttpMessageHandler que lo agregue automáticamente
             var request = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/{id}");
+            // TESTING: Agregar header X-Tenant-Id hardcodeado
+            request.Headers.Add("X-Tenant-Id", "1"); // ⚠️ CAMBIAR: Usar TenantId del usuario que quieres probar
             
             var response = await _httpClient.SendAsync(request);
             
@@ -78,6 +80,8 @@ public class UserApiService : IUserApiService
             {
                 Content = JsonContent.Create(updateUserRequest)
             };
+            // TESTING: Agregar header X-Tenant-Id hardcodeado
+            request.Headers.Add("X-Tenant-Id", "1"); // ⚠️ CAMBIAR: Usar TenantId del usuario que quieres probar
             
             var response = await _httpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();

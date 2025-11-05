@@ -18,7 +18,11 @@ public class BenefitApiService : IBenefitApiService
     public async Task<List<BenefitResponse>> GetUserBenefitsAsync(int userId)
     {
         // TODO: El header X-Tenant-Id debería venir de la autenticación del usuario
-        var response = await _httpClient.GetAsync($"api/benefits/user/{userId}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/benefits/user/{userId}");
+        // TESTING: Agregar header X-Tenant-Id hardcodeado
+        request.Headers.Add("X-Tenant-Id", "1"); // ⚠️ CAMBIAR: Usar TenantId del usuario que quieres probar
+        
+        var response = await _httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();
 
         var benefits = await response.Content.ReadFromJsonAsync<List<BenefitResponse>>();

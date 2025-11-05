@@ -3,8 +3,11 @@
 @using Application.AccessEvents.DTOs
 @using Web.FrontOffice.Services.Interfaces
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.WebUtilities
 @inject IAccessEventApiService AccessEventApiService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject ILogger<AccessHistory> Logger
 @rendermode InteractiveServer
 
 <Microsoft.AspNetCore.Components.Web.PageTitle>Historial de Accesos</Microsoft.AspNetCore.Components.Web.PageTitle>
@@ -22,6 +25,8 @@
     {
         <div class="alert alert-danger">
             <p>@error</p>
+            <hr />
+            <p><strong>💡 Para testing:</strong> Accede a <code>/historial-accesos?devUserId=1</code> para cargar el historial del usuario con ID 1.</p>
         </div>
     }
     else if (!accessEvents.Any())
@@ -101,6 +106,27 @@
             isLoading = true;
             error = null;
 
+            Logger.LogInformation("CargarHistorial iniciado. URI: {Uri}", Navigation.Uri);
+            
+            // TESTING: Modo rápido con query parameter ?devUserId=X
+            var uri = new Uri(Navigation.Uri);
+            var query = QueryHelpers.ParseQuery(uri.Query);
+
+            Logger.LogInformation("Query params: {QueryCount}", query.Count);
+            
+            if (query.TryGetValue("devUserId", out var devIdValues) && int.TryParse(devIdValues.FirstOrDefault(), out var devUserId))
+            {
+                Logger.LogInformation("Modo dev: cargando historial del usuario {UserId}", devUserId);
+                accessEvents = await AccessEventApiService.GetUserAccessEventsAsync(devUserId);
+                Logger.LogInformation("Eventos de acceso cargados: {Count}", accessEvents.Count);
+                return;
+            }
+
+            Logger.LogWarning("No se encontró parámetro devUserId en la URL");
+            error = "⚠️ Para testing, accede a /historial-accesos?devUserId=1";
+
+            // Código original de autenticación (comentado para testing)
+            /*
             // TODO: Obtener el userId desde el AuthenticationState cuando se implemente el login
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
@@ -121,9 +147,11 @@
             {
                 error = "Debe iniciar sesión para ver su historial de accesos.";
             }
+            */
         }
         catch (Exception ex)
         {
+            Logger.LogError(ex, "Error al cargar historial");
             error = $"Error al cargar el historial: {ex.Message}";
         }
         finally

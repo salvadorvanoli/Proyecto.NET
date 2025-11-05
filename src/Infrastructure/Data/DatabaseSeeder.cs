@@ -161,20 +161,20 @@ public static class DatabaseSeeder
 
             context.Benefits.AddRange(benefits);
             await context.SaveChangesAsync();
-            Console.WriteLine("✅ Benefits created successfully!");
+            Console.WriteLine("Benefits created successfully!");
         }
 
         // Seed Consumptions (sample data for some users)
         if (!await context.Consumptions.AnyAsync())
         {
-            Console.WriteLine("\n📊 Creating sample consumptions...");
+            Console.WriteLine("\nCreating sample usages and consumptions...");
             
             var allUsers = await context.Users.ToListAsync();
             var allBenefits = await context.Benefits.Include(b => b.BenefitType).ToListAsync();
 
-            var consumptions = new List<Consumption>();
+            var usages = new List<Usage>();
 
-            // Create some sample consumptions for the first user of each tenant
+            // Create some sample usages for the first user of each tenant
             foreach (var tenant in await context.Tenants.ToListAsync())
             {
                 var firstUser = allUsers.FirstOrDefault(u => u.TenantId == tenant.Id);
@@ -182,47 +182,48 @@ public static class DatabaseSeeder
 
                 var tenantBenefits = allBenefits.Where(b => b.TenantId == tenant.Id).ToList();
                 
-                // Add consumption for first 2 benefits
+                // Add usage for first 2 benefits
                 for (int i = 0; i < Math.Min(2, tenantBenefits.Count); i++)
                 {
                     var benefit = tenantBenefits[i];
-                    var consumption = new Consumption(
-                        tenant.Id,
-                        amount: 1,
-                        benefitId: benefit.Id,
-                        userId: firstUser.Id
-                    );
-
-                    consumptions.Add(consumption);
-                }
-            }
-
-            context.Consumptions.AddRange(consumptions);
-            await context.SaveChangesAsync();
-
-            // Add usages for consumptions
-            var savedConsumptions = await context.Consumptions.ToListAsync();
-            var usages = new List<Usage>();
-
-            foreach (var consumption in savedConsumptions)
-            {
-                // Add 1-3 usages per consumption
-                var usageCount = new Random().Next(1, 4);
-                for (int i = 0; i < usageCount; i++)
-                {
                     var usage = new Usage(
-                        consumption.TenantId,
-                        consumption.Id,
-                        DateTime.UtcNow.AddDays(-new Random().Next(1, 30))
+                        tenant.Id,
+                        benefitId: benefit.Id,
+                        userId: firstUser.Id,
+                        quantity: 1
                     );
+
                     usages.Add(usage);
                 }
             }
 
             context.Usages.AddRange(usages);
             await context.SaveChangesAsync();
+
+            // Add consumptions for usages
+            var savedUsages = await context.Usages.ToListAsync();
+            var consumptions = new List<Consumption>();
+
+            foreach (var usage in savedUsages)
+            {
+                // Add 1-3 consumptions per usage
+                var consumptionCount = new Random().Next(1, 4);
+                for (int i = 0; i < consumptionCount; i++)
+                {
+                    var consumption = new Consumption(
+                        usage.TenantId,
+                        amount: 1,
+                        consumptionDateTime: DateTime.UtcNow.AddDays(-new Random().Next(1, 30)),
+                        usageId: usage.Id
+                    );
+                    consumptions.Add(consumption);
+                }
+            }
+
+            context.Consumptions.AddRange(consumptions);
+            await context.SaveChangesAsync();
             
-            Console.WriteLine("✅ Sample consumptions created successfully!");
+            Console.WriteLine("✅ Sample usages and consumptions created successfully!");
         }
 
         // Seed Space Types
@@ -263,14 +264,13 @@ public static class DatabaseSeeder
                 
                 if (tenantSpaceTypes.Any())
                 {
-                    var location = new Domain.DataTypes.Location("Av. Principal", "100", "Montevideo", "Uruguay");
-                    spaces.Add(new Space(tenant.Id, "Entrada Principal", location, tenantSpaceTypes[0].Id));
+                    spaces.Add(new Space(tenant.Id, "Entrada Principal", tenantSpaceTypes[0].Id));
                     
-                    var parkingLocation = new Domain.DataTypes.Location("Av. Principal", "100-B", "Montevideo", "Uruguay");
-                    spaces.Add(new Space(tenant.Id, "Estacionamiento Subterráneo", parkingLocation, tenantSpaceTypes[1].Id));
+                    if (tenantSpaceTypes.Count > 1)
+                        spaces.Add(new Space(tenant.Id, "Estacionamiento Subterráneo", tenantSpaceTypes[1].Id));
                     
-                    var restrictedLocation = new Domain.DataTypes.Location("Av. Principal", "100-C", "Montevideo", "Uruguay");
-                    spaces.Add(new Space(tenant.Id, "Laboratorio Seguro", restrictedLocation, tenantSpaceTypes[3].Id));
+                    if (tenantSpaceTypes.Count > 3)
+                        spaces.Add(new Space(tenant.Id, "Laboratorio Seguro", tenantSpaceTypes[3].Id));
                 }
             }
 
