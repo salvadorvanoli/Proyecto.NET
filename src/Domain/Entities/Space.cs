@@ -34,14 +34,14 @@ public class Space : BaseEntity
                 nameof(name));
 
         var trimmedName = name.Trim();
-        if (trimmedName.Length < DomainConstants.StringLengths.NameMinLength)
+        if (trimmedName.Length < DomainConstants.StringLengths.SpaceNameMinLength)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MinLengthRequired, "Nombre", DomainConstants.StringLengths.NameMinLength),
+                string.Format(DomainConstants.ErrorMessages.MinLengthRequired, "Nombre", DomainConstants.StringLengths.SpaceNameMinLength),
                 nameof(name));
 
-        if (trimmedName.Length > DomainConstants.StringLengths.NameMaxLength)
+        if (trimmedName.Length > DomainConstants.StringLengths.SpaceNameMaxLength)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MaxLengthExceeded, "Nombre", DomainConstants.StringLengths.NameMaxLength),
+                string.Format(DomainConstants.ErrorMessages.MaxLengthExceeded, "Nombre", DomainConstants.StringLengths.SpaceNameMaxLength),
                 nameof(name));
 
         if (spaceTypeId <= DomainConstants.NumericValidation.TransientEntityId)
@@ -64,14 +64,14 @@ public class Space : BaseEntity
                 nameof(name));
 
         var trimmedName = name.Trim();
-        if (trimmedName.Length < DomainConstants.StringLengths.NameMinLength)
+        if (trimmedName.Length < DomainConstants.StringLengths.SpaceNameMinLength)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MinLengthRequired, "Nombre", DomainConstants.StringLengths.NameMinLength),
+                string.Format(DomainConstants.ErrorMessages.MinLengthRequired, "Nombre", DomainConstants.StringLengths.SpaceNameMinLength),
                 nameof(name));
 
-        if (trimmedName.Length > DomainConstants.StringLengths.NameMaxLength)
+        if (trimmedName.Length > DomainConstants.StringLengths.SpaceNameMaxLength)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MaxLengthExceeded, "Nombre", DomainConstants.StringLengths.NameMaxLength),
+                string.Format(DomainConstants.ErrorMessages.MaxLengthExceeded, "Nombre", DomainConstants.StringLengths.SpaceNameMaxLength),
                 nameof(name));
 
         Name = trimmedName;

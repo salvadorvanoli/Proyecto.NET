@@ -16,9 +16,14 @@ public static class DomainConstants
         public const int NameMaxLength = 200;
 
         // User-related
-        public const int EmailMaxLength = 254; // RFC 5321 standard
+        public const int EmailMinLength = 5;
+        public const int EmailMaxLength = 256; // RFC 5321 standard (updated for validation)
+        public const int PasswordMinLength = 8;
+        public const int PasswordMaxLength = 100;
         public const int PasswordHashMaxLength = 512;
+        public const int FirstNameMinLength = 2;
         public const int FirstNameMaxLength = 100;
+        public const int LastNameMinLength = 2;
         public const int LastNameMaxLength = 100;
 
         // Location/Address
@@ -28,14 +33,26 @@ public static class DomainConstants
         public const int CountryMaxLength = 100;
 
         // Content/Descriptions
-        public const int TitleMaxLength = 300;
-        public const int DescriptionMaxLength = 1000;
+        public const int TitleMinLength = 5;
+        public const int TitleMaxLength = 200;
+        public const int DescriptionMinLength = 10;
+        public const int DescriptionMaxLength = 500;
+        public const int ContentMinLength = 10;
+        public const int ContentMaxLength = 5000;
         public const int MessageMaxLength = 500;
+        public const int UrlMaxLength = 500;
 
-        // Other entities
+        // Entity-specific names
+        public const int RoleNameMinLength = 2;
         public const int RoleNameMaxLength = 100;
+        public const int SpaceTypeNameMinLength = 2;
         public const int SpaceTypeNameMaxLength = 200;
+        public const int SpaceNameMinLength = 2;
+        public const int SpaceNameMaxLength = 200;
+        public const int ControlPointNameMinLength = 2;
         public const int ControlPointNameMaxLength = 200;
+        public const int BenefitTypeNameMinLength = 2;
+        public const int BenefitTypeNameMaxLength = 100;
     }
 
     /// <summary>
@@ -66,9 +83,11 @@ public static class DomainConstants
         public const int TransientEntityId = 0; // Entity not yet persisted
 
         // Quantity validation
-        public const int MinQuota = 0;
+        public const int MinQuota = 1;
         public const int MinQuantity = 0;
         public const int MinAmount = 0;
+        public const int MinRoleCount = 1;
+        public const int MinControlPointCount = 1;
     }
 
     /// <summary>
@@ -112,6 +131,9 @@ public static class DomainConstants
     {
         // Email validation (simplified RFC 5322)
         public const string Email = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
+        
+        // Time validation (HH:mm format)
+        public const string Time24Hour = @"^([01]?[0-9]|2[0-3]):[0-5][0-9]$";
 
         // Other patterns can be added here as needed
         // public const string PhoneNumber = @"^\+?[1-9]\d{1,14}$";

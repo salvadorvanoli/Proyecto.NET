@@ -34,12 +34,23 @@ public class ControlPoint : BaseEntity
                 string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Nombre"),
                 nameof(name));
 
+        var trimmedName = name.Trim();
+        if (trimmedName.Length < DomainConstants.StringLengths.ControlPointNameMinLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MinLengthRequired, "Nombre", DomainConstants.StringLengths.ControlPointNameMinLength),
+                nameof(name));
+
+        if (trimmedName.Length > DomainConstants.StringLengths.ControlPointNameMaxLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MaxLengthExceeded, "Nombre", DomainConstants.StringLengths.ControlPointNameMaxLength),
+                nameof(name));
+
         if (spaceId <= DomainConstants.NumericValidation.TransientEntityId)
             throw new ArgumentException(
                 string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "ID de espacio"),
                 nameof(spaceId));
 
-        Name = name.Trim();
+        Name = trimmedName;
         SpaceId = spaceId;
     }
 
@@ -53,7 +64,18 @@ public class ControlPoint : BaseEntity
                 string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Nombre"),
                 nameof(name));
 
-        Name = name.Trim();
+        var trimmedName = name.Trim();
+        if (trimmedName.Length < DomainConstants.StringLengths.ControlPointNameMinLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MinLengthRequired, "Nombre", DomainConstants.StringLengths.ControlPointNameMinLength),
+                nameof(name));
+
+        if (trimmedName.Length > DomainConstants.StringLengths.ControlPointNameMaxLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MaxLengthExceeded, "Nombre", DomainConstants.StringLengths.ControlPointNameMaxLength),
+                nameof(name));
+
+        Name = trimmedName;
         UpdateTimestamp();
     }
 

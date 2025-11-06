@@ -22,7 +22,18 @@ public class SpaceType : BaseEntity
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Nombre"), nameof(name));
 
-        Name = name.Trim();
+        var trimmedName = name.Trim();
+        if (trimmedName.Length < DomainConstants.StringLengths.SpaceTypeNameMinLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MinLengthRequired, "Nombre", DomainConstants.StringLengths.SpaceTypeNameMinLength),
+                nameof(name));
+
+        if (trimmedName.Length > DomainConstants.StringLengths.SpaceTypeNameMaxLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MaxLengthExceeded, "Nombre", DomainConstants.StringLengths.SpaceTypeNameMaxLength),
+                nameof(name));
+
+        Name = trimmedName;
     }
 
     /// <summary>
@@ -33,7 +44,18 @@ public class SpaceType : BaseEntity
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Nombre"), nameof(name));
 
-        Name = name.Trim();
+        var trimmedName = name.Trim();
+        if (trimmedName.Length < DomainConstants.StringLengths.SpaceTypeNameMinLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MinLengthRequired, "Nombre", DomainConstants.StringLengths.SpaceTypeNameMinLength),
+                nameof(name));
+
+        if (trimmedName.Length > DomainConstants.StringLengths.SpaceTypeNameMaxLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MaxLengthExceeded, "Nombre", DomainConstants.StringLengths.SpaceTypeNameMaxLength),
+                nameof(name));
+
+        Name = trimmedName;
         UpdateTimestamp();
     }
 }
