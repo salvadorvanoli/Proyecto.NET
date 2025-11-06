@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
-using Web.BackOffice.Models;
+using Shared.DTOs.Users;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.Users;
@@ -18,29 +18,12 @@ public class EditModel : PageModel
     }
 
     [BindProperty]
-    public new EditUserInputModel User { get; set; } = new();
+    public new UpdateUserRequest User { get; set; } = new();
+
+    public int UserId { get; set; }
 
     [TempData]
     public string? ErrorMessage { get; set; }
-
-    public class EditUserInputModel
-    {
-        public int Id { get; set; }
-
-        [Required(ErrorMessage = "El email es requerido")]
-        [EmailAddress(ErrorMessage = "El email no es válido")]
-        public string Email { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "El nombre es requerido")]
-        public string FirstName { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "El apellido es requerido")]
-        public string LastName { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "La fecha de nacimiento es requerida")]
-        [DataType(DataType.Date)]
-        public DateTime DateOfBirth { get; set; }
-    }
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
@@ -54,9 +37,9 @@ public class EditModel : PageModel
                 return Page();
             }
 
-            User = new EditUserInputModel
+            UserId = userDto.Id;
+            User = new UpdateUserRequest
             {
-                Id = userDto.Id,
                 Email = userDto.Email,
                 FirstName = userDto.FirstName,
                 LastName = userDto.LastName,
@@ -73,8 +56,10 @@ public class EditModel : PageModel
         }
     }
 
-    public async Task<IActionResult> OnPostAsync()
+    public async Task<IActionResult> OnPostAsync(int id)
     {
+        UserId = id;
+
         if (!ModelState.IsValid)
         {
             return Page();
@@ -82,21 +67,13 @@ public class EditModel : PageModel
 
         try
         {
-            var updateDto = new UpdateUserDto
-            {
-                Email = User.Email,
-                FirstName = User.FirstName,
-                LastName = User.LastName,
-                DateOfBirth = User.DateOfBirth
-            };
-
-            await _userApiService.UpdateUserAsync(User.Id, updateDto);
+            await _userApiService.UpdateUserAsync(id, User);
 
             return RedirectToPage("/Users/Index");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating user {UserId}", User.Id);
+            _logger.LogError(ex, "Error updating user {UserId}", id);
             ErrorMessage = "Error al actualizar el usuario.";
             return Page();
         }

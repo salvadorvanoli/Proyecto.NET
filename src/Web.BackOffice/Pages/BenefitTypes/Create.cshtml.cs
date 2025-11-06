@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Web.BackOffice.Models;
+using Shared.DTOs.BenefitTypes;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.BenefitTypes;
@@ -17,7 +17,7 @@ public class CreateModel : PageModel
     }
 
     [BindProperty]
-    public CreateBenefitTypeDto BenefitType { get; set; } = new();
+    public BenefitTypeRequest BenefitType { get; set; } = new();
     
     [TempData]
     public string? ErrorMessage { get; set; }

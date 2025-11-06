@@ -112,8 +112,8 @@
                                         }
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge @benefit.StatusBadgeClass">
-                                            @benefit.StatusText
+                                        <span class="badge @(benefit.CanBeConsumed ? "bg-success" : "bg-secondary")">
+                                            @(benefit.CanBeConsumed ? "Activo" : "Inactivo")
                                         </span>
                                     </td>
                                     <td>

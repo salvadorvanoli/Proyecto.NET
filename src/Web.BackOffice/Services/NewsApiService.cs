@@ -1,5 +1,5 @@
 ﻿using System.Net.Http.Json;
-using Web.BackOffice.Models;
+using Shared.DTOs.News;
 
 namespace Web.BackOffice.Services;
 
@@ -18,12 +18,12 @@ public class NewsApiService : INewsApiService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<NewsDto>> GetAllNewsAsync()
+    public async Task<IEnumerable<NewsResponse>> GetAllNewsAsync()
     {
         try
         {
-            var news = await _httpClient.GetFromJsonAsync<IEnumerable<NewsDto>>(BaseUrl);
-            return news ?? Enumerable.Empty<NewsDto>();
+            var news = await _httpClient.GetFromJsonAsync<IEnumerable<NewsResponse>>(BaseUrl);
+            return news ?? Enumerable.Empty<NewsResponse>();
         }
         catch (Exception ex)
         {
@@ -32,11 +32,11 @@ public class NewsApiService : INewsApiService
         }
     }
 
-    public async Task<NewsDto?> GetNewsByIdAsync(int id)
+    public async Task<NewsResponse?> GetNewsByIdAsync(int id)
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<NewsDto>($"{BaseUrl}/{id}");
+            return await _httpClient.GetFromJsonAsync<NewsResponse>($"{BaseUrl}/{id}");
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -49,14 +49,14 @@ public class NewsApiService : INewsApiService
         }
     }
 
-    public async Task<NewsDto> CreateNewsAsync(CreateNewsDto createNewsDto)
+    public async Task<NewsResponse> CreateNewsAsync(NewsRequest createNewsDto)
     {
         try
         {
             var response = await _httpClient.PostAsJsonAsync(BaseUrl, createNewsDto);
             response.EnsureSuccessStatusCode();
 
-            var news = await response.Content.ReadFromJsonAsync<NewsDto>();
+            var news = await response.Content.ReadFromJsonAsync<NewsResponse>();
             return news ?? throw new InvalidOperationException("Failed to deserialize news response");
         }
         catch (Exception ex)
@@ -66,14 +66,14 @@ public class NewsApiService : INewsApiService
         }
     }
 
-    public async Task<NewsDto> UpdateNewsAsync(int id, UpdateNewsDto updateNewsDto)
+    public async Task<NewsResponse> UpdateNewsAsync(int id, NewsRequest updateNewsDto)
     {
         try
         {
             var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", updateNewsDto);
             response.EnsureSuccessStatusCode();
 
-            var news = await response.Content.ReadFromJsonAsync<NewsDto>();
+            var news = await response.Content.ReadFromJsonAsync<NewsResponse>();
             return news ?? throw new InvalidOperationException("Failed to deserialize news response");
         }
         catch (Exception ex)

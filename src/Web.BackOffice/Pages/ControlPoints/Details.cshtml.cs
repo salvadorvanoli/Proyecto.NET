@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Web.BackOffice.Models;
+using Shared.DTOs.ControlPoints;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.ControlPoints;
@@ -16,7 +16,7 @@ public class DetailsModel : PageModel
         _logger = logger;
     }
 
-    public ControlPointDto? ControlPoint { get; set; }
+    public ControlPointResponse? ControlPoint { get; set; }
 
     [BindProperty(SupportsGet = true)]
     public int Id { get; set; }

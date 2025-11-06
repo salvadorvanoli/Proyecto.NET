@@ -1,5 +1,5 @@
-﻿using Application.Users.DTOs;
-using Application.Users.Services;
+﻿using Shared.DTOs.Users;
+using Application.Users;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Api.Controllers;

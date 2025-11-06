@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Web.BackOffice.Models;
+using Shared.DTOs.ControlPoints;
+using Shared.DTOs.Spaces;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.ControlPoints;
@@ -23,12 +24,12 @@ public class EditModel : PageModel
     }
 
     [BindProperty]
-    public UpdateControlPointDto ControlPoint { get; set; } = new();
+    public ControlPointRequest ControlPoint { get; set; } = new();
 
     [BindProperty(SupportsGet = true)]
     public int Id { get; set; }
 
-    public SelectList Spaces { get; set; } = new(new List<SpaceDto>(), "Id", "Name");
+    public SelectList Spaces { get; set; } = new(new List<SpaceResponse>(), "Id", "Name");
 
     [TempData]
     public string? ErrorMessage { get; set; }
@@ -51,7 +52,7 @@ public class EditModel : PageModel
                 return Page();
             }
 
-            ControlPoint = new UpdateControlPointDto
+            ControlPoint = new ControlPointRequest
             {
                 Name = controlPoint.Name,
                 SpaceId = controlPoint.SpaceId

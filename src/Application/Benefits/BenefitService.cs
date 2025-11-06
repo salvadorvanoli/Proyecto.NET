@@ -1,10 +1,10 @@
-using Application.Benefits.DTOs;
+using Shared.DTOs.Benefits;
 using Application.Common.Interfaces;
 using Domain.DataTypes;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Benefits.Services;
+namespace Application.Benefits;
 
 /// <summary>
 /// Service for managing benefits.
@@ -90,7 +90,7 @@ public class BenefitService
     /// <summary>
     /// Creates a new benefit.
     /// </summary>
-    public async Task<BenefitResponse> CreateBenefitAsync(CreateBenefitRequest request, CancellationToken cancellationToken = default)
+    public async Task<BenefitResponse> CreateBenefitAsync(BenefitRequest request, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 
@@ -130,7 +130,7 @@ public class BenefitService
     /// <summary>
     /// Updates an existing benefit.
     /// </summary>
-    public async Task<BenefitResponse> UpdateBenefitAsync(int id, UpdateBenefitRequest request, CancellationToken cancellationToken = default)
+    public async Task<BenefitResponse> UpdateBenefitAsync(int id, BenefitRequest request, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 

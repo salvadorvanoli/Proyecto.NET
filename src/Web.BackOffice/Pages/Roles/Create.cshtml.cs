@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
-using Web.BackOffice.Models;
+using Shared.DTOs.Roles;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.Roles;
@@ -18,17 +18,10 @@ public class CreateModel : PageModel
     }
 
     [BindProperty]
-    public InputModel Input { get; set; } = new();
+    public RoleRequest Role { get; set; } = new();
 
     [TempData]
     public string? ErrorMessage { get; set; }
-
-    public class InputModel
-    {
-        [Required(ErrorMessage = "El nombre del rol es requerido")]
-        [StringLength(100, ErrorMessage = "El nombre no puede exceder los 100 caracteres")]
-        public string Name { get; set; } = string.Empty;
-    }
 
     public IActionResult OnGet()
     {
@@ -44,12 +37,7 @@ public class CreateModel : PageModel
 
         try
         {
-            var createRoleDto = new CreateRoleDto
-            {
-                Name = Input.Name
-            };
-
-            var createdRole = await _roleApiService.CreateRoleAsync(createRoleDto);
+            var createdRole = await _roleApiService.CreateRoleAsync(Role);
 
             TempData["SuccessMessage"] = $"Rol '{createdRole.Name}' creado exitosamente.";
             return RedirectToPage("/Roles/Index");

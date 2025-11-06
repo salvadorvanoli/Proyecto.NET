@@ -1,16 +1,16 @@
-using Application.Spaces.DTOs;
+using Shared.DTOs.Spaces;
 
-namespace Application.Spaces.Services;
+namespace Application.Spaces;
 
 /// <summary>
-/// Service interface for space operations.
+/// Service interface for space management.
 /// </summary>
 public interface ISpaceService
 {
     /// <summary>
     /// Creates a new space in the current tenant context.
     /// </summary>
-    Task<SpaceResponse> CreateSpaceAsync(CreateSpaceRequest request, CancellationToken cancellationToken = default);
+    Task<SpaceResponse> CreateSpaceAsync(SpaceRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a space by ID.
@@ -25,7 +25,7 @@ public interface ISpaceService
     /// <summary>
     /// Updates an existing space.
     /// </summary>
-    Task<SpaceResponse> UpdateSpaceAsync(int id, UpdateSpaceRequest request, CancellationToken cancellationToken = default);
+    Task<SpaceResponse> UpdateSpaceAsync(int id, SpaceRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes a space by ID.

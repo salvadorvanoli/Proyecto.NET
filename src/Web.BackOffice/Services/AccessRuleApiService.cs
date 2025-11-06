@@ -1,5 +1,5 @@
 using System.Net.Http.Json;
-using Web.BackOffice.Models;
+using Shared.DTOs.AccessRules;
 
 namespace Web.BackOffice.Services;
 
@@ -16,11 +16,11 @@ public class AccessRuleApiService : IAccessRuleApiService
         _httpClient = httpClient;
     }
 
-    public async Task<AccessRuleDto?> GetAccessRuleByIdAsync(int id)
+    public async Task<AccessRuleResponse?> GetAccessRuleByIdAsync(int id)
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<AccessRuleDto>($"{BaseUrl}/{id}");
+            return await _httpClient.GetFromJsonAsync<AccessRuleResponse>($"{BaseUrl}/{id}");
         }
         catch (HttpRequestException)
         {
@@ -28,52 +28,52 @@ public class AccessRuleApiService : IAccessRuleApiService
         }
     }
 
-    public async Task<IEnumerable<AccessRuleDto>> GetAccessRulesByTenantAsync()
+    public async Task<IEnumerable<AccessRuleResponse>> GetAccessRulesByTenantAsync()
     {
         try
         {
-            var accessRules = await _httpClient.GetFromJsonAsync<IEnumerable<AccessRuleDto>>(BaseUrl);
-            return accessRules ?? Enumerable.Empty<AccessRuleDto>();
+            var accessRules = await _httpClient.GetFromJsonAsync<IEnumerable<AccessRuleResponse>>(BaseUrl);
+            return accessRules ?? Enumerable.Empty<AccessRuleResponse>();
         }
         catch (HttpRequestException)
         {
-            return Enumerable.Empty<AccessRuleDto>();
+            return Enumerable.Empty<AccessRuleResponse>();
         }
     }
 
-    public async Task<IEnumerable<AccessRuleDto>> GetAccessRulesByControlPointAsync(int controlPointId)
+    public async Task<IEnumerable<AccessRuleResponse>> GetAccessRulesByControlPointAsync(int controlPointId)
     {
         try
         {
-            var accessRules = await _httpClient.GetFromJsonAsync<IEnumerable<AccessRuleDto>>($"{BaseUrl}/controlpoint/{controlPointId}");
-            return accessRules ?? Enumerable.Empty<AccessRuleDto>();
+            var accessRules = await _httpClient.GetFromJsonAsync<IEnumerable<AccessRuleResponse>>($"{BaseUrl}/controlpoint/{controlPointId}");
+            return accessRules ?? Enumerable.Empty<AccessRuleResponse>();
         }
         catch (HttpRequestException)
         {
-            return Enumerable.Empty<AccessRuleDto>();
+            return Enumerable.Empty<AccessRuleResponse>();
         }
     }
 
-    public async Task<IEnumerable<AccessRuleDto>> GetAccessRulesByRoleAsync(int roleId)
+    public async Task<IEnumerable<AccessRuleResponse>> GetAccessRulesByRoleAsync(int roleId)
     {
         try
         {
-            var accessRules = await _httpClient.GetFromJsonAsync<IEnumerable<AccessRuleDto>>($"{BaseUrl}/role/{roleId}");
-            return accessRules ?? Enumerable.Empty<AccessRuleDto>();
+            var accessRules = await _httpClient.GetFromJsonAsync<IEnumerable<AccessRuleResponse>>($"{BaseUrl}/role/{roleId}");
+            return accessRules ?? Enumerable.Empty<AccessRuleResponse>();
         }
         catch (HttpRequestException)
         {
-            return Enumerable.Empty<AccessRuleDto>();
+            return Enumerable.Empty<AccessRuleResponse>();
         }
     }
 
-    public async Task<AccessRuleDto?> CreateAccessRuleAsync(CreateAccessRuleDto dto)
+    public async Task<AccessRuleResponse?> CreateAccessRuleAsync(AccessRuleRequest dto)
     {
         try
         {
             var response = await _httpClient.PostAsJsonAsync(BaseUrl, dto);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<AccessRuleDto>();
+            return await response.Content.ReadFromJsonAsync<AccessRuleResponse>();
         }
         catch (HttpRequestException)
         {
@@ -81,7 +81,7 @@ public class AccessRuleApiService : IAccessRuleApiService
         }
     }
 
-    public async Task<bool> UpdateAccessRuleAsync(int id, UpdateAccessRuleDto dto)
+    public async Task<bool> UpdateAccessRuleAsync(int id, AccessRuleRequest dto)
     {
         try
         {

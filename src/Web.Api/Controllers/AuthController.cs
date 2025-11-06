@@ -1,5 +1,5 @@
-﻿using Application.Auth.DTOs;
-using Application.Auth.Services;
+﻿using Shared.DTOs.Auth;
+using Application.Auth;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Api.Controllers;

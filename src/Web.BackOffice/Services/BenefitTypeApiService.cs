@@ -1,5 +1,5 @@
 using System.Net.Http.Json;
-using Web.BackOffice.Models;
+using Shared.DTOs.BenefitTypes;
 
 namespace Web.BackOffice.Services;
 
@@ -16,11 +16,11 @@ public class BenefitTypeApiService : IBenefitTypeApiService
         _httpClient = httpClient;
     }
 
-    public async Task<BenefitTypeDto?> GetBenefitTypeByIdAsync(int id)
+    public async Task<BenefitTypeResponse?> GetBenefitTypeByIdAsync(int id)
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<BenefitTypeDto>($"{BaseUrl}/{id}");
+            return await _httpClient.GetFromJsonAsync<BenefitTypeResponse>($"{BaseUrl}/{id}");
         }
         catch (HttpRequestException)
         {
@@ -28,26 +28,26 @@ public class BenefitTypeApiService : IBenefitTypeApiService
         }
     }
 
-    public async Task<IEnumerable<BenefitTypeDto>> GetBenefitTypesByTenantAsync()
+    public async Task<IEnumerable<BenefitTypeResponse>> GetBenefitTypesByTenantAsync()
     {
         try
         {
-            var benefitTypes = await _httpClient.GetFromJsonAsync<IEnumerable<BenefitTypeDto>>(BaseUrl);
-            return benefitTypes ?? Enumerable.Empty<BenefitTypeDto>();
+            var benefitTypes = await _httpClient.GetFromJsonAsync<IEnumerable<BenefitTypeResponse>>(BaseUrl);
+            return benefitTypes ?? Enumerable.Empty<BenefitTypeResponse>();
         }
         catch (HttpRequestException)
         {
-            return Enumerable.Empty<BenefitTypeDto>();
+            return Enumerable.Empty<BenefitTypeResponse>();
         }
     }
 
-    public async Task<BenefitTypeDto?> CreateBenefitTypeAsync(CreateBenefitTypeDto dto)
+    public async Task<BenefitTypeResponse?> CreateBenefitTypeAsync(BenefitTypeRequest dto)
     {
         try
         {
             var response = await _httpClient.PostAsJsonAsync(BaseUrl, dto);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<BenefitTypeDto>();
+            return await response.Content.ReadFromJsonAsync<BenefitTypeResponse>();
         }
         catch (HttpRequestException)
         {
@@ -55,7 +55,7 @@ public class BenefitTypeApiService : IBenefitTypeApiService
         }
     }
 
-    public async Task<bool> UpdateBenefitTypeAsync(int id, UpdateBenefitTypeDto dto)
+    public async Task<bool> UpdateBenefitTypeAsync(int id, BenefitTypeRequest dto)
     {
         try
         {

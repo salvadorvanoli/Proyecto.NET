@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
+using Shared.DTOs.Spaces;
 using Shared.DTOs.SpaceTypes;
-using Web.BackOffice.Models;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.Spaces;
@@ -84,7 +84,7 @@ public class CreateModel : PageModel
 
         try
         {
-            var createSpaceDto = new CreateSpaceDto
+            var createSpaceDto = new SpaceRequest
             {
                 Name = Input.Name,
                 SpaceTypeId = Input.SpaceTypeId

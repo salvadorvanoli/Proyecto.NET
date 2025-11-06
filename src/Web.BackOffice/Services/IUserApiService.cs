@@ -1,4 +1,4 @@
-﻿using Web.BackOffice.Models;
+﻿using Shared.DTOs.Users;
 
 namespace Web.BackOffice.Services;
 
@@ -7,9 +7,9 @@ namespace Web.BackOffice.Services;
 /// </summary>
 public interface IUserApiService
 {
-    Task<IEnumerable<UserDto>> GetAllUsersAsync();
-    Task<UserDto?> GetUserByIdAsync(int id);
-    Task<UserDto> CreateUserAsync(CreateUserDto createUserDto);
-    Task<UserDto> UpdateUserAsync(int id, UpdateUserDto updateUserDto);
+    Task<IEnumerable<UserResponse>> GetAllUsersAsync();
+    Task<UserResponse?> GetUserByIdAsync(int id);
+    Task<UserResponse> CreateUserAsync(CreateUserRequest createUserDto);
+    Task<UserResponse> UpdateUserAsync(int id, UpdateUserRequest updateUserDto);
     Task<bool> DeleteUserAsync(int id);
 }

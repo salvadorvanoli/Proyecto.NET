@@ -1,8 +1,8 @@
-﻿using Application.Auth.DTOs;
+﻿using Shared.DTOs.Auth;
 using Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Auth.Services;
+namespace Application.Auth;
 
 /// <summary>
 /// Service for authentication operations.

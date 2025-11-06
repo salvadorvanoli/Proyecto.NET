@@ -1,4 +1,4 @@
-using Web.BackOffice.Models;
+using Shared.DTOs.ControlPoints;
 
 namespace Web.BackOffice.Services;
 
@@ -7,10 +7,10 @@ namespace Web.BackOffice.Services;
 /// </summary>
 public interface IControlPointApiService
 {
-    Task<ControlPointDto?> GetControlPointByIdAsync(int id);
-    Task<IEnumerable<ControlPointDto>> GetControlPointsBySpaceAsync(int spaceId);
-    Task<IEnumerable<ControlPointDto>> GetControlPointsByTenantAsync();
-    Task<ControlPointDto?> CreateControlPointAsync(CreateControlPointDto dto);
-    Task<bool> UpdateControlPointAsync(int id, UpdateControlPointDto dto);
+    Task<ControlPointResponse?> GetControlPointByIdAsync(int id);
+    Task<IEnumerable<ControlPointResponse>> GetControlPointsBySpaceAsync(int spaceId);
+    Task<IEnumerable<ControlPointResponse>> GetControlPointsByTenantAsync();
+    Task<ControlPointResponse?> CreateControlPointAsync(ControlPointRequest dto);
+    Task<bool> UpdateControlPointAsync(int id, ControlPointRequest dto);
     Task<bool> DeleteControlPointAsync(int id);
 }

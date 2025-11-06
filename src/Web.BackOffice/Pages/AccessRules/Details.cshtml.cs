@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Web.BackOffice.Models;
+using Shared.DTOs.AccessRules;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.AccessRules;
@@ -16,7 +16,7 @@ public class DetailsModel : PageModel
         _logger = logger;
     }
 
-    public AccessRuleDto AccessRule { get; set; } = new();
+    public AccessRuleResponse AccessRule { get; set; } = new();
 
     [BindProperty(SupportsGet = true)]
     public int Id { get; set; }

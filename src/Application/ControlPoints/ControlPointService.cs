@@ -1,9 +1,9 @@
 using Application.Common.Interfaces;
-using Application.ControlPoints.DTOs;
+using Shared.DTOs.ControlPoints;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.ControlPoints.Services;
+namespace Application.ControlPoints;
 
 /// <summary>
 /// Implementation of control point service for managing control point operations.
@@ -21,7 +21,7 @@ public class ControlPointService : IControlPointService
         _tenantProvider = tenantProvider;
     }
 
-    public async Task<ControlPointResponse> CreateControlPointAsync(CreateControlPointRequest request, CancellationToken cancellationToken = default)
+    public async Task<ControlPointResponse> CreateControlPointAsync(ControlPointRequest request, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 
@@ -133,7 +133,7 @@ public class ControlPointService : IControlPointService
         }).ToList();
     }
 
-    public async Task<ControlPointResponse> UpdateControlPointAsync(int id, UpdateControlPointRequest request, CancellationToken cancellationToken = default)
+    public async Task<ControlPointResponse> UpdateControlPointAsync(int id, ControlPointRequest request, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 

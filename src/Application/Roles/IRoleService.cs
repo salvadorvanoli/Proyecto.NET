@@ -1,6 +1,6 @@
-﻿using Application.Roles.DTOs;
+﻿using Shared.DTOs.Roles;
 
-namespace Application.Roles.Services;
+namespace Application.Roles;
 
 /// <summary>
 /// Service interface for role operations.
@@ -10,7 +10,7 @@ public interface IRoleService
     /// <summary>
     /// Creates a new role in the current tenant context.
     /// </summary>
-    Task<RoleResponse> CreateRoleAsync(CreateRoleRequest request, CancellationToken cancellationToken = default);
+    Task<RoleResponse> CreateRoleAsync(RoleRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a role by ID.
@@ -25,7 +25,7 @@ public interface IRoleService
     /// <summary>
     /// Updates an existing role.
     /// </summary>
-    Task<RoleResponse> UpdateRoleAsync(int id, UpdateRoleRequest request, CancellationToken cancellationToken = default);
+    Task<RoleResponse> UpdateRoleAsync(int id, RoleRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes a role by ID.

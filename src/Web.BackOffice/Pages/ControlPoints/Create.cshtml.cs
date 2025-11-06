@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Web.BackOffice.Models;
+using Shared.DTOs.ControlPoints;
+using Shared.DTOs.Spaces;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.ControlPoints;
@@ -23,9 +24,9 @@ public class CreateModel : PageModel
     }
 
     [BindProperty]
-    public CreateControlPointDto ControlPoint { get; set; } = new();
+    public ControlPointRequest ControlPoint { get; set; } = new();
 
-    public SelectList Spaces { get; set; } = new(new List<SpaceDto>(), "Id", "Name");
+    public SelectList Spaces { get; set; } = new(new List<SpaceResponse>(), "Id", "Name");
 
     [TempData]
     public string? ErrorMessage { get; set; }

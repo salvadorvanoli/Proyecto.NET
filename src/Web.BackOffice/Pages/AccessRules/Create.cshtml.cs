@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Web.BackOffice.Models;
+using Shared.DTOs.AccessRules;
+using Shared.DTOs.Roles;
+using Shared.DTOs.ControlPoints;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.AccessRules;
@@ -26,10 +28,10 @@ public class CreateModel : PageModel
     }
 
     [BindProperty]
-    public CreateAccessRuleDto AccessRule { get; set; } = new();
+    public AccessRuleRequest AccessRule { get; set; } = new();
 
-    public MultiSelectList Roles { get; set; } = new(new List<RoleDto>(), "Id", "Name");
-    public MultiSelectList ControlPoints { get; set; } = new(new List<ControlPointDto>(), "Id", "Name");
+    public MultiSelectList Roles { get; set; } = new(new List<RoleResponse>(), "Id", "Name");
+    public MultiSelectList ControlPoints { get; set; } = new(new List<ControlPointResponse>(), "Id", "Name");
 
     [BindProperty]
     public bool Use24x7 { get; set; } = true;
@@ -103,11 +105,37 @@ public class CreateModel : PageModel
             }
 
             // Validate date range if not permanent
-            if (!UsePermanent && (!AccessRule.StartDate.HasValue || !AccessRule.EndDate.HasValue))
+            if (!UsePermanent)
             {
-                ModelState.AddModelError(string.Empty, "Debe especificar un periodo de validez o marcar como permanente.");
-                await LoadSelectListsAsync();
-                return Page();
+                if (!AccessRule.StartDate.HasValue || !AccessRule.EndDate.HasValue)
+                {
+                    ModelState.AddModelError(string.Empty, "Debe especificar un periodo de validez o marcar como permanente.");
+                    await LoadSelectListsAsync();
+                    return Page();
+                }
+
+                var today = DateTime.Today;
+                
+                if (AccessRule.StartDate.Value.Date < today)
+                {
+                    ModelState.AddModelError(string.Empty, "La fecha de inicio no puede ser anterior a hoy.");
+                    await LoadSelectListsAsync();
+                    return Page();
+                }
+                
+                if (AccessRule.EndDate.Value.Date < today)
+                {
+                    ModelState.AddModelError(string.Empty, "La fecha de fin no puede ser anterior a hoy.");
+                    await LoadSelectListsAsync();
+                    return Page();
+                }
+                
+                if (AccessRule.StartDate.Value > AccessRule.EndDate.Value)
+                {
+                    ModelState.AddModelError(string.Empty, "La fecha de inicio debe ser anterior o igual a la fecha de fin.");
+                    await LoadSelectListsAsync();
+                    return Page();
+                }
             }
 
             var result = await _accessRuleApiService.CreateAccessRuleAsync(AccessRule);
@@ -155,8 +183,8 @@ public class CreateModel : PageModel
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading roles and control points");
-            Roles = new MultiSelectList(new List<RoleDto>(), "Id", "Name");
-            ControlPoints = new MultiSelectList(new List<ControlPointDto>(), "Id", "Name");
+            Roles = new MultiSelectList(new List<RoleResponse>(), "Id", "Name");
+            ControlPoints = new MultiSelectList(new List<ControlPointResponse>(), "Id", "Name");
             throw;
         }
     }

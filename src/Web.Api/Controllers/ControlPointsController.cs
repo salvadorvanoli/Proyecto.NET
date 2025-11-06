@@ -1,5 +1,5 @@
-using Application.ControlPoints.DTOs;
-using Application.ControlPoints.Services;
+using Shared.DTOs.ControlPoints;
+using Application.ControlPoints;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Api.Controllers;
@@ -34,7 +34,7 @@ public class ControlPointsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<ControlPointResponse>> CreateControlPoint(
-        [FromBody] CreateControlPointRequest request,
+        [FromBody] ControlPointRequest request,
         CancellationToken cancellationToken)
     {
         try
@@ -122,7 +122,7 @@ public class ControlPointsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ControlPointResponse>> UpdateControlPoint(
         int id,
-        [FromBody] UpdateControlPointRequest request,
+        [FromBody] ControlPointRequest request,
         CancellationToken cancellationToken)
     {
         try

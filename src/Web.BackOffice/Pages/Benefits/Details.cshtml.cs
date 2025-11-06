@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Web.BackOffice.Models;
+using Shared.DTOs.Benefits;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.Benefits;
@@ -16,7 +16,7 @@ public class DetailsModel : PageModel
         _logger = logger;
     }
 
-    public BenefitDto Benefit { get; set; } = null!;
+    public BenefitResponse Benefit { get; set; } = null!;
     
     [TempData]
     public string? ErrorMessage { get; set; }

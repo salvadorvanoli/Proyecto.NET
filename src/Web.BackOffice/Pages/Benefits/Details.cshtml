@@ -63,8 +63,8 @@
 
                         <dt class="col-sm-3">Estado:</dt>
                         <dd class="col-sm-9">
-                            <span class="badge @Model.Benefit.StatusBadgeClass fs-6">
-                                @Model.Benefit.StatusText
+                            <span class="badge @(Model.Benefit.CanBeConsumed ? "bg-success" : "bg-secondary") fs-6">
+                                @(Model.Benefit.CanBeConsumed ? "Activo" : "Inactivo")
                             </span>
                             <br />
                             @if (!Model.Benefit.IsValid)

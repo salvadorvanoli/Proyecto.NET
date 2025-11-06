@@ -1,10 +1,10 @@
 ﻿using Application.Common.Interfaces;
-using Application.Users.DTOs;
+using Shared.DTOs.Users;
 using Domain.DataTypes;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Users.Services;
+namespace Application.Users;
 
 /// <summary>
 /// Implementation of user service for managing user operations.

@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Web.BackOffice.Models;
+using Shared.DTOs.AccessRules;
+using Shared.DTOs.Roles;
+using Shared.DTOs.ControlPoints;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.AccessRules;
@@ -26,13 +28,13 @@ public class EditModel : PageModel
     }
 
     [BindProperty]
-    public UpdateAccessRuleDto AccessRule { get; set; } = new();
+    public AccessRuleRequest AccessRule { get; set; } = new();
 
     [BindProperty(SupportsGet = true)]
     public int Id { get; set; }
 
-    public MultiSelectList Roles { get; set; } = new(new List<RoleDto>(), "Id", "Name");
-    public MultiSelectList ControlPoints { get; set; } = new(new List<ControlPointDto>(), "Id", "Name");
+    public MultiSelectList Roles { get; set; } = new(new List<RoleResponse>(), "Id", "Name");
+    public MultiSelectList ControlPoints { get; set; } = new(new List<ControlPointResponse>(), "Id", "Name");
 
     [BindProperty]
     public bool Use24x7 { get; set; }
@@ -56,7 +58,7 @@ public class EditModel : PageModel
                 return Page();
             }
 
-            AccessRule = new UpdateAccessRuleDto
+            AccessRule = new AccessRuleRequest
             {
                 StartTime = accessRule.StartTime,
                 EndTime = accessRule.EndTime,
@@ -181,8 +183,8 @@ public class EditModel : PageModel
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading roles and control points");
-            Roles = new MultiSelectList(new List<RoleDto>(), "Id", "Name");
-            ControlPoints = new MultiSelectList(new List<ControlPointDto>(), "Id", "Name");
+            Roles = new MultiSelectList(new List<RoleResponse>(), "Id", "Name");
+            ControlPoints = new MultiSelectList(new List<ControlPointResponse>(), "Id", "Name");
             throw;
         }
     }

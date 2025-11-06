@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
-using Web.BackOffice.Models;
+using Shared.DTOs.Roles;
 using Web.BackOffice.Services;
 using Domain.Constants;
 
@@ -19,19 +19,12 @@ public class EditModel : PageModel
     }
 
     [BindProperty]
-    public InputModel Input { get; set; } = new();
+    public RoleRequest Role { get; set; } = new();
+
+    public int RoleId { get; set; }
 
     [TempData]
     public string? ErrorMessage { get; set; }
-
-    public class InputModel
-    {
-        public int Id { get; set; }
-
-        [Required(ErrorMessage = "El nombre del rol es requerido")]
-        [StringLength(100, ErrorMessage = "El nombre no puede exceder los 100 caracteres")]
-        public string Name { get; set; } = string.Empty;
-    }
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
@@ -52,9 +45,9 @@ public class EditModel : PageModel
                 return RedirectToPage("/Roles/Index");
             }
 
-            Input = new InputModel
+            RoleId = role.Id;
+            Role = new RoleRequest
             {
-                Id = role.Id,
                 Name = role.Name
             };
 
@@ -68,8 +61,10 @@ public class EditModel : PageModel
         }
     }
 
-    public async Task<IActionResult> OnPostAsync()
+    public async Task<IActionResult> OnPostAsync(int id)
     {
+        RoleId = id;
+
         if (!ModelState.IsValid)
         {
             return Page();
@@ -78,26 +73,21 @@ public class EditModel : PageModel
         try
         {
             // Verificar que no se intente editar un rol protegido
-            var existingRole = await _roleApiService.GetRoleByIdAsync(Input.Id);
+            var existingRole = await _roleApiService.GetRoleByIdAsync(id);
             if (existingRole != null && DomainConstants.SystemRoles.IsProtectedRole(existingRole.Name))
             {
                 ErrorMessage = $"El rol '{existingRole.Name}' es un rol del sistema y no puede ser editado.";
                 return Page();
             }
 
-            var updateRoleDto = new UpdateRoleDto
-            {
-                Name = Input.Name
-            };
+            await _roleApiService.UpdateRoleAsync(id, Role);
 
-            await _roleApiService.UpdateRoleAsync(Input.Id, updateRoleDto);
-
-            TempData["SuccessMessage"] = $"Rol '{Input.Name}' actualizado exitosamente.";
+            TempData["SuccessMessage"] = $"Rol '{Role.Name}' actualizado exitosamente.";
             return RedirectToPage("/Roles/Index");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating role {RoleId}", Input.Id);
+            _logger.LogError(ex, "Error updating role {RoleId}", id);
             ErrorMessage = "Error al actualizar el rol. Verifique que el nombre no esté en uso.";
             return Page();
         }

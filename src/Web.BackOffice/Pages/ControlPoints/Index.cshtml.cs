@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Web.BackOffice.Models;
+using Shared.DTOs.ControlPoints;
+using Shared.DTOs.Spaces;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.ControlPoints;
@@ -19,9 +20,9 @@ public class IndexModel : PageModel
         _logger = logger;
     }
 
-    public IEnumerable<ControlPointDto> ControlPoints { get; set; } = Enumerable.Empty<ControlPointDto>();
-    public IEnumerable<ControlPointDto> DisplayedControlPoints { get; set; } = Enumerable.Empty<ControlPointDto>();
-    public IEnumerable<SpaceDto> Spaces { get; set; } = Enumerable.Empty<SpaceDto>();
+    public IEnumerable<ControlPointResponse> ControlPoints { get; set; } = Enumerable.Empty<ControlPointResponse>();
+    public IEnumerable<ControlPointResponse> DisplayedControlPoints { get; set; } = Enumerable.Empty<ControlPointResponse>();
+    public IEnumerable<SpaceResponse> Spaces { get; set; } = Enumerable.Empty<SpaceResponse>();
 
     // Paginación
     public int CurrentPage { get; set; } = 1;

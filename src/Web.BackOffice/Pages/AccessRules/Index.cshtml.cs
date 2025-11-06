@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Web.BackOffice.Models;
+using Shared.DTOs.AccessRules;
+using Shared.DTOs.Roles;
+using Shared.DTOs.ControlPoints;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.AccessRules;
@@ -26,10 +28,10 @@ public class IndexModel : PageModel
         _logger = logger;
     }
 
-    public IEnumerable<AccessRuleDto> AccessRules { get; set; } = new List<AccessRuleDto>();
-    public IEnumerable<AccessRuleDto> DisplayedAccessRules { get; set; } = new List<AccessRuleDto>();
-    public IEnumerable<RoleDto> Roles { get; set; } = new List<RoleDto>();
-    public IEnumerable<ControlPointDto> ControlPoints { get; set; } = new List<ControlPointDto>();
+    public IEnumerable<AccessRuleResponse> AccessRules { get; set; } = new List<AccessRuleResponse>();
+    public IEnumerable<AccessRuleResponse> DisplayedAccessRules { get; set; } = new List<AccessRuleResponse>();
+    public IEnumerable<RoleResponse> Roles { get; set; } = new List<RoleResponse>();
+    public IEnumerable<ControlPointResponse> ControlPoints { get; set; } = new List<ControlPointResponse>();
     
     public int? SelectedRoleId { get; set; }
     public int? SelectedControlPointId { get; set; }
@@ -111,10 +113,10 @@ public class IndexModel : PageModel
         {
             _logger.LogError(ex, "Error loading access rules");
             ErrorMessage = "Ocurrió un error al cargar las reglas de acceso.";
-            AccessRules = new List<AccessRuleDto>();
-            DisplayedAccessRules = new List<AccessRuleDto>();
-            Roles = new List<RoleDto>();
-            ControlPoints = new List<ControlPointDto>();
+            AccessRules = new List<AccessRuleResponse>();
+            DisplayedAccessRules = new List<AccessRuleResponse>();
+            Roles = new List<RoleResponse>();
+            ControlPoints = new List<ControlPointResponse>();
         }
     }
 

@@ -1,9 +1,9 @@
 ﻿using Application.Common.Interfaces;
-using Application.News.DTOs;
+using Shared.DTOs.News;
 using Microsoft.EntityFrameworkCore;
 using DomainNews = Domain.Entities.News;
 
-namespace Application.News.Services;
+namespace Application.News;
 
 /// <summary>
 /// Implementation of news service for managing news operations.
@@ -21,7 +21,7 @@ public class NewsService : INewsService
         _tenantProvider = tenantProvider;
     }
 
-    public async Task<NewsResponseDto> CreateNewsAsync(CreateNewsRequest request, CancellationToken cancellationToken = default)
+    public async Task<NewsResponse> CreateNewsAsync(NewsRequest request, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 
@@ -49,7 +49,7 @@ public class NewsService : INewsService
         return MapToResponse(news);
     }
 
-    public async Task<NewsResponseDto?> GetNewsByIdAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<NewsResponse?> GetNewsByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 
@@ -60,7 +60,7 @@ public class NewsService : INewsService
         return news == null ? null : MapToResponse(news);
     }
 
-    public async Task<IEnumerable<NewsResponseDto>> GetAllNewsAsync(CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<NewsResponse>> GetAllNewsAsync(CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 
@@ -72,7 +72,7 @@ public class NewsService : INewsService
         return newsList.Select(MapToResponse);
     }
 
-    public async Task<NewsResponseDto> UpdateNewsAsync(int id, UpdateNewsRequest request, CancellationToken cancellationToken = default)
+    public async Task<NewsResponse> UpdateNewsAsync(int id, NewsRequest request, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 
@@ -112,9 +112,9 @@ public class NewsService : INewsService
         return true;
     }
 
-    private static NewsResponseDto MapToResponse(DomainNews news)
+    private static NewsResponse MapToResponse(DomainNews news)
     {
-        return new NewsResponseDto
+        return new NewsResponse
         {
             Id = news.Id,
             Title = news.Title,

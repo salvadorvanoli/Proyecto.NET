@@ -138,7 +138,7 @@
                                         }
                                         else
                                         {
-                                            <small>@accessRule.TimeRangeDisplay</small>
+                                            <small>@accessRule.StartTime - @accessRule.EndTime</small>
                                         }
                                     </td>
                                     <td>
@@ -148,7 +148,7 @@
                                         }
                                         else
                                         {
-                                            <small>@accessRule.ValidityDisplay</small>
+                                            <small>@accessRule.StartDate?.ToString("dd/MM/yyyy") - @accessRule.EndDate?.ToString("dd/MM/yyyy")</small>
                                         }
                                     </td>
                                     <td>

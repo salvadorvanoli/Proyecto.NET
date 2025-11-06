@@ -1,6 +1,6 @@
-﻿using Application.Users.DTOs;
+﻿using Shared.DTOs.Users;
 
-namespace Application.Users.Services;
+namespace Application.Users;
 
 /// <summary>
 /// Service interface for user operations.

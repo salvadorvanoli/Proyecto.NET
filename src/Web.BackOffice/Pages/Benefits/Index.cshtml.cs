@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Web.BackOffice.Models;
+using Shared.DTOs.Benefits;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.Benefits;
@@ -24,8 +24,8 @@ public class IndexModel : PageModel
         _logger = logger;
     }
 
-    public IEnumerable<BenefitDto> Benefits { get; set; } = new List<BenefitDto>();
-    public IEnumerable<BenefitDto> DisplayedBenefits { get; set; } = new List<BenefitDto>();
+    public IEnumerable<BenefitResponse> Benefits { get; set; } = new List<BenefitResponse>();
+    public IEnumerable<BenefitResponse> DisplayedBenefits { get; set; } = new List<BenefitResponse>();
     public List<SelectListItem> BenefitTypes { get; set; } = new();
     public int? SelectedBenefitTypeId { get; set; }
     public string? StatusFilter { get; set; }
@@ -55,7 +55,7 @@ public class IndexModel : PageModel
                 .ToList();
 
             // Get benefits based on filters
-            IEnumerable<BenefitDto> benefits;
+            IEnumerable<BenefitResponse> benefits;
 
             if (benefitTypeId.HasValue)
             {
@@ -93,8 +93,8 @@ public class IndexModel : PageModel
         {
             _logger.LogError(ex, "Error loading benefits");
             ErrorMessage = "Ocurrió un error al cargar los beneficios.";
-            Benefits = new List<BenefitDto>();
-            DisplayedBenefits = new List<BenefitDto>();
+            Benefits = new List<BenefitResponse>();
+            DisplayedBenefits = new List<BenefitResponse>();
             BenefitTypes = new List<SelectListItem>();
         }
     }

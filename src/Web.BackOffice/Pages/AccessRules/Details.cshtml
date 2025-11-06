@@ -68,7 +68,7 @@
                             }
                             else
                             {
-                                <strong>@Model.AccessRule.TimeRangeDisplay</strong>
+                                <strong>@Model.AccessRule.StartTime - @Model.AccessRule.EndTime</strong>
                             }
                         </dd>
 
@@ -80,7 +80,7 @@
                             }
                             else
                             {
-                                <strong>@Model.AccessRule.ValidityDisplay</strong>
+                                <strong>@Model.AccessRule.StartDate?.ToString("dd/MM/yyyy") - @Model.AccessRule.EndDate?.ToString("dd/MM/yyyy")</strong>
                             }
                         </dd>
 

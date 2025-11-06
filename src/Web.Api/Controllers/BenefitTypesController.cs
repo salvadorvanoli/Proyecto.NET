@@ -1,5 +1,5 @@
-using Application.BenefitTypes.DTOs;
-using Application.BenefitTypes.Services;
+using Shared.DTOs.BenefitTypes;
+using Application.BenefitTypes;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Api.Controllers;
@@ -70,7 +70,7 @@ public class BenefitTypesController : ControllerBase
     [ProducesResponseType(typeof(BenefitTypeResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<BenefitTypeResponse>> CreateBenefitType([FromBody] CreateBenefitTypeRequest request)
+    public async Task<ActionResult<BenefitTypeResponse>> CreateBenefitType([FromBody] BenefitTypeRequest request)
     {
         try
         {
@@ -102,7 +102,7 @@ public class BenefitTypesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<BenefitTypeResponse>> UpdateBenefitType(int id, [FromBody] UpdateBenefitTypeRequest request)
+    public async Task<ActionResult<BenefitTypeResponse>> UpdateBenefitType(int id, [FromBody] BenefitTypeRequest request)
     {
         try
         {

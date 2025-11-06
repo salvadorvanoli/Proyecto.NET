@@ -1,5 +1,5 @@
-using Application.AccessRules.DTOs;
-using Application.AccessRules.Services;
+using Shared.DTOs.AccessRules;
+using Application.AccessRules;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Api.Controllers;
@@ -114,7 +114,7 @@ public class AccessRulesController : ControllerBase
     [ProducesResponseType(typeof(AccessRuleResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<AccessRuleResponse>> CreateAccessRule([FromBody] CreateAccessRuleRequest request)
+    public async Task<ActionResult<AccessRuleResponse>> CreateAccessRule([FromBody] AccessRuleRequest request)
     {
         try
         {
@@ -146,7 +146,7 @@ public class AccessRulesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<AccessRuleResponse>> UpdateAccessRule(int id, [FromBody] UpdateAccessRuleRequest request)
+    public async Task<ActionResult<AccessRuleResponse>> UpdateAccessRule(int id, [FromBody] AccessRuleRequest request)
     {
         try
         {

@@ -1,9 +1,9 @@
-using Application.BenefitTypes.DTOs;
+using Shared.DTOs.BenefitTypes;
 using Application.Common.Interfaces;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.BenefitTypes.Services;
+namespace Application.BenefitTypes;
 
 /// <summary>
 /// Service for benefit type management.
@@ -77,7 +77,7 @@ public class BenefitTypeService : IBenefitTypeService
         return benefitTypesWithCounts;
     }
 
-    public async Task<BenefitTypeResponse> CreateBenefitTypeAsync(CreateBenefitTypeRequest request, CancellationToken cancellationToken = default)
+    public async Task<BenefitTypeResponse> CreateBenefitTypeAsync(BenefitTypeRequest request, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 
@@ -108,7 +108,7 @@ public class BenefitTypeService : IBenefitTypeService
         };
     }
 
-    public async Task<BenefitTypeResponse> UpdateBenefitTypeAsync(int id, UpdateBenefitTypeRequest request, CancellationToken cancellationToken = default)
+    public async Task<BenefitTypeResponse> UpdateBenefitTypeAsync(int id, BenefitTypeRequest request, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 

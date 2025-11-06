@@ -22,9 +22,9 @@
             <div class="card-body">
                 <form method="post">
                     <div class="mb-3">
-                        <label asp-for="Input.Name" class="form-label">Nombre del Rol</label>
-                        <input asp-for="Input.Name" class="form-control" placeholder="Ej: Administrador, Empleado, etc." />
-                        <span asp-validation-for="Input.Name" class="text-danger"></span>
+                        <label asp-for="Role.Name" class="form-label">Nombre del Rol</label>
+                        <input asp-for="Role.Name" class="form-control" placeholder="Ej: Administrador, Empleado, etc." />
+                        <span asp-validation-for="Role.Name" class="text-danger"></span>
                         <div class="form-text">
                             El nombre debe ser descriptivo y único dentro del tenant.
                         </div>

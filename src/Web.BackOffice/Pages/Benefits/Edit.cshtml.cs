@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Web.BackOffice.Models;
+using Shared.DTOs.Benefits;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.Benefits;
@@ -26,7 +26,7 @@ public class EditModel : PageModel
     public int Id { get; set; }
 
     [BindProperty]
-    public UpdateBenefitDto Benefit { get; set; } = new();
+    public BenefitRequest Benefit { get; set; } = new();
 
     public List<SelectListItem> BenefitTypes { get; set; } = new();
     
@@ -47,13 +47,12 @@ public class EditModel : PageModel
             }
 
             Id = benefit.Id;
-            Benefit = new UpdateBenefitDto
+            Benefit = new BenefitRequest
             {
                 BenefitTypeId = benefit.BenefitTypeId,
                 Quotas = benefit.Quotas,
                 StartDate = benefit.StartDate,
-                EndDate = benefit.EndDate,
-                IsPermanent = benefit.IsPermanent
+                EndDate = benefit.EndDate
             };
 
             await LoadBenefitTypesAsync();
@@ -75,12 +74,12 @@ public class EditModel : PageModel
             return Page();
         }
 
-        // Validate dates if not permanent
-        if (!Benefit.IsPermanent)
+        // Validate dates if provided
+        if (!string.IsNullOrWhiteSpace(Benefit.StartDate) || !string.IsNullOrWhiteSpace(Benefit.EndDate))
         {
             if (string.IsNullOrWhiteSpace(Benefit.StartDate) || string.IsNullOrWhiteSpace(Benefit.EndDate))
             {
-                ModelState.AddModelError(string.Empty, "Las fechas de inicio y fin son requeridas para beneficios no permanentes.");
+                ModelState.AddModelError(string.Empty, "Debe proporcionar tanto la fecha de inicio como la de fin, o dejarlas ambas vacías para un beneficio permanente.");
                 await LoadBenefitTypesAsync();
                 return Page();
             }

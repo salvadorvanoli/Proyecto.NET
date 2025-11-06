@@ -1,10 +1,10 @@
-using Application.AccessRules.DTOs;
+using Shared.DTOs.AccessRules;
 using Application.Common.Interfaces;
 using Domain.DataTypes;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.AccessRules.Services;
+namespace Application.AccessRules;
 
 /// <summary>
 /// Service for access rule management.
@@ -100,7 +100,7 @@ public class AccessRuleService : IAccessRuleService
         }).ToList();
     }
 
-    public async Task<AccessRuleResponse> CreateAccessRuleAsync(CreateAccessRuleRequest request, CancellationToken cancellationToken = default)
+    public async Task<AccessRuleResponse> CreateAccessRuleAsync(AccessRuleRequest request, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 
@@ -163,7 +163,7 @@ public class AccessRuleService : IAccessRuleService
         return createdRule!;
     }
 
-    public async Task<AccessRuleResponse> UpdateAccessRuleAsync(int id, UpdateAccessRuleRequest request, CancellationToken cancellationToken = default)
+    public async Task<AccessRuleResponse> UpdateAccessRuleAsync(int id, AccessRuleRequest request, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 

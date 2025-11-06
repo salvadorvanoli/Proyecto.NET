@@ -1,6 +1,6 @@
-﻿using Application.Auth.DTOs;
+﻿using Shared.DTOs.Auth;
 
-namespace Application.Auth.Services;
+namespace Application.Auth;
 
 /// <summary>
 /// Service interface for authentication operations.

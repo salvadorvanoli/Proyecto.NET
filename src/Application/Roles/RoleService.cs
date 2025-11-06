@@ -1,9 +1,9 @@
 ﻿using Application.Common.Interfaces;
-using Application.Roles.DTOs;
+using Shared.DTOs.Roles;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Roles.Services;
+namespace Application.Roles;
 
 /// <summary>
 /// Implementation of role service for managing role operations.
@@ -21,7 +21,7 @@ public class RoleService : IRoleService
         _tenantProvider = tenantProvider;
     }
 
-    public async Task<RoleResponse> CreateRoleAsync(CreateRoleRequest request, CancellationToken cancellationToken = default)
+    public async Task<RoleResponse> CreateRoleAsync(RoleRequest request, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 
@@ -117,7 +117,7 @@ public class RoleService : IRoleService
         return roleResponses;
     }
 
-    public async Task<RoleResponse> UpdateRoleAsync(int id, UpdateRoleRequest request, CancellationToken cancellationToken = default)
+    public async Task<RoleResponse> UpdateRoleAsync(int id, RoleRequest request, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 

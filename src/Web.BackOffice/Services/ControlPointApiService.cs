@@ -1,5 +1,5 @@
 using System.Net.Http.Json;
-using Web.BackOffice.Models;
+using Shared.DTOs.ControlPoints;
 
 namespace Web.BackOffice.Services;
 
@@ -16,11 +16,11 @@ public class ControlPointApiService : IControlPointApiService
         _httpClient = httpClient;
     }
 
-    public async Task<ControlPointDto?> GetControlPointByIdAsync(int id)
+    public async Task<ControlPointResponse?> GetControlPointByIdAsync(int id)
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<ControlPointDto>($"{BaseUrl}/{id}");
+            return await _httpClient.GetFromJsonAsync<ControlPointResponse>($"{BaseUrl}/{id}");
         }
         catch (HttpRequestException)
         {
@@ -28,39 +28,39 @@ public class ControlPointApiService : IControlPointApiService
         }
     }
 
-    public async Task<IEnumerable<ControlPointDto>> GetControlPointsBySpaceAsync(int spaceId)
+    public async Task<IEnumerable<ControlPointResponse>> GetControlPointsBySpaceAsync(int spaceId)
     {
         try
         {
-            var controlPoints = await _httpClient.GetFromJsonAsync<IEnumerable<ControlPointDto>>($"{BaseUrl}/space/{spaceId}");
-            return controlPoints ?? Enumerable.Empty<ControlPointDto>();
+            var controlPoints = await _httpClient.GetFromJsonAsync<IEnumerable<ControlPointResponse>>($"{BaseUrl}/space/{spaceId}");
+            return controlPoints ?? Enumerable.Empty<ControlPointResponse>();
         }
         catch (HttpRequestException)
         {
-            return Enumerable.Empty<ControlPointDto>();
+            return Enumerable.Empty<ControlPointResponse>();
         }
     }
 
-    public async Task<IEnumerable<ControlPointDto>> GetControlPointsByTenantAsync()
+    public async Task<IEnumerable<ControlPointResponse>> GetControlPointsByTenantAsync()
     {
         try
         {
-            var controlPoints = await _httpClient.GetFromJsonAsync<IEnumerable<ControlPointDto>>(BaseUrl);
-            return controlPoints ?? Enumerable.Empty<ControlPointDto>();
+            var controlPoints = await _httpClient.GetFromJsonAsync<IEnumerable<ControlPointResponse>>(BaseUrl);
+            return controlPoints ?? Enumerable.Empty<ControlPointResponse>();
         }
         catch (HttpRequestException)
         {
-            return Enumerable.Empty<ControlPointDto>();
+            return Enumerable.Empty<ControlPointResponse>();
         }
     }
 
-    public async Task<ControlPointDto?> CreateControlPointAsync(CreateControlPointDto dto)
+    public async Task<ControlPointResponse?> CreateControlPointAsync(ControlPointRequest dto)
     {
         try
         {
             var response = await _httpClient.PostAsJsonAsync(BaseUrl, dto);
             response.EnsureSuccessStatusCode();
-            return await response.Content.ReadFromJsonAsync<ControlPointDto>();
+            return await response.Content.ReadFromJsonAsync<ControlPointResponse>();
         }
         catch (HttpRequestException)
         {
@@ -68,7 +68,7 @@ public class ControlPointApiService : IControlPointApiService
         }
     }
 
-    public async Task<bool> UpdateControlPointAsync(int id, UpdateControlPointDto dto)
+    public async Task<bool> UpdateControlPointAsync(int id, ControlPointRequest dto)
     {
         try
         {

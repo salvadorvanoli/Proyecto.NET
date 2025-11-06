@@ -14,14 +14,13 @@
     </div>
 }
 
-@if (Model.User != null && Model.User.Id > 0)
+@if (Model.UserId > 0)
 {
     <div class="row">
         <div class="col-md-8">
             <div class="card">
                 <div class="card-body">
                     <form method="post">
-                        <input type="hidden" asp-for="User.Id" />
 
                         <div class="mb-3">
                             <label asp-for="User.Email" class="form-label">Email</label>

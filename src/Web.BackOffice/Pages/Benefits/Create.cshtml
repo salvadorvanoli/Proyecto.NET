@@ -53,46 +53,32 @@
                             <span asp-validation-for="Benefit.Quotas" class="text-danger"></span>
                         </div>
 
-                        <div class="mb-3">
-                            <div class="form-check form-switch">
-                                <input asp-for="Benefit.IsPermanent" 
-                                       class="form-check-input" 
-                                       type="checkbox" 
-                                       id="isPermanent"
-                                       onchange="toggleDateInputs()" 
-                                       checked />
-                                <label class="form-check-label" for="isPermanent">
-                                    Beneficio Permanente
-                                </label>
-                            </div>
-                            <small class="text-muted">
-                                Los beneficios permanentes no tienen fecha de vencimiento
-                            </small>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Nota:</strong> Si no especifica fechas de inicio y fin, el beneficio será permanente.
                         </div>
 
-                        <div id="dateInputs" style="display: none;">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label asp-for="Benefit.StartDate" class="form-label">
-                                            Fecha de Inicio
-                                        </label>
-                                        <input asp-for="Benefit.StartDate" 
-                                               type="date" 
-                                               class="form-control" />
-                                        <span asp-validation-for="Benefit.StartDate" class="text-danger"></span>
-                                    </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Benefit.StartDate" class="form-label">
+                                        Fecha de Inicio (Opcional)
+                                    </label>
+                                    <input asp-for="Benefit.StartDate" 
+                                           type="date" 
+                                           class="form-control" />
+                                    <span asp-validation-for="Benefit.StartDate" class="text-danger"></span>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label asp-for="Benefit.EndDate" class="form-label">
-                                            Fecha de Fin
-                                        </label>
-                                        <input asp-for="Benefit.EndDate" 
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Benefit.EndDate" class="form-label">
+                                        Fecha de Fin (Opcional)
+                                    </label>
+                                    <input asp-for="Benefit.EndDate" 
                                                type="date" 
                                                class="form-control" />
-                                        <span asp-validation-for="Benefit.EndDate" class="text-danger"></span>
-                                    </div>
+                                    <span asp-validation-for="Benefit.EndDate" class="text-danger"></span>
                                 </div>
                             </div>
                         </div>
@@ -114,25 +100,4 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-    <script>
-        function toggleDateInputs() {
-            const isPermanent = document.getElementById('isPermanent').checked;
-            const dateInputs = document.getElementById('dateInputs');
-            const startDate = document.querySelector('input[name="Benefit.StartDate"]');
-            const endDate = document.querySelector('input[name="Benefit.EndDate"]');
-            
-            if (isPermanent) {
-                dateInputs.style.display = 'none';
-                startDate.value = '';
-                endDate.value = '';
-            } else {
-                dateInputs.style.display = 'block';
-            }
-        }
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            toggleDateInputs();
-        });
-    </script>
 }

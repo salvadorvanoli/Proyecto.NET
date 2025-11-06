@@ -7,11 +7,12 @@ namespace Application.Benefits.DTOs;
 /// </summary>
 public class CreateBenefitRequest
 {
-    [Required(ErrorMessage = "Benefit type ID is required")]
+    [Required(ErrorMessage = "Debe seleccionar un tipo de beneficio.")]
+    [Range(1, int.MaxValue, ErrorMessage = "Debe seleccionar un tipo de beneficio válido.")]
     public int BenefitTypeId { get; set; }
 
-    [Required(ErrorMessage = "Quotas is required")]
-    [Range(1, int.MaxValue, ErrorMessage = "Quotas must be at least 1")]
+    [Required(ErrorMessage = "Las cuotas son obligatorias.")]
+    [Range(1, int.MaxValue, ErrorMessage = "Las cuotas deben ser al menos 1.")]
     public int Quotas { get; set; }
 
     public string? StartDate { get; set; }

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Web.BackOffice.Models;
+using Shared.DTOs.News;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.News;
@@ -17,8 +17,8 @@ public class IndexModel : PageModel
         _logger = logger;
     }
 
-    public IEnumerable<NewsDto> NewsList { get; set; } = Enumerable.Empty<NewsDto>();
-    public IEnumerable<NewsDto> DisplayedNews { get; set; } = Enumerable.Empty<NewsDto>();
+    public IEnumerable<NewsResponse> NewsList { get; set; } = Enumerable.Empty<NewsResponse>();
+    public IEnumerable<NewsResponse> DisplayedNews { get; set; } = Enumerable.Empty<NewsResponse>();
 
     // Paginación
     public int CurrentPage { get; set; } = 1;

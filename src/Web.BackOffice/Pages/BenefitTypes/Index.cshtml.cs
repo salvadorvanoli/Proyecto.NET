@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Web.BackOffice.Models;
+using Shared.DTOs.BenefitTypes;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.BenefitTypes;
@@ -18,8 +18,8 @@ public class IndexModel : PageModel
         _logger = logger;
     }
 
-    public IEnumerable<BenefitTypeDto> BenefitTypes { get; set; } = new List<BenefitTypeDto>();
-    public IEnumerable<BenefitTypeDto> DisplayedBenefitTypes { get; set; } = new List<BenefitTypeDto>();
+    public IEnumerable<BenefitTypeResponse> BenefitTypes { get; set; } = new List<BenefitTypeResponse>();
+    public IEnumerable<BenefitTypeResponse> DisplayedBenefitTypes { get; set; } = new List<BenefitTypeResponse>();
     public string? SearchTerm { get; set; }
     
     public int CurrentPage { get; set; } = 1;
@@ -71,8 +71,8 @@ public class IndexModel : PageModel
         {
             _logger.LogError(ex, "Error loading benefit types");
             ErrorMessage = "Ocurrió un error al cargar los tipos de beneficio.";
-            BenefitTypes = new List<BenefitTypeDto>();
-            DisplayedBenefitTypes = new List<BenefitTypeDto>();
+            BenefitTypes = new List<BenefitTypeResponse>();
+            DisplayedBenefitTypes = new List<BenefitTypeResponse>();
         }
     }
 

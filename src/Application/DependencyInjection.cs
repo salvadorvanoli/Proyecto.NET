@@ -1,14 +1,14 @@
-﻿using Application.Auth.Services;
+﻿using Application.Auth;
 using Application.Common.Interfaces;
-using Application.Users.Services;
-using Application.Roles.Services;
-using Application.News.Services;
+using Application.Users;
+using Application.Roles;
+using Application.News;
 using Application.SpaceTypes;
-using Application.Spaces.Services;
-using Application.ControlPoints.Services;
-using Application.AccessRules.Services;
-using Application.BenefitTypes.Services;
-using Application.Benefits.Services;
+using Application.Spaces;
+using Application.ControlPoints;
+using Application.AccessRules;
+using Application.BenefitTypes;
+using Application.Benefits;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application;

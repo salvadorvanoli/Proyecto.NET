@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Web.BackOffice.Models;
+using Shared.DTOs.BenefitTypes;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.BenefitTypes;
@@ -20,7 +20,7 @@ public class EditModel : PageModel
     public int Id { get; set; }
 
     [BindProperty]
-    public UpdateBenefitTypeDto BenefitType { get; set; } = new();
+    public BenefitTypeRequest BenefitType { get; set; } = new();
     
     [TempData]
     public string? ErrorMessage { get; set; }
@@ -39,7 +39,7 @@ public class EditModel : PageModel
             }
 
             Id = benefitType.Id;
-            BenefitType = new UpdateBenefitTypeDto
+            BenefitType = new BenefitTypeRequest
             {
                 Name = benefitType.Name,
                 Description = benefitType.Description

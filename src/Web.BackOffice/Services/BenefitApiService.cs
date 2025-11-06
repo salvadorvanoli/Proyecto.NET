@@ -1,5 +1,5 @@
 using System.Net.Http.Json;
-using Web.BackOffice.Models;
+using Shared.DTOs.Benefits;
 
 namespace Web.BackOffice.Services;
 
@@ -16,71 +16,55 @@ public class BenefitApiService : IBenefitApiService
         _httpClient = httpClient;
     }
 
-    public async Task<BenefitDto?> GetBenefitByIdAsync(int id)
+    public async Task<BenefitResponse?> GetBenefitByIdAsync(int id)
     {
         var response = await _httpClient.GetAsync($"{BaseUrl}/{id}");
         
         if (!response.IsSuccessStatusCode)
             return null;
 
-        return await response.Content.ReadFromJsonAsync<BenefitDto>();
+        return await response.Content.ReadFromJsonAsync<BenefitResponse>();
     }
 
-    public async Task<IEnumerable<BenefitDto>> GetBenefitsByTenantAsync()
+    public async Task<IEnumerable<BenefitResponse>> GetBenefitsByTenantAsync()
     {
         var response = await _httpClient.GetAsync($"{BaseUrl}/by-tenant");
         response.EnsureSuccessStatusCode();
         
-        return await response.Content.ReadFromJsonAsync<IEnumerable<BenefitDto>>() 
-               ?? Enumerable.Empty<BenefitDto>();
+        return await response.Content.ReadFromJsonAsync<IEnumerable<BenefitResponse>>() 
+               ?? Enumerable.Empty<BenefitResponse>();
     }
 
-    public async Task<IEnumerable<BenefitDto>> GetBenefitsByTypeAsync(int benefitTypeId)
+    public async Task<IEnumerable<BenefitResponse>> GetBenefitsByTypeAsync(int benefitTypeId)
     {
         var response = await _httpClient.GetAsync($"{BaseUrl}/by-type/{benefitTypeId}");
         response.EnsureSuccessStatusCode();
         
-        return await response.Content.ReadFromJsonAsync<IEnumerable<BenefitDto>>() 
-               ?? Enumerable.Empty<BenefitDto>();
+        return await response.Content.ReadFromJsonAsync<IEnumerable<BenefitResponse>>() 
+               ?? Enumerable.Empty<BenefitResponse>();
     }
 
-    public async Task<IEnumerable<BenefitDto>> GetActiveBenefitsAsync()
+    public async Task<IEnumerable<BenefitResponse>> GetActiveBenefitsAsync()
     {
         var response = await _httpClient.GetAsync($"{BaseUrl}/active");
         response.EnsureSuccessStatusCode();
         
-        return await response.Content.ReadFromJsonAsync<IEnumerable<BenefitDto>>() 
-               ?? Enumerable.Empty<BenefitDto>();
+        return await response.Content.ReadFromJsonAsync<IEnumerable<BenefitResponse>>() 
+               ?? Enumerable.Empty<BenefitResponse>();
     }
 
-    public async Task<BenefitDto> CreateBenefitAsync(CreateBenefitDto benefit)
+    public async Task<BenefitResponse> CreateBenefitAsync(BenefitRequest benefit)
     {
-        var createRequest = new
-        {
-            benefitTypeId = benefit.BenefitTypeId,
-            quotas = benefit.Quotas,
-            startDate = benefit.IsPermanent ? null : benefit.StartDate,
-            endDate = benefit.IsPermanent ? null : benefit.EndDate
-        };
-
-        var response = await _httpClient.PostAsJsonAsync(BaseUrl, createRequest);
+        var response = await _httpClient.PostAsJsonAsync(BaseUrl, benefit);
         response.EnsureSuccessStatusCode();
         
-        return await response.Content.ReadFromJsonAsync<BenefitDto>() 
+        return await response.Content.ReadFromJsonAsync<BenefitResponse>() 
                ?? throw new InvalidOperationException("Failed to create benefit");
     }
 
-    public async Task<bool> UpdateBenefitAsync(int id, UpdateBenefitDto benefit)
+    public async Task<bool> UpdateBenefitAsync(int id, BenefitRequest benefit)
     {
-        var updateRequest = new
-        {
-            benefitTypeId = benefit.BenefitTypeId,
-            quotas = benefit.Quotas,
-            startDate = benefit.IsPermanent ? null : benefit.StartDate,
-            endDate = benefit.IsPermanent ? null : benefit.EndDate
-        };
-
-        var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", updateRequest);
+        var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", benefit);
         return response.IsSuccessStatusCode;
     }
 

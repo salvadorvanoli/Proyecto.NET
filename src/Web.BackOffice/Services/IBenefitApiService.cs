@@ -1,4 +1,4 @@
-using Web.BackOffice.Models;
+using Shared.DTOs.Benefits;
 
 namespace Web.BackOffice.Services;
 
@@ -7,11 +7,11 @@ namespace Web.BackOffice.Services;
 /// </summary>
 public interface IBenefitApiService
 {
-    Task<BenefitDto?> GetBenefitByIdAsync(int id);
-    Task<IEnumerable<BenefitDto>> GetBenefitsByTenantAsync();
-    Task<IEnumerable<BenefitDto>> GetBenefitsByTypeAsync(int benefitTypeId);
-    Task<IEnumerable<BenefitDto>> GetActiveBenefitsAsync();
-    Task<BenefitDto> CreateBenefitAsync(CreateBenefitDto benefit);
-    Task<bool> UpdateBenefitAsync(int id, UpdateBenefitDto benefit);
+    Task<BenefitResponse?> GetBenefitByIdAsync(int id);
+    Task<IEnumerable<BenefitResponse>> GetBenefitsByTenantAsync();
+    Task<IEnumerable<BenefitResponse>> GetBenefitsByTypeAsync(int benefitTypeId);
+    Task<IEnumerable<BenefitResponse>> GetActiveBenefitsAsync();
+    Task<BenefitResponse> CreateBenefitAsync(BenefitRequest benefit);
+    Task<bool> UpdateBenefitAsync(int id, BenefitRequest benefit);
     Task<bool> DeleteBenefitAsync(int id);
 }

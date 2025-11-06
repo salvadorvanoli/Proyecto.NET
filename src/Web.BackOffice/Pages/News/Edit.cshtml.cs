@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
-using Web.BackOffice.Models;
+using Shared.DTOs.News;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.News;
@@ -18,30 +18,12 @@ public class EditModel : PageModel
     }
 
     [BindProperty]
-    public EditNewsInputModel News { get; set; } = new();
+    public NewsRequest News { get; set; } = new();
+
+    public int NewsId { get; set; }
 
     [TempData]
     public string? ErrorMessage { get; set; }
-
-    public class EditNewsInputModel
-    {
-        public int Id { get; set; }
-
-        [Required(ErrorMessage = "El título es requerido")]
-        [StringLength(200, ErrorMessage = "El título no puede exceder 200 caracteres")]
-        public string Title { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "El contenido es requerido")]
-        [StringLength(5000, ErrorMessage = "El contenido no puede exceder 5000 caracteres")]
-        public string Content { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "La fecha de publicación es requerida")]
-        [DataType(DataType.DateTime)]
-        public DateTime PublishDate { get; set; }
-
-        [Url(ErrorMessage = "La URL de la imagen no es válida")]
-        public string? ImageUrl { get; set; }
-    }
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
@@ -55,9 +37,9 @@ public class EditModel : PageModel
                 return Page();
             }
 
-            News = new EditNewsInputModel
+            NewsId = newsDto.Id;
+            News = new NewsRequest
             {
-                Id = newsDto.Id,
                 Title = newsDto.Title,
                 Content = newsDto.Content,
                 PublishDate = newsDto.PublishDate,
@@ -74,8 +56,10 @@ public class EditModel : PageModel
         }
     }
 
-    public async Task<IActionResult> OnPostAsync()
+    public async Task<IActionResult> OnPostAsync(int id)
     {
+        NewsId = id;
+
         if (!ModelState.IsValid)
         {
             return Page();
@@ -83,22 +67,14 @@ public class EditModel : PageModel
 
         try
         {
-            var updateNewsDto = new UpdateNewsDto
-            {
-                Title = News.Title,
-                Content = News.Content,
-                PublishDate = News.PublishDate,
-                ImageUrl = News.ImageUrl
-            };
-
-            var updatedNews = await _newsApiService.UpdateNewsAsync(News.Id, updateNewsDto);
+            var updatedNews = await _newsApiService.UpdateNewsAsync(id, News);
 
             TempData["SuccessMessage"] = $"Noticia '{updatedNews.Title}' actualizada exitosamente.";
             return RedirectToPage("/News/Index");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating news with ID {NewsId}", News.Id);
+            _logger.LogError(ex, "Error updating news with ID {NewsId}", id);
             ErrorMessage = "Error al actualizar la noticia. Por favor, intente nuevamente.";
             return Page();
         }

@@ -1,9 +1,9 @@
 using Application.Common.Interfaces;
-using Application.Spaces.DTOs;
+using Shared.DTOs.Spaces;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Spaces.Services;
+namespace Application.Spaces;
 
 /// <summary>
 /// Implementation of space service for managing space operations.
@@ -21,7 +21,7 @@ public class SpaceService : ISpaceService
         _tenantProvider = tenantProvider;
     }
 
-    public async Task<SpaceResponse> CreateSpaceAsync(CreateSpaceRequest request, CancellationToken cancellationToken = default)
+    public async Task<SpaceResponse> CreateSpaceAsync(SpaceRequest request, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 
@@ -140,7 +140,7 @@ public class SpaceService : ISpaceService
         return spaceResponses;
     }
 
-    public async Task<SpaceResponse> UpdateSpaceAsync(int id, UpdateSpaceRequest request, CancellationToken cancellationToken = default)
+    public async Task<SpaceResponse> UpdateSpaceAsync(int id, SpaceRequest request, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 

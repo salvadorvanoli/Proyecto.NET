@@ -1,5 +1,5 @@
-using Application.Benefits.DTOs;
-using Application.Benefits.Services;
+using Shared.DTOs.Benefits;
+using Application.Benefits;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Api.Controllers;
@@ -104,7 +104,7 @@ public class BenefitsController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(BenefitResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<BenefitResponse>> CreateBenefit([FromBody] CreateBenefitRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<BenefitResponse>> CreateBenefit([FromBody] BenefitRequest request, CancellationToken cancellationToken)
     {
         try
         {
@@ -136,7 +136,7 @@ public class BenefitsController : ControllerBase
     [ProducesResponseType(typeof(BenefitResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<BenefitResponse>> UpdateBenefit(int id, [FromBody] UpdateBenefitRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<BenefitResponse>> UpdateBenefit(int id, [FromBody] BenefitRequest request, CancellationToken cancellationToken)
     {
         try
         {

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Web.BackOffice.Models;
+using Shared.DTOs.Benefits;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.Benefits;
@@ -23,7 +23,7 @@ public class CreateModel : PageModel
     }
 
     [BindProperty]
-    public CreateBenefitDto Benefit { get; set; } = new();
+    public BenefitRequest Benefit { get; set; } = new();
 
     public List<SelectListItem> BenefitTypes { get; set; } = new();
     
@@ -35,7 +35,6 @@ public class CreateModel : PageModel
         try
         {
             await LoadBenefitTypesAsync();
-            Benefit.IsPermanent = true; // Default to permanent
             return Page();
         }
         catch (Exception ex)
@@ -54,18 +53,34 @@ public class CreateModel : PageModel
             return Page();
         }
 
-        // Validate dates if not permanent
-        if (!Benefit.IsPermanent)
+        // Validate dates if provided
+        if (!string.IsNullOrWhiteSpace(Benefit.StartDate) || !string.IsNullOrWhiteSpace(Benefit.EndDate))
         {
             if (string.IsNullOrWhiteSpace(Benefit.StartDate) || string.IsNullOrWhiteSpace(Benefit.EndDate))
             {
-                ModelState.AddModelError(string.Empty, "Las fechas de inicio y fin son requeridas para beneficios no permanentes.");
+                ModelState.AddModelError(string.Empty, "Debe proporcionar tanto la fecha de inicio como la de fin, o dejarlas ambas vacías para un beneficio permanente.");
                 await LoadBenefitTypesAsync();
                 return Page();
             }
 
             if (DateOnly.TryParse(Benefit.StartDate, out var startDate) && DateOnly.TryParse(Benefit.EndDate, out var endDate))
             {
+                var today = DateOnly.FromDateTime(DateTime.Today);
+                
+                if (startDate < today)
+                {
+                    ModelState.AddModelError(string.Empty, "La fecha de inicio no puede ser anterior a hoy.");
+                    await LoadBenefitTypesAsync();
+                    return Page();
+                }
+                
+                if (endDate < today)
+                {
+                    ModelState.AddModelError(string.Empty, "La fecha de fin no puede ser anterior a hoy.");
+                    await LoadBenefitTypesAsync();
+                    return Page();
+                }
+                
                 if (startDate > endDate)
                 {
                     ModelState.AddModelError(string.Empty, "La fecha de inicio debe ser anterior o igual a la fecha de fin.");
@@ -73,6 +88,12 @@ public class CreateModel : PageModel
                     return Page();
                 }
             }
+        }
+        else
+        {
+            // Clear dates if permanent
+            Benefit.StartDate = null;
+            Benefit.EndDate = null;
         }
 
         try
