@@ -1,4 +1,4 @@
-﻿using Application.Auth.DTOs;
+﻿using Shared.DTOs.Auth;
 
 namespace Web.BackOffice.Services;
 
