@@ -26,4 +26,11 @@ public interface IAccessEventService
     /// <param name="eventId">The ID of the access event.</param>
     /// <returns>The access event information.</returns>
     Task<AccessEventResponse?> GetAccessEventByIdAsync(int eventId);
+
+    /// <summary>
+    /// Creates a new access event.
+    /// </summary>
+    /// <param name="request">The access event data.</param>
+    /// <returns>The created access event.</returns>
+    Task<AccessEventResponse> CreateAccessEventAsync(CreateAccessEventRequest request);
 }

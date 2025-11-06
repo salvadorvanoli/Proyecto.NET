@@ -1,3 +1,4 @@
+using System.Net.Http.Json;
 using Application.AccessEvents.DTOs;
 using Web.FrontOffice.Services.Interfaces;
 
@@ -9,10 +10,12 @@ namespace Web.FrontOffice.Services.Api;
 public class AccessEventApiService : IAccessEventApiService
 {
     private readonly HttpClient _httpClient;
+    private readonly ILogger<AccessEventApiService> _logger;
 
-    public AccessEventApiService(HttpClient httpClient)
+    public AccessEventApiService(HttpClient httpClient, ILogger<AccessEventApiService> logger)
     {
         _httpClient = httpClient;
+        _logger = logger;
     }
 
     public async Task<List<AccessEventResponse>> GetUserAccessEventsAsync(int userId)
@@ -48,5 +51,22 @@ public class AccessEventApiService : IAccessEventApiService
             return null;
 
         return await response.Content.ReadFromJsonAsync<AccessEventResponse>();
+    }
+
+    public async Task<AccessEventResponse> CreateAccessEventAsync(CreateAccessEventRequest request)
+    {
+        // TODO: El header X-Tenant-Id debería venir de la autenticación del usuario
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "api/accessevents")
+        {
+            Content = JsonContent.Create(request)
+        };
+        // TESTING: Agregar header X-Tenant-Id hardcodeado
+        httpRequest.Headers.Add("X-Tenant-Id", "1"); // ⚠️ CAMBIAR: Usar TenantId del usuario que quieres probar
+        
+        var response = await _httpClient.SendAsync(httpRequest);
+        response.EnsureSuccessStatusCode();
+
+        var accessEvent = await response.Content.ReadFromJsonAsync<AccessEventResponse>();
+        return accessEvent ?? throw new InvalidOperationException("Failed to deserialize access event response");
     }
 }

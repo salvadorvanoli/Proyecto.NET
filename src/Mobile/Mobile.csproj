@@ -36,6 +36,10 @@
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
+		
+		<!-- FIX para el crash de "No assemblies found" - Embeber assemblies en APK -->
+		<EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+		<AndroidUseAssemblyStore>false</AndroidUseAssemblyStore>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -63,7 +67,20 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<!-- Excluir archivo de ejemplo/referencia del build -->
+		<Compile Remove="EJEMPLO_NFC_NATIVO_ANDROID.cs" />
+		<None Include="EJEMPLO_NFC_NATIVO_ANDROID.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Domain\Domain.csproj" />
+	  <ProjectReference Include="..\Application\Application.csproj" />
 	  <ProjectReference Include="..\Shared\Shared.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <!-- HttpClient para comunicación con el backend -->
+	  <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
 	</ItemGroup>
 
 </Project>

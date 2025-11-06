@@ -4,12 +4,22 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:Mobile"
-    Shell.FlyoutBehavior="Disabled"
-    Title="Mobile">
+    xmlns:pages="clr-namespace:Mobile.Pages"
+    Shell.FlyoutBehavior="Flyout"
+    Title="Control de Accesos">
 
-    <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+    <FlyoutItem Title="Inicio" Icon="home.png">
+        <ShellContent
+            Title="Home"
+            ContentTemplate="{DataTemplate local:MainPage}"
+            Route="MainPage" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Validación NFC" Icon="nfc.png">
+        <ShellContent
+            Title="Escanear NFC"
+            ContentTemplate="{DataTemplate pages:AccessNfcPage}"
+            Route="AccessNfcPage" />
+    </FlyoutItem>
 
 </Shell>

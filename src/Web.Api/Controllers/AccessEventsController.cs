@@ -12,10 +12,12 @@ namespace Web.Api.Controllers;
 public class AccessEventsController : ControllerBase
 {
     private readonly IAccessEventService _accessEventService;
+    private readonly ILogger<AccessEventsController> _logger;
 
-    public AccessEventsController(IAccessEventService accessEventService)
+    public AccessEventsController(IAccessEventService accessEventService, ILogger<AccessEventsController> logger)
     {
         _accessEventService = accessEventService;
+        _logger = logger;
     }
 
     /// <summary>
@@ -75,6 +77,41 @@ public class AccessEventsController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, new { message = "Error retrieving access event", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Creates a new access event.
+    /// </summary>
+    /// <param name="request">The access event data.</param>
+    /// <returns>The created access event.</returns>
+    [HttpPost]
+    public async Task<ActionResult<AccessEventResponse>> CreateAccessEvent([FromBody] CreateAccessEventRequest request)
+    {
+        try
+        {
+            _logger.LogInformation("Creating access event for user {UserId} at control point {ControlPointId}", 
+                request.UserId, request.ControlPointId);
+
+            var accessEvent = await _accessEventService.CreateAccessEventAsync(request);
+            
+            _logger.LogInformation("Access event {EventId} created successfully. Result: {Result}", 
+                accessEvent.Id, accessEvent.Result);
+
+            return CreatedAtAction(
+                nameof(GetAccessEvent),
+                new { id = accessEvent.Id },
+                accessEvent);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid request when creating access event");
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating access event");
+            return StatusCode(500, new { message = "Error creating access event", error = ex.Message });
         }
     }
 }

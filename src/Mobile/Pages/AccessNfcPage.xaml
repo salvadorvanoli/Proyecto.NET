@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="Mobile.Pages.AccessNfcPage"
+             Title="Control de Acceso NFC">
+    
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+            
+            <!-- Header -->
+            <Label Text="Control de Acceso NFC"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"/>
+            
+            <!-- NFC Status -->
+            <Frame BorderColor="LightGray" Padding="15" CornerRadius="10">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Estado del Dispositivo"
+                           FontSize="18"
+                           FontAttributes="Bold"/>
+                    <HorizontalStackLayout Spacing="10">
+                        <Label Text="NFC Disponible:"/>
+                        <Label x:Name="NfcAvailableLabel" 
+                               Text="-"
+                               FontAttributes="Bold"/>
+                    </HorizontalStackLayout>
+                    <HorizontalStackLayout Spacing="10">
+                        <Label Text="NFC Habilitado:"/>
+                        <Label x:Name="NfcEnabledLabel" 
+                               Text="-"
+                               FontAttributes="Bold"/>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Scan Area -->
+            <Frame x:Name="ScanFrame"
+                   BorderColor="Gray"
+                   BackgroundColor="LightBlue"
+                   Padding="40"
+                   CornerRadius="20"
+                   HasShadow="True">
+                <VerticalStackLayout Spacing="15">
+                    
+                    <!-- NFC Icon (using Unicode symbol) -->
+                    <Label Text="📡"
+                           FontSize="64"
+                           HorizontalOptions="Center"/>
+                    
+                    <Label x:Name="StatusLabel"
+                           Text="Listo para Escanear"
+                           FontSize="20"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center"/>
+                    
+                    <Label x:Name="InstructionLabel"
+                           Text="Acerca tu tarjeta o dispositivo NFC al lector"
+                           FontSize="14"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center"/>
+                    
+                    <!-- Activity Indicator -->
+                    <ActivityIndicator x:Name="ScanningIndicator"
+                                     IsRunning="False"
+                                     Color="Blue"
+                                     HeightRequest="40"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Control Point Info -->
+            <Frame x:Name="ControlPointFrame"
+                   IsVisible="False"
+                   BorderColor="LightGray"
+                   Padding="15"
+                   CornerRadius="10">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Punto de Acceso Detectado"
+                           FontSize="16"
+                           FontAttributes="Bold"/>
+                    <Label x:Name="ControlPointLabel"
+                           FontSize="14"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Result Frame -->
+            <Frame x:Name="ResultFrame"
+                   IsVisible="False"
+                   Padding="20"
+                   CornerRadius="10"
+                   HasShadow="True">
+                <VerticalStackLayout Spacing="15">
+                    <Label x:Name="ResultIconLabel"
+                           FontSize="48"
+                           HorizontalOptions="Center"/>
+                    
+                    <Label x:Name="ResultTitleLabel"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center"/>
+                    
+                    <Label x:Name="ResultMessageLabel"
+                           FontSize="16"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center"/>
+                    
+                    <BoxView HeightRequest="1" Color="LightGray" Margin="0,10"/>
+                    
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <Label Grid.Row="0" Grid.Column="0" Text="Usuario:" FontAttributes="Bold"/>
+                        <Label Grid.Row="0" Grid.Column="1" x:Name="UserLabel"/>
+                        
+                        <Label Grid.Row="1" Grid.Column="0" Text="Punto de Acceso:" FontAttributes="Bold"/>
+                        <Label Grid.Row="1" Grid.Column="1" x:Name="LocationLabel"/>
+                        
+                        <Label Grid.Row="2" Grid.Column="0" Text="Fecha y Hora:" FontAttributes="Bold"/>
+                        <Label Grid.Row="2" Grid.Column="1" x:Name="DateTimeLabel"/>
+                        
+                        <Label Grid.Row="3" Grid.Column="0" Text="Tag ID:" FontAttributes="Bold"/>
+                        <Label Grid.Row="3" Grid.Column="1" x:Name="TagIdLabel"/>
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Buttons -->
+            <Button x:Name="StartButton"
+                    Text="Iniciar Escucha NFC"
+                    Clicked="OnStartClicked"
+                    BackgroundColor="Green"
+                    TextColor="White"/>
+            
+            <Button x:Name="StopButton"
+                    Text="Detener Escucha"
+                    Clicked="OnStopClicked"
+                    BackgroundColor="Red"
+                    TextColor="White"
+                    IsVisible="False"/>
+            
+            <Button Text="Ver Historial"
+                    Clicked="OnHistoryClicked"
+                    BackgroundColor="Gray"
+                    TextColor="White"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
