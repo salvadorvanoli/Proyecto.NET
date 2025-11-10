@@ -8,6 +8,21 @@ using Web.Api.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configurar timeouts para graceful shutdown
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    // Tiempo máximo para que las conexiones existentes terminen durante el shutdown
+    serverOptions.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
+    serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
+});
+
+// Configurar opciones de host para graceful shutdown
+builder.Host.ConfigureHostOptions(hostOptions =>
+{
+    // Tiempo que espera el host para que la aplicación se detenga antes de forzar el cierre
+    hostOptions.ShutdownTimeout = TimeSpan.FromSeconds(30);
+});
+
 builder.Services.AddControllers();
 
 builder.Services.AddCors(options =>

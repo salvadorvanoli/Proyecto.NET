@@ -44,35 +44,40 @@ Write-Host "  - Desplegar API: $deployApi" -ForegroundColor White
 Write-Host "  - Desplegar BackOffice: $deployBackOffice" -ForegroundColor White
 Write-Host ""
 
-# Hacer login en ECR usando archivo temporal
+# Hacer login en ECR usando el método recomendado por AWS
 Write-Host "[3/9] Haciendo login en ECR..." -ForegroundColor Yellow
 try {
-    # Obtener token de autorizacion
-    $ecrToken = aws ecr get-authorization-token --region $region --output json | ConvertFrom-Json
-    $authData = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($ecrToken.authorizationData[0].authorizationToken))
-    $username = $authData.Split(':')[0]
-    $password = $authData.Split(':')[1]
+    # Usar el método recomendado por AWS CLI v2
+    $loginCommand = "aws ecr get-login-password --region $region | docker login --username AWS --password-stdin $accountId.dkr.ecr.$region.amazonaws.com"
 
-    # Guardar password en archivo temporal
-    $tempFile = [System.IO.Path]::GetTempFileName()
-    $password | Out-File -FilePath $tempFile -Encoding ASCII -NoNewline
+    Invoke-Expression $loginCommand
 
-    # Login usando archivo temporal
-    Get-Content $tempFile | docker login --username $username --password-stdin $ecrToken.authorizationData[0].proxyEndpoint
-    $loginResult = $LASTEXITCODE
-
-    # Limpiar archivo temporal
-    Remove-Item $tempFile -Force
-
-    if ($loginResult -ne 0) {
-        throw "Login failed"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Login failed with exit code $LASTEXITCODE"
     }
 
     Write-Host "OK - Login exitoso en ECR" -ForegroundColor Green
 } catch {
     Write-Host "Error al hacer login en ECR" -ForegroundColor Red
     Write-Host "Detalles: $_" -ForegroundColor Gray
-    exit 1
+    Write-Host "" -ForegroundColor Gray
+    Write-Host "Intentando metodo alternativo..." -ForegroundColor Yellow
+
+    try {
+        # Método alternativo para PowerShell
+        $password = aws ecr get-login-password --region $region
+        $password | docker login --username AWS --password-stdin "$accountId.dkr.ecr.$region.amazonaws.com"
+
+        if ($LASTEXITCODE -ne 0) {
+            throw "Login alternativo failed"
+        }
+
+        Write-Host "OK - Login exitoso con metodo alternativo" -ForegroundColor Green
+    } catch {
+        Write-Host "Error: No se pudo hacer login en ECR" -ForegroundColor Red
+        Write-Host "Verifica que Docker este corriendo y que tengas permisos de ECR" -ForegroundColor Yellow
+        exit 1
+    }
 }
 Write-Host ""
 

@@ -65,6 +65,12 @@ resource "aws_lb_target_group" "backoffice" {
 
   deregistration_delay = 30
 
+  stickiness {
+    type            = "lb_cookie"
+    cookie_duration = 28800  # 8 horas (igual que la sesión de autenticación)
+    enabled         = true
+  }
+
   tags = {
     Name        = "${var.project_name}-backoffice-tg"
     Environment = var.environment
@@ -121,4 +127,3 @@ resource "aws_lb_listener_rule" "api" {
     }
   }
 }
-
