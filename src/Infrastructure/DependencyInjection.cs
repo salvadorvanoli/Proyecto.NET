@@ -1,4 +1,5 @@
 using Application.Common.Interfaces;
+using Infrastructure.Data;
 using Infrastructure.Persistence;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
@@ -40,6 +41,9 @@ public static class DependencyInjection
         // Register infrastructure services
         services.AddScoped<ITenantProvider, TenantProvider>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
+
+        // Register database seeder
+        services.AddScoped<DbSeeder>();
 
         return services;
     }

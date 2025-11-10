@@ -40,6 +40,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+      - API_BASE_URL=${API_BASE_URL:-http://web-api:8080/}
     restart: always
     deploy:
       resources:
