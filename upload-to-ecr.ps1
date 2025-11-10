@@ -47,10 +47,13 @@ Write-Host ""
 # Hacer login en ECR usando el método recomendado por AWS
 Write-Host "[3/9] Haciendo login en ECR..." -ForegroundColor Yellow
 try {
-    # Usar el método recomendado por AWS CLI v2
-    $loginCommand = "aws ecr get-login-password --region $region | docker login --username AWS --password-stdin $accountId.dkr.ecr.$region.amazonaws.com"
+    $ecrPassword = aws ecr get-login-password --region $region
 
-    Invoke-Expression $loginCommand
+    if ([string]::IsNullOrEmpty($ecrPassword)) {
+        throw "No se pudo obtener el password de ECR"
+    }
+
+    $ecrPassword | docker login --username AWS --password-stdin "$accountId.dkr.ecr.$region.amazonaws.com" 2>&1 | Out-Null
 
     if ($LASTEXITCODE -ne 0) {
         throw "Login failed with exit code $LASTEXITCODE"
@@ -61,12 +64,23 @@ try {
     Write-Host "Error al hacer login en ECR" -ForegroundColor Red
     Write-Host "Detalles: $_" -ForegroundColor Gray
     Write-Host "" -ForegroundColor Gray
-    Write-Host "Intentando metodo alternativo..." -ForegroundColor Yellow
+    Write-Host "Intentando metodo alternativo con echo..." -ForegroundColor Yellow
 
     try {
-        # Método alternativo para PowerShell
-        $password = aws ecr get-login-password --region $region
-        $password | docker login --username AWS --password-stdin "$accountId.dkr.ecr.$region.amazonaws.com"
+        # Método alternativo usando echo (más compatible con algunas versiones de Docker)
+        $ecrPassword = aws ecr get-login-password --region $region
+
+        if ([string]::IsNullOrEmpty($ecrPassword)) {
+            throw "No se pudo obtener el password de ECR"
+        }
+
+        # Guardar temporalmente en archivo para evitar problemas de encoding
+        $tempFile = [System.IO.Path]::GetTempFileName()
+        $ecrPassword | Out-File -FilePath $tempFile -Encoding ASCII -NoNewline
+
+        Get-Content $tempFile | docker login --username AWS --password-stdin "$accountId.dkr.ecr.$region.amazonaws.com" 2>&1 | Out-Null
+
+        Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
 
         if ($LASTEXITCODE -ne 0) {
             throw "Login alternativo failed"
@@ -75,7 +89,14 @@ try {
         Write-Host "OK - Login exitoso con metodo alternativo" -ForegroundColor Green
     } catch {
         Write-Host "Error: No se pudo hacer login en ECR" -ForegroundColor Red
-        Write-Host "Verifica que Docker este corriendo y que tengas permisos de ECR" -ForegroundColor Yellow
+        Write-Host "Verifica que:" -ForegroundColor Yellow
+        Write-Host "  1. Docker este corriendo (parece OK)" -ForegroundColor White
+        Write-Host "  2. Las credenciales de AWS sean validas" -ForegroundColor White
+        Write-Host "  3. Tengas permisos de ECR en el Learner Lab" -ForegroundColor White
+        Write-Host "" -ForegroundColor White
+        Write-Host "Si el problema persiste, intenta:" -ForegroundColor Yellow
+        Write-Host "  - Renovar las credenciales del AWS Learner Lab" -ForegroundColor White
+        Write-Host "  - Reiniciar Docker Desktop" -ForegroundColor White
         exit 1
     }
 }
