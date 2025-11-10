@@ -8,6 +8,38 @@ Arquitectura basada en **Clean Architecture + .NET 8**, con separación clara de
 
 ---
 
+## 📚 Documentación
+
+- **[Guía de Despliegue en AWS](GUIA_DESPLIEGUE_AWS.md)** - Guía completa paso a paso para AWS Learner Lab
+- **[Guía de Inicialización](GUIA_INICIALIZACION.md)** - Configuración del proyecto
+- **[Documentación de Docker](docs/DOCKER.md)** - Uso de Docker y Docker Compose
+- **[Base de Datos](docs/BASE_DE_DATOS.md)** - Estructura y migraciones
+- **[Despliegue AWS (Resumen)](DESPLIEGUE_AWS.md)** - Instrucciones de despliegue
+
+---
+
+## 🚀 Scripts de Despliegue Rápido
+
+### Desplegar en AWS (desde cero)
+```powershell
+.\deploy-aws.ps1
+```
+Este script automatiza TODO el proceso de despliegue en AWS Learner Lab.
+
+### Actualizar aplicación (después de cambios en el código)
+```powershell
+.\upload-to-ecr.ps1
+```
+Construye y sube las imágenes Docker, luego redesplega los servicios.
+
+### Limpiar recursos de AWS (ahorrar créditos)
+```powershell
+.\cleanup-aws.ps1
+```
+Elimina TODOS los recursos de AWS para liberar créditos del Learner Lab.
+
+---
+
 ## Estructura de proyectos
 
 | Proyecto | Propósito | Dependencias |
@@ -30,8 +62,11 @@ Arquitectura basada en **Clean Architecture + .NET 8**, con separación clara de
 - **Blazor Web App (Full Stack)**
 - **Razor Pages**
 - **.NET MAUI (Android/iOS)**
-- **SQLite / SQL Server**
+- **SQL Server / SQLite**
 - **Serilog + Swagger + FluentValidation**
+- **Docker + Docker Compose**
+- **AWS ECS + RDS + ALB** (Infraestructura cloud)
+- **Terraform** (Infrastructure as Code)
 
 ---
 
@@ -47,7 +82,35 @@ Arquitectura basada en **Clean Architecture + .NET 8**, con separación clara de
 ---
 
 ## Configuración inicial
+
+### Desarrollo Local
 1. Clonar el repositorio.
 2. Restaurar dependencias:
    ```bash
    dotnet restore
+   ```
+3. Crear archivo `.env` a partir de `.env.example` y configurar valores locales.
+4. Ejecutar migraciones pendientes:
+   ```bash
+   dotnet ef database update --project ./Infrastructure/Persistencia
+   ```
+5. Iniciar la aplicación:
+   ```bash
+   dotnet run --project ./Web.Api
+   ```
+6. Acceder a la UI en `http://localhost:5000` (FrontOffice) o `http://localhost:5001` (BackOffice).
+
+### Producción en AWS
+- Seguir la **[Guía de Despliegue en AWS](GUIA_DESPLIEGUE_AWS.md)** para configurar el entorno en la nube.
+- Usar los scripts de PowerShell para un despliegue rápido y eficiente.
+
+---
+
+## Notas
+- Asegúrese de tener instalado **Docker** y **AWS CLI** configurado para el despliegue en AWS.
+- Para desarrollo móvil, abrir la solución en **Visual Studio 2022** o superior con soporte para .NET MAUI.
+- Consultar la documentación específica de cada tecnología para optimizar el desarrollo y despliegue.
+
+---
+
+¡Bienvenido al proyecto de Credencial Digital! 🚀
