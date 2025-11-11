@@ -9,7 +9,7 @@ namespace Application.Benefits;
 /// <summary>
 /// Service for managing benefits.
 /// </summary>
-public class BenefitService
+public class BenefitService : IBenefitService
 {
     private readonly IApplicationDbContext _context;
     private readonly ITenantProvider _tenantProvider;
