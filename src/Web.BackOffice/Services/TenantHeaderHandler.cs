@@ -22,7 +22,7 @@ public class TenantHeaderHandler : DelegatingHandler
 
         if (httpContext?.User?.Identity?.IsAuthenticated == true)
         {
-            var tenantIdClaim = httpContext.User.FindFirst("TenantId");
+            var tenantIdClaim = httpContext.User.FindFirst("tenant_id");
 
             if (tenantIdClaim != null)
             {

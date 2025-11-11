@@ -1,6 +1,7 @@
 using Shared.DTOs.BenefitTypes;
 using Application.BenefitTypes;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Web.Api.Controllers;
 
@@ -9,6 +10,7 @@ namespace Web.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class BenefitTypesController : ControllerBase
 {
     private readonly IBenefitTypeService _benefitTypeService;
@@ -67,6 +69,7 @@ public class BenefitTypesController : ControllerBase
     /// <param name="request">The benefit type creation request.</param>
     /// <returns>The created benefit type.</returns>
     [HttpPost]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(typeof(BenefitTypeResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -98,6 +101,7 @@ public class BenefitTypesController : ControllerBase
     /// <param name="request">The benefit type update request.</param>
     /// <returns>The updated benefit type.</returns>
     [HttpPut("{id}")]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(typeof(BenefitTypeResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -135,6 +139,7 @@ public class BenefitTypesController : ControllerBase
     /// <param name="id">The benefit type ID.</param>
     /// <returns>No content on success.</returns>
     [HttpDelete("{id}")]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -99,3 +99,28 @@ variable "backoffice_desired_count" {
   default     = 1
 }
 
+# JWT Configuration
+variable "jwt_secret" {
+  description = "Secret key para firmar JWT tokens (mínimo 32 caracteres)"
+  type        = string
+  sensitive   = true
+}
+
+variable "jwt_issuer" {
+  description = "Emisor de los JWT tokens"
+  type        = string
+  default     = "ProyectoNet"
+}
+
+variable "jwt_audience" {
+  description = "Audiencia de los JWT tokens"
+  type        = string
+  default     = "ProyectoNetClients"
+}
+
+variable "jwt_lifetime_minutes" {
+  description = "Tiempo de vida de los tokens JWT en minutos"
+  type        = number
+  default     = 60
+}
+

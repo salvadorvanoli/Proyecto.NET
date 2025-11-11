@@ -1,6 +1,7 @@
 using Shared.DTOs.Benefits;
 using Application.Benefits;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Web.Api.Controllers;
 
@@ -9,6 +10,7 @@ namespace Web.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class BenefitsController : ControllerBase
 {
     private readonly BenefitService _benefitService;
@@ -102,6 +104,7 @@ public class BenefitsController : ControllerBase
     /// Creates a new benefit.
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(typeof(BenefitResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<BenefitResponse>> CreateBenefit([FromBody] BenefitRequest request, CancellationToken cancellationToken)
@@ -133,6 +136,7 @@ public class BenefitsController : ControllerBase
     /// Updates an existing benefit.
     /// </summary>
     [HttpPut("{id}")]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(typeof(BenefitResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -165,6 +169,7 @@ public class BenefitsController : ControllerBase
     /// Deletes a benefit.
     /// </summary>
     [HttpDelete("{id}")]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

@@ -48,6 +48,10 @@ services:
       - Cors__AllowedOrigins__0=${CORS_ORIGIN_1:-}
       - Cors__AllowedOrigins__1=${CORS_ORIGIN_2:-}
       - Cors__AllowedOrigins__2=${CORS_ORIGIN_3:-}
+      - Jwt__Secret=${JWT_SECRET}
+      - Jwt__Issuer=${JWT_ISSUER:-ProyectoNet}
+      - Jwt__Audience=${JWT_AUDIENCE:-ProyectoNetClients}
+      - Jwt__LifetimeMinutes=${JWT_EXPIRATION_MINUTES:-60}
     depends_on:
       sqlserver:
         condition: service_healthy

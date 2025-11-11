@@ -1,6 +1,7 @@
 using Shared.DTOs.AccessRules;
 using Application.AccessRules;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Web.Api.Controllers;
 
@@ -9,6 +10,7 @@ namespace Web.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class AccessRulesController : ControllerBase
 {
     private readonly IAccessRuleService _accessRuleService;
@@ -111,6 +113,7 @@ public class AccessRulesController : ControllerBase
     /// <param name="request">The access rule creation request.</param>
     /// <returns>The created access rule.</returns>
     [HttpPost]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(typeof(AccessRuleResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -142,6 +145,7 @@ public class AccessRulesController : ControllerBase
     /// <param name="request">The access rule update request.</param>
     /// <returns>The updated access rule.</returns>
     [HttpPut("{id}")]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(typeof(AccessRuleResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -179,6 +183,7 @@ public class AccessRulesController : ControllerBase
     /// <param name="id">The access rule ID.</param>
     /// <returns>No content on success.</returns>
     [HttpDelete("{id}")]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]

@@ -1,6 +1,7 @@
 using Shared.DTOs.Spaces;
 using Application.Spaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Web.Api.Controllers;
 
@@ -9,6 +10,7 @@ namespace Web.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class SpacesController : ControllerBase
 {
     private readonly ISpaceService _spaceService;
@@ -30,6 +32,7 @@ public class SpacesController : ControllerBase
     /// <response code="400">Invalid request or space already exists.</response>
     /// <response code="500">An error occurred while creating the space.</response>
     [HttpPost]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(typeof(SpaceResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -117,6 +120,7 @@ public class SpacesController : ControllerBase
     /// <response code="400">Invalid request.</response>
     /// <response code="404">Space not found.</response>
     [HttpPut("{id}")]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(typeof(SpaceResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -155,6 +159,7 @@ public class SpacesController : ControllerBase
     /// <response code="400">Space cannot be deleted (has control points assigned).</response>
     /// <response code="404">Space not found.</response>
     [HttpDelete("{id}")]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

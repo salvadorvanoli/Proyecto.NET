@@ -83,6 +83,22 @@ resource "aws_ecs_task_definition" "api" {
         {
           name  = "ConnectionStrings__DefaultConnection"
           value = "Server=${aws_db_instance.sqlserver.address},1433;Database=${var.db_name};User Id=${var.db_username};Password=${var.db_password};TrustServerCertificate=True;MultipleActiveResultSets=true"
+        },
+        {
+          name  = "Jwt__Secret"
+          value = var.jwt_secret
+        },
+        {
+          name  = "Jwt__Issuer"
+          value = var.jwt_issuer
+        },
+        {
+          name  = "Jwt__Audience"
+          value = var.jwt_audience
+        },
+        {
+          name  = "Jwt__LifetimeMinutes"
+          value = tostring(var.jwt_lifetime_minutes)
         }
       ]
 

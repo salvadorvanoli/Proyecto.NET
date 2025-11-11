@@ -1,6 +1,7 @@
 using Shared.DTOs.Roles;
 using Application.Roles;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Web.Api.Controllers;
 
@@ -9,6 +10,7 @@ namespace Web.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "AdministradorBackoffice")]
 public class RolesController : ControllerBase
 {
     private readonly IRoleService _roleService;

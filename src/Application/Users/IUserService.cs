@@ -23,11 +23,6 @@ public interface IUserService
     Task<UserResponse?> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets all users from all tenants (admin operation).
-    /// </summary>
-    Task<IEnumerable<UserResponse>> GetAllUsersAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Gets all users from the current tenant.
     /// </summary>
     Task<IEnumerable<UserResponse>> GetUsersByTenantAsync(CancellationToken cancellationToken = default);

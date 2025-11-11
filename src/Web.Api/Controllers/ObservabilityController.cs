@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Web.Api.Configuration;
 using System.Diagnostics;
 
@@ -9,6 +10,7 @@ namespace Web.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "AdministradorBackoffice")]
 public class ObservabilityController : ControllerBase
 {
     private readonly ILogger<ObservabilityController> _logger;

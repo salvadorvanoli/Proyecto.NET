@@ -11,11 +11,13 @@ public class AuthService : IAuthService
 {
     private readonly IApplicationDbContext _context;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly ITokenService? _tokenService;
 
-    public AuthService(IApplicationDbContext context, IPasswordHasher passwordHasher)
+    public AuthService(IApplicationDbContext context, IPasswordHasher passwordHasher, ITokenService? tokenService = null)
     {
         _context = context;
         _passwordHasher = passwordHasher;
+        _tokenService = tokenService;
     }
 
     public async Task<LoginResponse?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
@@ -36,6 +38,23 @@ public class AuthService : IAuthService
             return null;
         }
 
+        // Generate JWT token
+        string? token = null;
+        DateTime? expiresAt = null;
+
+        try
+        {
+            token = _tokenService?.GenerateToken(user.Id, user.Email, user.TenantId, user.Roles.Select(r => r.Name)) ?? null;
+            if (token != null && _tokenService != null)
+            {
+                expiresAt = DateTime.UtcNow.AddMinutes(_tokenService.GetTokenLifetimeMinutes());
+            }
+        }
+        catch
+        {
+            // If token generation fails, continue returning user info without token
+        }
+
         // Return login response
         return new LoginResponse
         {
@@ -43,7 +62,9 @@ public class AuthService : IAuthService
             Email = user.Email,
             FullName = user.FullName,
             TenantId = user.TenantId,
-            Roles = user.Roles.Select(r => r.Name).ToList()
+            Roles = user.Roles.Select(r => r.Name).ToList(),
+            Token = token,
+            ExpiresAtUtc = expiresAt
         };
     }
 

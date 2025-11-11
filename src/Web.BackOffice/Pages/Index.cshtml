@@ -12,7 +12,7 @@
                 <hr>
                 <p class="mb-1"><strong>Usuario:</strong> @User.Identity?.Name</p>
                 <p class="mb-1"><strong>Email:</strong> @User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value</p>
-                <p class="mb-0"><strong>Tenant ID:</strong> @User.FindFirst("TenantId")?.Value</p>
+                <p class="mb-0"><strong>Tenant ID:</strong> @User.FindFirst("tenant_id")?.Value</p>
             </div>
         </div>
     </div>
@@ -38,7 +38,7 @@
                     <h5><i class="bi bi-info-circle"></i> Información del Sistema</h5>
                 </div>
                 <div class="card-body">
-                    <p>Solo puedes ver y modificar datos de tu organización (Tenant ID: @User.FindFirst("TenantId")?.Value).</p>
+                    <p>Solo puedes ver y modificar datos de tu organización (Tenant ID: @User.FindFirst("tenant_id")?.Value).</p>
                     <p class="text-muted mb-0">El sistema de multitenancy mantiene tus datos completamente separados.</p>
                 </div>
             </div>

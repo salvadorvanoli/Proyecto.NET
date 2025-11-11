@@ -29,10 +29,10 @@ public static class DependencyInjection
             options.UseSqlServer(connectionString);
 
             // Enable sensitive data logging in development
-#if DEBUG
-            options.EnableSensitiveDataLogging();
-            options.EnableDetailedErrors();
-#endif
+            #if DEBUG
+                options.EnableSensitiveDataLogging();
+                options.EnableDetailedErrors();
+            #endif
         });
 
         // Register ApplicationDbContext as IApplicationDbContext
@@ -41,6 +41,8 @@ public static class DependencyInjection
         // Register infrastructure services
         services.AddScoped<ITenantProvider, TenantProvider>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
+        // Token service for JWT generation
+        services.AddSingleton<ITokenService, TokenService>();
 
         // Register database seeder
         services.AddScoped<DbSeeder>();

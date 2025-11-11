@@ -1,6 +1,7 @@
 using Shared.DTOs.ControlPoints;
 using Application.ControlPoints;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Web.Api.Controllers;
 
@@ -9,6 +10,7 @@ namespace Web.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ControlPointsController : ControllerBase
 {
     private readonly IControlPointService _controlPointService;
@@ -30,6 +32,7 @@ public class ControlPointsController : ControllerBase
     /// <response code="400">Invalid request or control point already exists.</response>
     /// <response code="500">An error occurred while creating the control point.</response>
     [HttpPost]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(typeof(ControlPointResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -117,6 +120,7 @@ public class ControlPointsController : ControllerBase
     /// <response code="400">Invalid request.</response>
     /// <response code="404">Control point not found.</response>
     [HttpPut("{id}")]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(typeof(ControlPointResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -155,6 +159,7 @@ public class ControlPointsController : ControllerBase
     /// <response code="400">Control point cannot be deleted (has access rules or events).</response>
     /// <response code="404">Control point not found.</response>
     [HttpDelete("{id}")]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -62,6 +62,24 @@ backoffice_memory = "512"
 backoffice_desired_count = 1
 
 # ===================================
+# Configuración de JWT Authentication
+# ===================================
+
+# Secret key para firmar JWT tokens
+# IMPORTANTE: Cambia esto por un valor aleatorio y seguro
+# Debe tener al menos 32 caracteres para HS256
+jwt_secret = "ThisIsAVerySecretKeyForJWTTokenGenerationPleaseChangeInProduction!"
+
+# Emisor de los tokens JWT (normalmente el dominio de tu aplicación)
+jwt_issuer = "ProyectoNet"
+
+# Audiencia de los tokens JWT (clientes que pueden consumir la API)
+jwt_audience = "ProyectoNetClients"
+
+# Tiempo de vida de los tokens en minutos
+jwt_lifetime_minutes = 60
+
+# ===================================
 # Configuración de Red (opcional)
 # ===================================
 

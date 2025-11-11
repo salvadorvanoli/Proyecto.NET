@@ -1,6 +1,7 @@
 ﻿using Shared.DTOs.Users;
 using Application.Users;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Web.Api.Controllers;
 
@@ -9,6 +10,7 @@ namespace Web.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
@@ -30,6 +32,7 @@ public class UsersController : ControllerBase
     /// <response code="400">Invalid request or user already exists.</response>
     /// <response code="500">An error occurred while creating the user.</response>
     [HttpPost]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -105,32 +108,6 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Gets all users from all tenants (admin operation).
-    /// Warning: This endpoint returns users from ALL tenants.
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>List of all users.</returns>
-    /// <response code="200">Users retrieved successfully.</response>
-    [HttpGet("all")]
-    [ProducesResponseType(typeof(IEnumerable<UserResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<UserResponse>>> GetAllUsers(CancellationToken cancellationToken)
-    {
-        try
-        {
-            var users = await _userService.GetAllUsersAsync(cancellationToken);
-
-            _logger.LogInformation("Retrieved all users from all tenants. Count: {Count}", users.Count());
-
-            return Ok(users);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving all users");
-            return StatusCode(500, new { error = "An error occurred while retrieving users." });
-        }
-    }
-
-    /// <summary>
     /// Gets all users from the current tenant.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -171,6 +148,7 @@ public class UsersController : ControllerBase
     /// <response code="400">Invalid request.</response>
     /// <response code="404">User not found.</response>
     [HttpPut("{id}")]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -208,6 +186,7 @@ public class UsersController : ControllerBase
     /// <response code="204">User deleted successfully.</response>
     /// <response code="404">User not found.</response>
     [HttpDelete("{id}")]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteUser(int id, CancellationToken cancellationToken)

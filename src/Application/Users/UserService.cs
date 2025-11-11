@@ -93,14 +93,6 @@ public class UserService : IUserService
         return user != null ? MapToResponse(user) : null;
     }
 
-    public async Task<IEnumerable<UserResponse>> GetAllUsersAsync(CancellationToken cancellationToken = default)
-    {
-        var users = await _context.Users
-            .ToListAsync(cancellationToken);
-
-        return users.Select(MapToResponse);
-    }
-
     public async Task<IEnumerable<UserResponse>> GetUsersByTenantAsync(CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();

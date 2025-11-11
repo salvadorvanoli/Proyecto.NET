@@ -6,8 +6,14 @@ using Microsoft.Data.SqlClient;
 using Web.Api.HealthChecks;
 using Web.Api.Configuration;
 using Web.Api.Middleware;
+using Web.Api.Filters;
 using Serilog;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using AspNetCoreRateLimit;
+using System.Security.Claims;
 
 // ========================================
 // CONFIGURAR SERILOG (antes de crear builder)
@@ -47,7 +53,103 @@ try
         hostOptions.ShutdownTimeout = TimeSpan.FromSeconds(30);
     });
 
-    builder.Services.AddControllers();
+    builder.Services.AddControllers(options =>
+    {
+        // Agregar filtro de autorización por tenant a todos los controladores
+        options.Filters.Add<TenantAuthorizationFilter>();
+    });
+
+    // ========================================
+    // SEGURIDAD: Configurar JWT Authentication
+    // ========================================
+    var jwtSecret = builder.Configuration["Jwt:Secret"];
+    if (!string.IsNullOrEmpty(jwtSecret))
+    {
+        var key = Encoding.UTF8.GetBytes(jwtSecret);
+        builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "ProyectoNet",
+                ValidAudience = builder.Configuration["Jwt:Audience"] ?? "ProyectoNetClients",
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ClockSkew = TimeSpan.Zero
+            };
+
+            // Log authentication events for security monitoring
+            options.Events = new JwtBearerEvents
+            {
+                OnAuthenticationFailed = context =>
+                {
+                    Log.Warning("JWT authentication failed: {Error}", context.Exception.Message);
+                    return Task.CompletedTask;
+                },
+                OnTokenValidated = context =>
+                {
+                    var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                                 ?? context.Principal?.FindFirst("sub")?.Value;
+                    if (userId != null)
+                    {
+                        Log.Information("JWT validated for user {UserId}", userId);
+                    }
+                    return Task.CompletedTask;
+                }
+            };
+        });
+
+        builder.Services.AddAuthorization();
+    }
+    else
+    {
+        Log.Warning("⚠️ Jwt:Secret not configured. JWT authentication is disabled.");
+    }
+
+    // ========================================
+    // SEGURIDAD: Configurar Rate Limiting
+    // ========================================
+    builder.Services.AddMemoryCache();
+    builder.Services.Configure<IpRateLimitOptions>(options =>
+    {
+        options.EnableEndpointRateLimiting = true;
+        options.StackBlockedRequests = false;
+        options.HttpStatusCode = 429;
+        options.RealIpHeader = "X-Real-IP";
+        options.ClientIdHeader = "X-ClientId";
+        options.GeneralRules = new List<RateLimitRule>
+        {
+            new RateLimitRule
+            {
+                Endpoint = "POST:/api/auth/login",
+                Period = "1m",
+                Limit = 5 // Max 5 login attempts per minute per IP
+            },
+            new RateLimitRule
+            {
+                Endpoint = "*",
+                Period = "1s",
+                Limit = 10 // Max 10 requests per second per IP (general)
+            },
+            new RateLimitRule
+            {
+                Endpoint = "*",
+                Period = "1m",
+                Limit = 200 // Max 200 requests per minute per IP (general)
+            }
+        };
+    });
+    builder.Services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
+    builder.Services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
+    builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+    builder.Services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
 
     builder.Services.AddCors(options =>
     {
@@ -148,6 +250,44 @@ try
     app.UseCorrelationId();
 
     // ========================================
+    // SEGURIDAD: Middleware de Security Headers
+    // ========================================
+    app.Use(async (context, next) =>
+    {
+        // HSTS (HTTP Strict Transport Security)
+        if (!app.Environment.IsDevelopment())
+        {
+            context.Response.Headers.Append("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+        }
+
+        // Prevenir clickjacking
+        context.Response.Headers.Append("X-Frame-Options", "DENY");
+
+        // Prevenir MIME type sniffing
+        context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+
+        // XSS Protection (aunque moderno está deprecado, muchos navegadores lo respetan)
+        context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
+
+        // Content Security Policy - ajustar según necesidades
+        context.Response.Headers.Append("Content-Security-Policy", 
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'");
+
+        // Referrer Policy
+        context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+
+        // Permissions Policy (antes Feature-Policy)
+        context.Response.Headers.Append("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+
+        await next();
+    });
+
+    // ========================================
+    // SEGURIDAD: Rate Limiting Middleware
+    // ========================================
+    app.UseIpRateLimiting();
+
+    // ========================================
     // OBSERVABILIDAD: Request Logging de Serilog
     // ========================================
     app.UseSerilogRequestLogging(options =>
@@ -172,6 +312,13 @@ try
 
     app.UseHttpsRedirection();
     app.UseCors("AllowWebApps");
+    
+    // ========================================
+    // SEGURIDAD: Authentication & Authorization
+    // ========================================
+    app.UseAuthentication();
+    app.UseAuthorization();
+    
     app.MapApiHealthChecks();
     app.MapControllers();
 
