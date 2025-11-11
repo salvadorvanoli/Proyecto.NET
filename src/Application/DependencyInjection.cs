@@ -33,7 +33,7 @@ public static class DependencyInjection
         services.AddScoped<IControlPointService, ControlPointService>();
         services.AddScoped<IAccessRuleService, AccessRuleService>();
         services.AddScoped<IBenefitTypeService, BenefitTypeService>();
-        services.AddScoped<BenefitService>();
+        services.AddScoped<IBenefitService, BenefitService>();
 
         return services;
     }

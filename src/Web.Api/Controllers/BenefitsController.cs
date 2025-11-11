@@ -13,10 +13,10 @@ namespace Web.Api.Controllers;
 [Authorize]
 public class BenefitsController : ControllerBase
 {
-    private readonly BenefitService _benefitService;
+    private readonly IBenefitService _benefitService;
     private readonly ILogger<BenefitsController> _logger;
 
-    public BenefitsController(BenefitService benefitService, ILogger<BenefitsController> logger)
+    public BenefitsController(IBenefitService benefitService, ILogger<BenefitsController> logger)
     {
         _benefitService = benefitService;
         _logger = logger;
