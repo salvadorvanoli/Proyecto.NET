@@ -92,6 +92,7 @@ jwt_lifetime_minutes = 60
 #   "https://www.tudominio.com"
 # ]
 # 
+# Nota: Terraform usa formato de array. En docker-compose se usa formato de string separado por comas.
 # Por defecto, se usará el DNS del ALB automáticamente si no se especifica
 cors_allowed_origins = []
 

@@ -63,52 +63,48 @@ resource "aws_ecs_task_definition" "api" {
         }
       ]
 
-      environment = concat(
-        [
-          {
-            name  = "ASPNETCORE_ENVIRONMENT"
-            value = "Production"
-          },
-          {
-            name  = "ASPNETCORE_URLS"
-            value = "http://+:8080"
-          },
-          {
-            name  = "SEED_DATABASE"
-            value = "true"
-          },
-          {
-            name  = "RECREATE_DATABASE"
-            value = "false"
-          },
-          {
-            name  = "ConnectionStrings__DefaultConnection"
-            value = "Server=${aws_db_instance.sqlserver.address},1433;Database=${var.db_name};User Id=${var.db_username};Password=${var.db_password};TrustServerCertificate=True;MultipleActiveResultSets=true"
-          },
-          {
-            name  = "Jwt__Secret"
-            value = var.jwt_secret
-          },
-          {
-            name  = "Jwt__Issuer"
-            value = var.jwt_issuer
-          },
-          {
-            name  = "Jwt__Audience"
-            value = var.jwt_audience
-          },
-          {
-            name  = "Jwt__LifetimeMinutes"
-            value = tostring(var.jwt_lifetime_minutes)
-          }
-        ],
-        [
-          for idx, origin in var.cors_allowed_origins : {
-            name  = "Cors__AllowedOrigins__${idx}"
-            value = origin
-          }
-        ]
-      )
+      environment = [
+        {
+          name  = "ASPNETCORE_ENVIRONMENT"
+          value = "Production"
+        },
+        {
+          name  = "ASPNETCORE_URLS"
+          value = "http://+:8080"
+        },
+        {
+          name  = "SEED_DATABASE"
+          value = "true"
+        },
+        {
+          name  = "RECREATE_DATABASE"
+          value = "false"
+        },
+        {
+          name  = "ConnectionStrings__DefaultConnection"
+          value = "Server=${aws_db_instance.sqlserver.address},1433;Database=${var.db_name};User Id=${var.db_username};Password=${var.db_password};TrustServerCertificate=True;MultipleActiveResultSets=true"
+        },
+        {
+          name  = "Jwt__Secret"
+          value = var.jwt_secret
+        },
+        {
+          name  = "Jwt__Issuer"
+          value = var.jwt_issuer
+        },
+        {
+          name  = "Jwt__Audience"
+          value = var.jwt_audience
+        },
+        {
+          name  = "Jwt__LifetimeMinutes"
+          value = tostring(var.jwt_lifetime_minutes)
+        },
+        {
+          name  = "CORS_ALLOWED_ORIGINS"
+          value = join(",", var.cors_allowed_origins)
+        }
+      ]
 
       logConfiguration = {
         logDriver = "awslogs"

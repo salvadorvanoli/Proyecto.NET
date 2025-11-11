@@ -171,8 +171,26 @@ try
             }
             else
             {
-                var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-                                    ?? Array.Empty<string>();
+                // Soporta dos formatos:
+                // 1. String separado por comas: CORS_ALLOWED_ORIGINS=http://localhost:4200,http://127.0.0.1:4200
+                // 2. Array en appsettings.json: Cors:AllowedOrigins
+                var corsOriginsString = builder.Configuration["CORS_ALLOWED_ORIGINS"];
+                string[] allowedOrigins;
+
+                if (!string.IsNullOrWhiteSpace(corsOriginsString))
+                {
+                    // Formato 1: String separado por comas
+                    allowedOrigins = corsOriginsString
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Where(origin => !string.IsNullOrWhiteSpace(origin))
+                        .ToArray();
+                }
+                else
+                {
+                    // Formato 2: Array en appsettings.json
+                    allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                                        ?? Array.Empty<string>();
+                }
 
                 if (allowedOrigins.Length > 0)
                 {

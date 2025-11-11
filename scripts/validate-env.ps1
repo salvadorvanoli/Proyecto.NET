@@ -35,7 +35,7 @@ Write-Host "Verificando variables requeridas..." -ForegroundColor Cyan
 Write-Host ""
 
 $requiredVars = @("SQL_SERVER_PASSWORD", "ASPNETCORE_ENVIRONMENT", "DB_NAME")
-$productionVars = @("CORS_ORIGIN_1")
+$productionVars = @("CORS_ALLOWED_ORIGINS")
 $errors = @()
 
 foreach ($var in $requiredVars) {
