@@ -50,7 +50,7 @@ public class EditModel : PageModel
         try
         {
             var spaceTask = _spaceApiService.GetSpaceByIdAsync(id);
-            var spaceTypesTask = _spaceTypeApiService.GetAllSpaceTypesAsync();
+            var spaceTypesTask = _spaceTypeApiService.GetSpaceTypesByTenantAsync();
 
             await Task.WhenAll(spaceTask, spaceTypesTask);
 
@@ -87,7 +87,7 @@ public class EditModel : PageModel
             // Reload space types if validation fails
             try
             {
-                SpaceTypes = await _spaceTypeApiService.GetAllSpaceTypesAsync();
+                SpaceTypes = await _spaceTypeApiService.GetSpaceTypesByTenantAsync();
             }
             catch (Exception ex)
             {
@@ -117,7 +117,7 @@ public class EditModel : PageModel
             // Reload space types
             try
             {
-                SpaceTypes = await _spaceTypeApiService.GetAllSpaceTypesAsync();
+                SpaceTypes = await _spaceTypeApiService.GetSpaceTypesByTenantAsync();
             }
             catch (Exception loadEx)
             {

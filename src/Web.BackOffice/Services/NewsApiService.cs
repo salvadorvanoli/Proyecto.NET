@@ -18,7 +18,7 @@ public class NewsApiService : INewsApiService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<NewsResponse>> GetAllNewsAsync()
+    public async Task<IEnumerable<NewsResponse>> GetNewsByTenantAsync()
     {
         try
         {

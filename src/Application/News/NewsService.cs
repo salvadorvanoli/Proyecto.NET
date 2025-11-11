@@ -60,7 +60,7 @@ public class NewsService : INewsService
         return news == null ? null : MapToResponse(news);
     }
 
-    public async Task<IEnumerable<NewsResponse>> GetAllNewsAsync(CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<NewsResponse>> GetNewsByTenantAsync(CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
 

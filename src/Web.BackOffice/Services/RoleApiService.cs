@@ -18,7 +18,7 @@ public class RoleApiService : IRoleApiService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<RoleResponse>> GetAllRolesAsync()
+    public async Task<IEnumerable<RoleResponse>> GetRolesByTenantAsync()
     {
         try
         {

@@ -18,7 +18,7 @@ public class SpaceApiService : ISpaceApiService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<SpaceResponse>> GetAllSpacesAsync()
+    public async Task<IEnumerable<SpaceResponse>> GetSpacesByTenantAsync()
     {
         try
         {

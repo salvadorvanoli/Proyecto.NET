@@ -39,7 +39,7 @@ public class EditModel : PageModel
         try
         {
             var controlPointTask = _controlPointApiService.GetControlPointByIdAsync(Id);
-            var spacesTask = _spaceApiService.GetAllSpacesAsync();
+            var spacesTask = _spaceApiService.GetSpacesByTenantAsync();
 
             await Task.WhenAll(controlPointTask, spacesTask);
 
@@ -124,7 +124,7 @@ public class EditModel : PageModel
 
     private async Task LoadSpacesAsync()
     {
-        var spaces = await _spaceApiService.GetAllSpacesAsync();
+        var spaces = await _spaceApiService.GetSpacesByTenantAsync();
         Spaces = new SelectList(
             spaces.Select(s => new { s.Id, DisplayName = $"{s.Name} ({s.SpaceTypeName})" }),
             "Id",

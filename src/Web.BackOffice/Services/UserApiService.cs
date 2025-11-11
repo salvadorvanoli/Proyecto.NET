@@ -18,7 +18,7 @@ public class UserApiService : IUserApiService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<UserResponse>> GetAllUsersAsync()
+    public async Task<IEnumerable<UserResponse>> GetUsersByTenantAsync()
     {
         try
         {

@@ -39,7 +39,7 @@ public class IndexModel : PageModel
     {
         try
         {
-            SpaceTypes = await _spaceTypeApiService.GetAllSpaceTypesAsync();
+            SpaceTypes = await _spaceTypeApiService.GetSpaceTypesByTenantAsync();
 
             // Aplicar búsqueda si hay término de búsqueda
             var filteredSpaceTypes = SpaceTypes.ToList();

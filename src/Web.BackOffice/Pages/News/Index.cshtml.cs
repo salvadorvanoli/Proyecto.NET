@@ -39,7 +39,7 @@ public class IndexModel : PageModel
     {
         try
         {
-            NewsList = await _newsApiService.GetAllNewsAsync();
+            NewsList = await _newsApiService.GetNewsByTenantAsync();
 
             // Aplicar búsqueda si hay término de búsqueda
             var filteredNews = NewsList.ToList();

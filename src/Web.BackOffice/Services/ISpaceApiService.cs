@@ -7,7 +7,7 @@ namespace Web.BackOffice.Services;
 /// </summary>
 public interface ISpaceApiService
 {
-    Task<IEnumerable<SpaceResponse>> GetAllSpacesAsync();
+    Task<IEnumerable<SpaceResponse>> GetSpacesByTenantAsync();
     Task<SpaceResponse?> GetSpaceByIdAsync(int id);
     Task<SpaceResponse> CreateSpaceAsync(SpaceRequest createSpaceDto);
     Task<SpaceResponse> UpdateSpaceAsync(int id, SpaceRequest updateSpaceDto);

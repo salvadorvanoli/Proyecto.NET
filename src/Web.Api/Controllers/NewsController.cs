@@ -92,9 +92,9 @@ public class NewsController : ControllerBase
     /// <response code="200">News retrieved successfully.</response>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<NewsResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<NewsResponse>>> GetAllNews(CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<NewsResponse>>> GetNewsByTenant(CancellationToken cancellationToken)
     {
-        var news = await _newsService.GetAllNewsAsync(cancellationToken);
+        var news = await _newsService.GetNewsByTenantAsync(cancellationToken);
         return Ok(news);
     }
 

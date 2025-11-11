@@ -7,7 +7,7 @@ namespace Web.BackOffice.Services;
 /// </summary>
 public interface IRoleApiService
 {
-    Task<IEnumerable<RoleResponse>> GetAllRolesAsync();
+    Task<IEnumerable<RoleResponse>> GetRolesByTenantAsync();
     Task<RoleResponse?> GetRoleByIdAsync(int id);
     Task<RoleResponse> CreateRoleAsync(RoleRequest createRoleDto);
     Task<RoleResponse> UpdateRoleAsync(int id, RoleRequest updateRoleDto);

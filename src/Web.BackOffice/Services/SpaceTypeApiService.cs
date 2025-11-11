@@ -18,7 +18,7 @@ public class SpaceTypeApiService : ISpaceTypeApiService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<SpaceTypeResponse>> GetAllSpaceTypesAsync()
+    public async Task<IEnumerable<SpaceTypeResponse>> GetSpaceTypesByTenantAsync()
     {
         try
         {

@@ -164,7 +164,7 @@ public class EditModel : PageModel
     {
         try
         {
-            var rolesTask = _roleApiService.GetAllRolesAsync();
+            var rolesTask = _roleApiService.GetRolesByTenantAsync();
             var controlPointsTask = _controlPointApiService.GetControlPointsByTenantAsync();
 
             await Task.WhenAll(rolesTask, controlPointsTask);

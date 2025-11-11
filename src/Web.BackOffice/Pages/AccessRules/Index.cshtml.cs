@@ -58,7 +58,7 @@ public class IndexModel : PageModel
 
             // Load all data in parallel
             var accessRulesTask = _accessRuleApiService.GetAccessRulesByTenantAsync();
-            var rolesTask = _roleApiService.GetAllRolesAsync();
+            var rolesTask = _roleApiService.GetRolesByTenantAsync();
             var controlPointsTask = _controlPointApiService.GetControlPointsByTenantAsync();
 
             await Task.WhenAll(accessRulesTask, rolesTask, controlPointsTask);

@@ -7,7 +7,7 @@ namespace Web.BackOffice.Services;
 /// </summary>
 public interface IUserApiService
 {
-    Task<IEnumerable<UserResponse>> GetAllUsersAsync();
+    Task<IEnumerable<UserResponse>> GetUsersByTenantAsync();
     Task<UserResponse?> GetUserByIdAsync(int id);
     Task<UserResponse> CreateUserAsync(CreateUserRequest createUserDto);
     Task<UserResponse> UpdateUserAsync(int id, UpdateUserRequest updateUserDto);

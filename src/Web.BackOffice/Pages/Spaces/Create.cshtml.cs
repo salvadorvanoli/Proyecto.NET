@@ -47,7 +47,7 @@ public class CreateModel : PageModel
     {
         try
         {
-            SpaceTypes = await _spaceTypeApiService.GetAllSpaceTypesAsync();
+            SpaceTypes = await _spaceTypeApiService.GetSpaceTypesByTenantAsync();
 
             if (!SpaceTypes.Any())
             {
@@ -72,7 +72,7 @@ public class CreateModel : PageModel
             // Reload space types if validation fails
             try
             {
-                SpaceTypes = await _spaceTypeApiService.GetAllSpaceTypesAsync();
+                SpaceTypes = await _spaceTypeApiService.GetSpaceTypesByTenantAsync();
             }
             catch (Exception ex)
             {
@@ -102,7 +102,7 @@ public class CreateModel : PageModel
             // Reload space types
             try
             {
-                SpaceTypes = await _spaceTypeApiService.GetAllSpaceTypesAsync();
+                SpaceTypes = await _spaceTypeApiService.GetSpaceTypesByTenantAsync();
             }
             catch (Exception loadEx)
             {

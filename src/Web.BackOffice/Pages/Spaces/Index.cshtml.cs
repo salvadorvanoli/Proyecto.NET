@@ -49,9 +49,9 @@ public class IndexModel : PageModel
     {
         try
         {
-            // Cargar espacios y tipos de espacio
-            var spacesTask = _spaceApiService.GetAllSpacesAsync();
-            var spaceTypesTask = _spaceTypeApiService.GetAllSpaceTypesAsync();
+            // Cargar espacios y tipos de espacio en paralelo
+            var spacesTask = _spaceApiService.GetSpacesByTenantAsync();
+            var spaceTypesTask = _spaceTypeApiService.GetSpaceTypesByTenantAsync();
 
             await Task.WhenAll(spacesTask, spaceTypesTask);
 

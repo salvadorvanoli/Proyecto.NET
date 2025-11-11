@@ -40,7 +40,7 @@ public class IndexModel : PageModel
     {
         try
         {
-            Roles = await _roleApiService.GetAllRolesAsync();
+            Roles = await _roleApiService.GetRolesByTenantAsync();
 
             // Aplicar búsqueda si hay término de búsqueda
             var filteredRoles = Roles.ToList();

@@ -40,7 +40,7 @@ public class IndexModel : PageModel
     {
         try
         {
-            Users = await _userApiService.GetAllUsersAsync();
+            Users = await _userApiService.GetUsersByTenantAsync();
 
             // Aplicar búsqueda si hay término de búsqueda
             var filteredUsers = Users.ToList();

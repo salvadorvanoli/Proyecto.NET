@@ -102,7 +102,7 @@ public class CreateModel : PageModel
 
     private async Task LoadSpacesAsync()
     {
-        var spaces = await _spaceApiService.GetAllSpacesAsync();
+        var spaces = await _spaceApiService.GetSpacesByTenantAsync();
         Spaces = new SelectList(
             spaces.Select(s => new { s.Id, DisplayName = $"{s.Name} ({s.SpaceTypeName})" }),
             "Id",

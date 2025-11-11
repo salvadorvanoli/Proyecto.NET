@@ -48,7 +48,7 @@ public class IndexModel : PageModel
         {
             // Load control points and spaces in parallel
             var controlPointsTask = _controlPointApiService.GetControlPointsByTenantAsync();
-            var spacesTask = _spaceApiService.GetAllSpacesAsync();
+            var spacesTask = _spaceApiService.GetSpacesByTenantAsync();
 
             await Task.WhenAll(controlPointsTask, spacesTask);
 

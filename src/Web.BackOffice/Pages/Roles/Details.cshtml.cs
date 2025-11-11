@@ -65,7 +65,7 @@ public class DetailsModel : PageModel
             }
 
             // Load all users in the tenant
-            AllUsers = await _userApiService.GetAllUsersAsync();
+            AllUsers = await _userApiService.GetUsersByTenantAsync();
 
             // Aplicar búsqueda si hay término de búsqueda
             var filteredUsers = AllUsers;
@@ -114,7 +114,7 @@ public class DetailsModel : PageModel
             }
 
             // Get all users in the tenant
-            var allUsers = await _userApiService.GetAllUsersAsync();
+            var allUsers = await _userApiService.GetUsersByTenantAsync();
             var allUsersList = allUsers.ToList();
 
             // For each user, assign or remove the role based on selection
@@ -176,7 +176,7 @@ public class DetailsModel : PageModel
     {
         try
         {
-            var allUsers = await _userApiService.GetAllUsersAsync();
+            var allUsers = await _userApiService.GetUsersByTenantAsync();
             var usersWithRole = new List<UserResponse>();
 
             foreach (var user in allUsers)
