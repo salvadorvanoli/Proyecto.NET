@@ -66,8 +66,10 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<TenantHeaderHandler>();
 
-// Obtener la URL del API desde variable de entorno o usar localhost para desarrollo
-var apiBaseUrl = builder.Configuration["API_BASE_URL"] ?? Environment.GetEnvironmentVariable("API_BASE_URL") ?? "http://localhost:5236/";
+// Obtener la URL del API desde variable de entorno
+var apiBaseUrl = builder.Configuration["API_BASE_URL"] 
+                 ?? Environment.GetEnvironmentVariable("API_BASE_URL") 
+                 ?? "http://localhost:5000";
 Console.WriteLine($"Configuring BackOffice to use API at: {apiBaseUrl}");
 
 builder.Services.AddHttpClient<IUserApiService, UserApiService>(client =>

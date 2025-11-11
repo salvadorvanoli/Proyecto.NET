@@ -124,3 +124,16 @@ variable "jwt_lifetime_minutes" {
   default     = 60
 }
 
+# CORS Configuration
+variable "cors_allowed_origins" {
+  description = "Lista de orígenes permitidos para CORS (dominios completos con protocolo)"
+  type        = list(string)
+  default     = []
+}
+
+variable "cors_allow_credentials" {
+  description = "Permitir credenciales en peticiones CORS"
+  type        = bool
+  default     = true
+}
+

@@ -12,7 +12,7 @@ public static class HealthCheckConfiguration
     {
         var healthChecksBuilder = services.AddHealthChecks();
 
-        var apiBaseUrl = configuration["ApiSettings:BaseUrl"];
+        var apiBaseUrl = configuration["API_BASE_URL"];
         if (!string.IsNullOrEmpty(apiBaseUrl))
         {
             healthChecksBuilder.AddUrlGroup(

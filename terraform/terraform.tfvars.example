@@ -80,6 +80,22 @@ jwt_audience = "ProyectoNetClients"
 jwt_lifetime_minutes = 60
 
 # ===================================
+# Configuración de CORS
+# ===================================
+
+# Orígenes permitidos para CORS
+# IMPORTANTE: En producción, configura los dominios reales de tu aplicación
+# Ejemplo con dominios personalizados:
+# cors_allowed_origins = [
+#   "https://backoffice.tudominio.com",
+#   "https://app.tudominio.com",
+#   "https://www.tudominio.com"
+# ]
+# 
+# Por defecto, se usará el DNS del ALB automáticamente si no se especifica
+cors_allowed_origins = []
+
+# ===================================
 # Configuración de Red (opcional)
 # ===================================
 

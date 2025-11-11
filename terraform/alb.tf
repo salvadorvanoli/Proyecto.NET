@@ -78,6 +78,12 @@ resource "aws_lb_target_group" "backoffice" {
 }
 
 # ALB Listener
+# IMPORTANTE: En producción, deberías configurar HTTPS (puerto 443) con un certificado SSL/TLS
+# Para desarrollo/learner lab, se usa HTTP (puerto 80)
+# Para habilitar HTTPS:
+# 1. Solicita un certificado en AWS Certificate Manager (ACM)
+# 2. Agrega un listener en puerto 443 con el ARN del certificado
+# 3. Configura redirección de HTTP a HTTPS
 resource "aws_lb_listener" "main" {
   load_balancer_arn = aws_lb.main.arn
   port              = "80"
@@ -93,6 +99,40 @@ resource "aws_lb_listener" "main" {
     }
   }
 }
+
+# Ejemplo de listener HTTPS (comentado - requiere certificado ACM):
+# resource "aws_lb_listener" "https" {
+#   load_balancer_arn = aws_lb.main.arn
+#   port              = "443"
+#   protocol          = "HTTPS"
+#   ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
+#   certificate_arn   = "arn:aws:acm:region:account-id:certificate/certificate-id"
+#
+#   default_action {
+#     type = "fixed-response"
+#     fixed_response {
+#       content_type = "text/plain"
+#       message_body = "Not Found"
+#       status_code  = "404"
+#     }
+#   }
+# }
+#
+# # Redirección HTTP a HTTPS
+# resource "aws_lb_listener" "http_redirect" {
+#   load_balancer_arn = aws_lb.main.arn
+#   port              = "80"
+#   protocol          = "HTTP"
+#
+#   default_action {
+#     type = "redirect"
+#     redirect {
+#       port        = "443"
+#       protocol    = "HTTPS"
+#       status_code = "HTTP_301"
+#     }
+#   }
+# }
 
 # Listener Rule - BackOffice (default)
 resource "aws_lb_listener_rule" "backoffice" {

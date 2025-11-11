@@ -85,7 +85,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=${DB_NAME:-ProyectoNetDb};User Id=sa;Password=${SQL_SERVER_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true
-      - ApiSettings__BaseUrl=${API_INTERNAL_URL:-http://web-api:8080}
+      - API_BASE_URL=${API_INTERNAL_URL:-http://web-api:8080}
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -120,7 +120,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
       - ASPNETCORE_URLS=http://+:8080
-      - ApiSettings__BaseUrl=${API_INTERNAL_URL:-http://web-api:8080}
+      - API_BASE_URL=${API_INTERNAL_URL:-http://web-api:8080}
     depends_on:
       web-api:
         condition: service_started
