@@ -47,9 +47,9 @@ output "vpc_id" {
 output "cors_configuration" {
   description = "Configuración de CORS aplicada"
   value = {
-    allowed_origins = var.cors_allowed_origins
-    default_origin  = "http://${aws_lb.main.dns_name}"
-    note           = "Si cors_allowed_origins está vacío, se usa default_origin automáticamente"
+    specified_origins = var.cors_allowed_origins
+    effective_origin  = length(var.cors_allowed_origins) > 0 ? join(", ", var.cors_allowed_origins) : "http://${aws_lb.main.dns_name}"
+    note             = "Si no especificas cors_allowed_origins, se usa automáticamente el DNS del ALB"
   }
 }
 

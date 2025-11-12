@@ -102,7 +102,7 @@ resource "aws_ecs_task_definition" "api" {
         },
         {
           name  = "CORS_ALLOWED_ORIGINS"
-          value = join(",", var.cors_allowed_origins)
+          value = length(var.cors_allowed_origins) > 0 ? join(",", var.cors_allowed_origins) : "http://${aws_lb.main.dns_name}"
         }
       ]
 
