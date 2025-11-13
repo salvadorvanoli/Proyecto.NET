@@ -50,7 +50,7 @@ public class User : BaseEntity
 
         if (string.IsNullOrWhiteSpace(passwordHash))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Password hash"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Contraseña"),
                 nameof(passwordHash));
 
         if (!IsValidEmail(email))
@@ -85,7 +85,7 @@ public class User : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(passwordHash))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Password hash"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Contraseña"),
                 nameof(passwordHash));
 
         PasswordHash = passwordHash;
@@ -108,7 +108,7 @@ public class User : BaseEntity
     {
         if (credentialId <= DomainConstants.NumericValidation.TransientEntityId)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "Credential ID"),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "ID de credencial"),
                 nameof(credentialId));
 
         CredentialId = credentialId;

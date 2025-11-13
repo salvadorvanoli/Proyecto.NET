@@ -1,0 +1,110 @@
+@page
+@model Web.BackOffice.Pages.ControlPoints.CreateModel
+@{
+    ViewData["Title"] = "Crear Punto de Control";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3">
+                <i class="bi bi-geo-alt"></i> Crear Punto de Control
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-page="/Index">Inicio</a></li>
+                    <li class="breadcrumb-item"><a asp-page="Index">Puntos de Control</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Crear</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    @if (Model.ErrorMessage != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Información del Punto de Control</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="ControlPoint.Name" class="form-label">
+                                Nombre <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="ControlPoint.Name" 
+                                   class="form-control" 
+                                   placeholder="Ej: Entrada Principal, Acceso Piso 2..."
+                                   maxlength="100" />
+                            <span asp-validation-for="ControlPoint.Name" class="text-danger"></span>
+                            <div class="form-text">
+                                Ingrese un nombre descriptivo para el punto de control.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ControlPoint.SpaceId" class="form-label">
+                                Espacio <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="ControlPoint.SpaceId" 
+                                    asp-items="Model.Spaces"
+                                    class="form-select">
+                                <option value="">-- Seleccione un espacio --</option>
+                            </select>
+                            <span asp-validation-for="ControlPoint.SpaceId" class="text-danger"></span>
+                            <div class="form-text">
+                                Seleccione el espacio al que pertenece este punto de control.
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Crear Punto de Control
+                            </button>
+                            <a asp-page="Index" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-info-circle"></i> Ayuda
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6>¿Qué es un Punto de Control?</h6>
+                    <p class="small">
+                        Un punto de control es una ubicación física donde se controla el acceso de usuarios a un espacio determinado.
+                    </p>
+                    <hr>
+                    <h6>Validaciones</h6>
+                    <ul class="small">
+                        <li>El nombre es obligatorio</li>
+                        <li>El nombre debe ser único dentro del espacio seleccionado</li>
+                        <li>Debe seleccionar un espacio válido</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

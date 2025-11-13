@@ -1,0 +1,267 @@
+@page
+@model Web.BackOffice.Pages.BenefitTypes.IndexModel
+@{
+    ViewData["Title"] = "Tipos de Beneficio";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="bi bi-gift"></i> Tipos de Beneficio
+        </h1>
+        <a asp-page="Create" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nuevo Tipo de Beneficio
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle"></i> @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle"></i> @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Search Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-10">
+                    <label for="searchTerm" class="form-label">Buscar</label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="searchTerm" 
+                           name="searchTerm" 
+                           value="@Model.SearchTerm" 
+                           placeholder="Buscar por nombre o descripción...">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (Model.BenefitTypes.Any())
+    {
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Descripción</th>
+                                <th>Beneficios</th>
+                                <th>Creado</th>
+                                <th>Actualizado</th>
+                                <th class="text-center" style="width: 150px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var benefitType in Model.DisplayedBenefitTypes)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@benefitType.Name</strong>
+                                    </td>
+                                    <td>
+                                        <small>@benefitType.Description</small>
+                                    </td>
+                                    <td>
+                                        @if (benefitType.BenefitCount > 0)
+                                        {
+                                            <span class="badge bg-primary">@benefitType.BenefitCount</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">0</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <small>@benefitType.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                    </td>
+                                    <td>
+                                        <small>@benefitType.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a asp-page="Details" 
+                                               asp-route-id="@benefitType.Id" 
+                                               class="btn btn-outline-info" 
+                                               title="Ver detalles">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a asp-page="Edit" 
+                                               asp-route-id="@benefitType.Id" 
+                                               class="btn btn-outline-primary" 
+                                               title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            @if (benefitType.BenefitCount == 0)
+                                            {
+                                                <button type="button" 
+                                                        class="btn btn-outline-danger" 
+                                                        title="Eliminar"
+                                                        onclick="confirmDelete(@benefitType.Id, '@benefitType.Name')">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="button" 
+                                                        class="btn btn-outline-secondary" 
+                                                        title="No se puede eliminar: tiene beneficios asociados"
+                                                        disabled>
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                
+                @if (Model.TotalPages > 1)
+                {
+                    <nav aria-label="Paginación de tipos de beneficio">
+                        <ul class="pagination justify-content-center mb-0">
+                            <!-- First Page -->
+                            <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" 
+                                   asp-page="./Index" 
+                                   asp-route-pageNumber="1"
+                                   asp-route-searchTerm="@Model.SearchTerm">
+                                    <i class="bi bi-chevron-double-left"></i>
+                                </a>
+                            </li>
+                            
+                            <!-- Previous Page -->
+                            <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" 
+                                   asp-page="./Index" 
+                                   asp-route-pageNumber="@(Model.CurrentPage - 1)"
+                                   asp-route-searchTerm="@Model.SearchTerm">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+
+                            @{
+                                var startPage = Math.Max(1, Model.CurrentPage - 2);
+                                var endPage = Math.Min(Model.TotalPages, Model.CurrentPage + 2);
+                            }
+
+                            @for (var i = startPage; i <= endPage; i++)
+                            {
+                                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                    <a class="page-link" 
+                                       asp-page="./Index" 
+                                       asp-route-pageNumber="@i"
+                                       asp-route-searchTerm="@Model.SearchTerm">
+                                        @i
+                                    </a>
+                                </li>
+                            }
+
+                            <!-- Next Page -->
+                            <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link" 
+                                   asp-page="./Index" 
+                                   asp-route-pageNumber="@(Model.CurrentPage + 1)"
+                                   asp-route-searchTerm="@Model.SearchTerm">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                            
+                            <!-- Last Page -->
+                            <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link" 
+                                   asp-page="./Index" 
+                                   asp-route-pageNumber="@Model.TotalPages"
+                                   asp-route-searchTerm="@Model.SearchTerm">
+                                    <i class="bi bi-chevron-double-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info" role="alert">
+            <i class="bi bi-info-circle"></i>
+            @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+            {
+                <span>No se encontraron tipos de beneficio que coincidan con la búsqueda.</span>
+            }
+            else
+            {
+                <span>No hay tipos de beneficio registrados.</span>
+            }
+        </div>
+    }
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro que desea eliminar el tipo de beneficio <strong id="benefitTypeName"></strong>?</p>
+                <p class="text-danger"><i class="bi bi-exclamation-triangle"></i> Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" id="deleteForm" style="display: inline;">
+                    <input type="hidden" name="id" id="deleteId" />
+                    <button type="submit" class="btn btn-danger" asp-page-handler="Delete">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function confirmDelete(id, name) {
+            document.getElementById('deleteId').value = id;
+            document.getElementById('benefitTypeName').textContent = name;
+            var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
+        }
+    </script>
+}

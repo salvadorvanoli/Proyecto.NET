@@ -1,15 +1,324 @@
 ﻿@page
 @model Web.BackOffice.Pages.AccessRules.IndexModel
 @{
-    ViewData["Title"] = "Gestionar Reglas de Acceso";
+    ViewData["Title"] = "Reglas de Acceso";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Gestionar Reglas de Acceso</h1>
-    <p>Esta página permitirá administrar las reglas de acceso del sistema.</p>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+            <i class="bi bi-shield-lock"></i> Reglas de Acceso
+        </h1>
+        <a asp-page="Create" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nueva Regla de Acceso
+        </a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle"></i> @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle"></i> @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Filter Form -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="roleId" class="form-label">Filtrar por Rol</label>
+                    <select class="form-select" id="roleId" name="roleId">
+                        <option value="">Todos los roles</option>
+                        @foreach (var role in Model.Roles)
+                        {
+                            <option value="@role.Id" selected="@(Model.SelectedRoleId == role.Id)">
+                                @role.Name
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="controlPointId" class="form-label">Filtrar por Punto de Control</label>
+                    <select class="form-select" id="controlPointId" name="controlPointId">
+                        <option value="">Todos los puntos de control</option>
+                        @foreach (var cp in Model.ControlPoints)
+                        {
+                            <option value="@cp.Id" selected="@(Model.SelectedControlPointId == cp.Id)">
+                                @cp.Name (@cp.SpaceName)
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="active" class="form-label">Estado</label>
+                    <select class="form-select" id="active" name="active">
+                        <option value="">Todas</option>
+                        <option value="active" selected="@(Model.ActiveFilter == "active")">Activas</option>
+                        <option value="inactive" selected="@(Model.ActiveFilter == "inactive")">Inactivas</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (Model.DisplayedAccessRules.Any())
+    {
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <p class="mb-0 text-muted">
+                        Mostrando @((Model.CurrentPage - 1) * 10 + 1) - @Math.Min(Model.CurrentPage * 10, Model.TotalAccessRules) de @Model.TotalAccessRules reglas de acceso
+                    </p>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Estado</th>
+                                <th>Horario</th>
+                                <th>Periodo de Validez</th>
+                                <th>Roles</th>
+                                <th>Puntos de Control</th>
+                                <th>Creado</th>
+                                <th class="text-center" style="width: 150px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var accessRule in Model.DisplayedAccessRules)
+                            {
+                                <tr class="@(!accessRule.IsActive ? "table-secondary" : "")">
+                                    <td>
+                                        @if (accessRule.IsActive)
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle"></i> Activa
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-x-circle"></i> Inactiva
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (accessRule.Is24x7)
+                                        {
+                                            <span class="badge bg-primary">24/7</span>
+                                        }
+                                        else
+                                        {
+                                            <small>@accessRule.StartTime - @accessRule.EndTime</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (accessRule.IsPermanent)
+                                        {
+                                            <span class="badge bg-info">Permanente</span>
+                                        }
+                                        else
+                                        {
+                                            <small>@accessRule.StartDate?.ToString("dd/MM/yyyy") - @accessRule.EndDate?.ToString("dd/MM/yyyy")</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <small>
+                                            @foreach (var roleName in accessRule.RoleNames)
+                                            {
+                                                <span class="badge bg-secondary me-1">@roleName</span>
+                                            }
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <small>
+                                            @foreach (var cpName in accessRule.ControlPointNames)
+                                            {
+                                                <span class="badge bg-dark me-1">@cpName</span>
+                                            }
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <small>@accessRule.CreatedAt.ToString("dd/MM/yyyy")</small>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a asp-page="Details" 
+                                               asp-route-id="@accessRule.Id" 
+                                               class="btn btn-outline-info" 
+                                               title="Ver detalles">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a asp-page="Edit" 
+                                               asp-route-id="@accessRule.Id" 
+                                               class="btn btn-outline-primary" 
+                                               title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button type="button" 
+                                                    class="btn btn-outline-danger" 
+                                                    title="Eliminar"
+                                                    onclick="confirmDelete(@accessRule.Id)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                
+                @if (Model.TotalPages > 1)
+                {
+                    <nav aria-label="Paginación de reglas de acceso">
+                        <ul class="pagination justify-content-center mb-0">
+                            <!-- First Page -->
+                            <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" 
+                                   asp-page="./Index" 
+                                   asp-route-pageNumber="1"
+                                   asp-route-roleId="@Model.SelectedRoleId"
+                                   asp-route-controlPointId="@Model.SelectedControlPointId"
+                                   asp-route-active="@Model.ActiveFilter">
+                                    <i class="bi bi-chevron-double-left"></i>
+                                </a>
+                            </li>
+                            
+                            <!-- Previous Page -->
+                            <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" 
+                                   asp-page="./Index" 
+                                   asp-route-pageNumber="@(Model.CurrentPage - 1)"
+                                   asp-route-roleId="@Model.SelectedRoleId"
+                                   asp-route-controlPointId="@Model.SelectedControlPointId"
+                                   asp-route-active="@Model.ActiveFilter">
+                                    <i class="bi bi-chevron-left"></i>
+                                </a>
+                            </li>
+
+                            @{
+                                var startPage = Math.Max(1, Model.CurrentPage - 2);
+                                var endPage = Math.Min(Model.TotalPages, Model.CurrentPage + 2);
+                            }
+
+                            @for (var i = startPage; i <= endPage; i++)
+                            {
+                                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                    <a class="page-link" 
+                                       asp-page="./Index" 
+                                       asp-route-pageNumber="@i"
+                                       asp-route-roleId="@Model.SelectedRoleId"
+                                       asp-route-controlPointId="@Model.SelectedControlPointId"
+                                       asp-route-active="@Model.ActiveFilter">
+                                        @i
+                                    </a>
+                                </li>
+                            }
+
+                            <!-- Next Page -->
+                            <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link" 
+                                   asp-page="./Index" 
+                                   asp-route-pageNumber="@(Model.CurrentPage + 1)"
+                                   asp-route-roleId="@Model.SelectedRoleId"
+                                   asp-route-controlPointId="@Model.SelectedControlPointId"
+                                   asp-route-active="@Model.ActiveFilter">
+                                    <i class="bi bi-chevron-right"></i>
+                                </a>
+                            </li>
+                            
+                            <!-- Last Page -->
+                            <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link" 
+                                   asp-page="./Index" 
+                                   asp-route-pageNumber="@Model.TotalPages"
+                                   asp-route-roleId="@Model.SelectedRoleId"
+                                   asp-route-controlPointId="@Model.SelectedControlPointId"
+                                   asp-route-active="@Model.ActiveFilter">
+                                    <i class="bi bi-chevron-double-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info" role="alert">
+            <i class="bi bi-info-circle"></i>
+            @if (Model.SelectedRoleId.HasValue || Model.SelectedControlPointId.HasValue || !string.IsNullOrWhiteSpace(Model.ActiveFilter))
+            {
+                <span>No se encontraron reglas de acceso que coincidan con los filtros seleccionados.</span>
+            }
+            else
+            {
+                <span>No hay reglas de acceso registradas.</span>
+            }
+        </div>
+    }
 </div>
 
-<div class="mt-4">
-    <a asp-page="/Menu" class="btn btn-secondary">Volver al Menú</a>
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro que desea eliminar esta regla de acceso?</p>
+                <p class="text-danger"><i class="bi bi-exclamation-triangle"></i> Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" id="deleteForm" style="display: inline;">
+                    <input type="hidden" name="id" id="deleteId" />
+                    <button type="submit" class="btn btn-danger" asp-page-handler="Delete">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
+@section Scripts {
+    <script>
+        function confirmDelete(id) {
+            document.getElementById('deleteId').value = id;
+            var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
+        }
+    </script>
+}

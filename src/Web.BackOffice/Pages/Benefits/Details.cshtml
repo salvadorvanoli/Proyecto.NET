@@ -1,0 +1,143 @@
+@page
+@model Web.BackOffice.Pages.Benefits.DetailsModel
+@{
+    ViewData["Title"] = "Detalles del Beneficio";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-gift-fill"></i> Detalles del Beneficio
+                </h1>
+                <a asp-page="Index" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Volver
+                </a>
+            </div>
+
+            @if (Model.ErrorMessage != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @Model.ErrorMessage
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <div class="card">
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-3">Tipo de Beneficio:</dt>
+                        <dd class="col-sm-9">
+                            <strong>@Model.Benefit.BenefitTypeName</strong>
+                        </dd>
+
+                        <dt class="col-sm-3">Cupos Disponibles:</dt>
+                        <dd class="col-sm-9">
+                            <span class="badge @(Model.Benefit.HasAvailableQuotas ? "bg-info" : "bg-secondary") fs-6">
+                                @Model.Benefit.Quotas cupos
+                            </span>
+                        </dd>
+
+                        <dt class="col-sm-3">Vigencia:</dt>
+                        <dd class="col-sm-9">
+                            @if (Model.Benefit.IsPermanent)
+                            {
+                                <span class="badge bg-primary">
+                                    <i class="bi bi-infinity"></i> Permanente
+                                </span>
+                                <br />
+                                <small class="text-muted">Este beneficio no tiene fecha de vencimiento</small>
+                            }
+                            else
+                            {
+                                <div>
+                                    <i class="bi bi-calendar-range"></i>
+                                    <strong>Inicio:</strong> @Model.Benefit.StartDate
+                                    <br />
+                                    <i class="bi bi-calendar-check"></i>
+                                    <strong>Fin:</strong> @Model.Benefit.EndDate
+                                </div>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-3">Estado:</dt>
+                        <dd class="col-sm-9">
+                            <span class="badge @(Model.Benefit.CanBeConsumed ? "bg-success" : "bg-secondary") fs-6">
+                                @(Model.Benefit.CanBeConsumed ? "Activo" : "Inactivo")
+                            </span>
+                            <br />
+                            @if (!Model.Benefit.IsValid)
+                            {
+                                <small class="text-muted">
+                                    <i class="bi bi-exclamation-circle"></i>
+                                    Este beneficio ha vencido
+                                </small>
+                            }
+                            else if (!Model.Benefit.HasAvailableQuotas)
+                            {
+                                <small class="text-muted">
+                                    <i class="bi bi-exclamation-circle"></i>
+                                    No quedan cupos disponibles
+                                </small>
+                            }
+                            else
+                            {
+                                <small class="text-success">
+                                    <i class="bi bi-check-circle"></i>
+                                    Beneficio disponible para consumo
+                                </small>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-3">Creado:</dt>
+                        <dd class="col-sm-9">
+                            <small class="text-muted">@Model.Benefit.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")</small>
+                        </dd>
+
+                        <dt class="col-sm-3">Última actualización:</dt>
+                        <dd class="col-sm-9">
+                            <small class="text-muted">@Model.Benefit.UpdatedAt.ToString("dd/MM/yyyy HH:mm:ss")</small>
+                        </dd>
+                    </dl>
+
+                    <hr />
+
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <a asp-page="Edit" asp-route-id="@Model.Benefit.Id" class="btn btn-primary">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>
+                            <a asp-page="Index" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Volver al listado
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (Model.Benefit.CanBeConsumed)
+            {
+                <div class="alert alert-success mt-3" role="alert">
+                    <i class="bi bi-check-circle"></i>
+                    <strong>Beneficio Activo:</strong> Este beneficio está disponible para ser consumido por los usuarios.
+                </div>
+            }
+            else if (!Model.Benefit.IsValid)
+            {
+                <div class="alert alert-warning mt-3" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Beneficio Vencido:</strong> Este beneficio ha superado su fecha de vigencia y no puede ser consumido.
+                </div>
+            }
+            else if (!Model.Benefit.HasAvailableQuotas)
+            {
+                <div class="alert alert-warning mt-3" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Sin Cupos:</strong> Este beneficio no tiene cupos disponibles. 
+                    Puede editar el beneficio para agregar más cupos.
+                </div>
+            }
+        </div>
+    </div>
+</div>

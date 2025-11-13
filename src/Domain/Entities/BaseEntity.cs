@@ -51,7 +51,7 @@ public abstract class BaseEntity
     {
         if (tenantId <= DomainConstants.NumericValidation.TransientEntityId)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "Tenant ID"),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "ID"),
                 nameof(tenantId));
 
         TenantId = tenantId;

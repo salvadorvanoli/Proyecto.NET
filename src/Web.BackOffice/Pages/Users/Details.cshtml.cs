@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Web.BackOffice.Models;
+using Shared.DTOs.Users;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.Users;
@@ -16,7 +16,7 @@ public class DetailsModel : PageModel
         _logger = logger;
     }
 
-    public new UserDto? User { get; set; }
+    public new UserResponse? User { get; set; }
 
     [TempData]
     public string? ErrorMessage { get; set; }

@@ -1,0 +1,112 @@
+﻿# Copia este archivo a terraform.tfvars y ajusta los valores
+# Comando: copy terraform.tfvars.example terraform.tfvars
+
+# Región de AWS donde desplegar
+aws_region   = "us-east-1"
+
+# Nombre del proyecto (usado para nombrar recursos)
+project_name = "proyectonet"
+
+# Ambiente (production, staging, development)
+environment  = "production"
+
+# ===================================
+# Configuración de Base de Datos
+# ===================================
+
+# Usuario administrador de la base de datos
+db_username = "dbadmin"
+
+# Contraseña de la base de datos
+# IMPORTANTE: Cambia esto por una contraseña segura
+# Requisitos: mínimo 8 caracteres, debe incluir letras y números
+db_password = "CambiameAhoraP0rFav0r!"
+
+# Nombre de la base de datos
+db_name     = "ProyectoNetDb"
+
+# Tipo de instancia RDS
+# Opciones comunes para Learner Lab:
+# - db.t3.micro (1 vCPU, 1 GB RAM) - Más económico
+# - db.t3.small (2 vCPU, 2 GB RAM) - Mejor rendimiento
+db_instance_class = "db.t3.micro"
+
+# ===================================
+# Configuración de ECS - API
+# ===================================
+
+# CPU para el contenedor API
+# Valores válidos: "256" (.25 vCPU), "512" (.5 vCPU), "1024" (1 vCPU), "2048" (2 vCPU)
+api_cpu = "256"
+
+# Memoria para el contenedor API (en MB)
+# Debe ser compatible con el CPU seleccionado
+# Para 256 CPU: 512, 1024, 2048
+# Para 512 CPU: 1024, 2048, 3072, 4096
+api_memory = "512"
+
+# Número de instancias de la API
+api_desired_count = 1
+
+# ===================================
+# Configuración de ECS - BackOffice
+# ===================================
+
+# CPU para el contenedor BackOffice
+backoffice_cpu = "256"
+
+# Memoria para el contenedor BackOffice (en MB)
+backoffice_memory = "512"
+
+# Número de instancias del BackOffice
+backoffice_desired_count = 1
+
+# ===================================
+# Configuración de JWT Authentication
+# ===================================
+
+# Secret key para firmar JWT tokens
+# IMPORTANTE: Cambia esto por un valor aleatorio y seguro
+# Debe tener al menos 32 caracteres para HS256
+jwt_secret = "ThisIsAVerySecretKeyForJWTTokenGenerationPleaseChangeInProduction!"
+
+# Emisor de los tokens JWT (normalmente el dominio de tu aplicación)
+jwt_issuer = "ProyectoNet"
+
+# Audiencia de los tokens JWT (clientes que pueden consumir la API)
+jwt_audience = "ProyectoNetClients"
+
+# Tiempo de vida de los tokens en minutos
+jwt_lifetime_minutes = 60
+
+# ===================================
+# Configuración de CORS
+# ===================================
+
+# Orígenes permitidos para CORS
+# IMPORTANTE: Puedes dejarlo vacío [] para usar automáticamente el DNS del ALB
+# Esto es útil cuando cada desarrollador despliega en su propia cuenta AWS
+# 
+# Opción 1 - Auto (Recomendado para dev/test): Deja el array vacío
+# cors_allowed_origins = []
+# → Se usará automáticamente: http://tu-alb-dns-generado.us-east-1.elb.amazonaws.com
+#
+# Opción 2 - Dominios personalizados (Para producción):
+# cors_allowed_origins = [
+#   "https://backoffice.tudominio.com",
+#   "https://app.tudominio.com",
+#   "https://www.tudominio.com"
+# ]
+#
+# Nota: Terraform usa formato de array. En docker-compose se usa formato de string separado por comas.
+cors_allowed_origins = []
+
+# ===================================
+# Configuración de Red (opcional)
+# ===================================
+
+# Si necesitas cambiar los rangos de red, descomenta y ajusta:
+# vpc_cidr = "10.0.0.0/16"
+# public_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24"]
+# private_subnet_cidrs = ["10.0.11.0/24", "10.0.12.0/24"]
+

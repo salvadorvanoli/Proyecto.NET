@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Web.BackOffice.Models;
+using Shared.DTOs.Users;
 using Web.BackOffice.Services;
 using System.Security.Claims;
 
@@ -18,8 +18,8 @@ public class IndexModel : PageModel
         _logger = logger;
     }
 
-    public IEnumerable<UserDto> Users { get; set; } = Enumerable.Empty<UserDto>();
-    public IEnumerable<UserDto> DisplayedUsers { get; set; } = Enumerable.Empty<UserDto>();
+    public IEnumerable<UserResponse> Users { get; set; } = Enumerable.Empty<UserResponse>();
+    public IEnumerable<UserResponse> DisplayedUsers { get; set; } = Enumerable.Empty<UserResponse>();
 
     // Paginación
     public int CurrentPage { get; set; } = 1;
@@ -40,7 +40,7 @@ public class IndexModel : PageModel
     {
         try
         {
-            Users = await _userApiService.GetAllUsersAsync();
+            Users = await _userApiService.GetUsersByTenantAsync();
 
             // Aplicar búsqueda si hay término de búsqueda
             var filteredUsers = Users.ToList();

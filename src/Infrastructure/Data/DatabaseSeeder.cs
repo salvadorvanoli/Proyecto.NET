@@ -16,9 +16,9 @@ public static class DatabaseSeeder
     public static async Task SeedAsync(IServiceProvider serviceProvider, IHostEnvironment environment)
     {
         // Seed in development OR if explicitly enabled via environment variable
-        var shouldSeed = environment.IsDevelopment() || 
+        var shouldSeed = environment.IsDevelopment() ||
                         Environment.GetEnvironmentVariable("SEED_DATABASE") == "true";
-        
+
         if (!shouldSeed)
         {
             return;
@@ -38,13 +38,13 @@ public static class DatabaseSeeder
             var tenant = new Tenant("Tenant Demo");
             context.Tenants.Add(tenant);
             await context.SaveChangesAsync();
-            
+
             Console.WriteLine($"Tenant creado: {tenant.Name} (ID: {tenant.Id})");
         }
 
         // Seed Admin Users for BackOffice
         var backofficeAdminExists = await context.Users
-            .AnyAsync(u => u.Email.StartsWith("admin") && u.Email.EndsWith("@backoffice.com"));
+            .AnyAsync(u => u.Email == "admin1@backoffice.com");
 
         if (!backofficeAdminExists)
         {
@@ -60,7 +60,7 @@ public static class DatabaseSeeder
 
             var adminUser = new User(
                 tenant.Id,
-                $"admin@backoffice.com",
+                $"admin1@backoffice.com",
                 passwordHash,
                 personalData
             );
@@ -68,7 +68,7 @@ public static class DatabaseSeeder
             context.Users.Add(adminUser);
             await context.SaveChangesAsync();
 
-            Console.WriteLine($"   Usuario creado: admin@backoffice.com");
+            Console.WriteLine($"   Usuario creado: admin1@backoffice.com");
 
             // Seed Role for BackOffice
             var adminRole = new Role(tenant.Id, "AdministradorBackoffice");
@@ -77,7 +77,7 @@ public static class DatabaseSeeder
 
             // Reload admin user with ID
             var savedAdminUser = await context.Users
-                .FirstAsync(u => u.Email == "admin@backoffice.com");
+                .FirstAsync(u => u.Email == "admin1@backoffice.com");
 
             savedAdminUser.AssignRole(adminRole);
             await context.SaveChangesAsync();
@@ -104,7 +104,7 @@ public static class DatabaseSeeder
         var otherUsersCount = await context.Users
             .Where(u => !u.Email.Contains("@backoffice.com"))
             .CountAsync();
-            
+
         if (otherUsersCount > 0)
         {
             Console.WriteLine($"\nOtros usuarios en el sistema: {otherUsersCount}");

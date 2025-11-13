@@ -16,9 +16,14 @@ public static class DomainConstants
         public const int NameMaxLength = 200;
 
         // User-related
-        public const int EmailMaxLength = 254; // RFC 5321 standard
+        public const int EmailMinLength = 5;
+        public const int EmailMaxLength = 256; // RFC 5321 standard (updated for validation)
+        public const int PasswordMinLength = 8;
+        public const int PasswordMaxLength = 100;
         public const int PasswordHashMaxLength = 512;
+        public const int FirstNameMinLength = 2;
         public const int FirstNameMaxLength = 100;
+        public const int LastNameMinLength = 2;
         public const int LastNameMaxLength = 100;
 
         // Location/Address
@@ -28,14 +33,26 @@ public static class DomainConstants
         public const int CountryMaxLength = 100;
 
         // Content/Descriptions
-        public const int TitleMaxLength = 300;
-        public const int DescriptionMaxLength = 1000;
+        public const int TitleMinLength = 5;
+        public const int TitleMaxLength = 200;
+        public const int DescriptionMinLength = 10;
+        public const int DescriptionMaxLength = 500;
+        public const int ContentMinLength = 10;
+        public const int ContentMaxLength = 5000;
         public const int MessageMaxLength = 500;
+        public const int UrlMaxLength = 500;
 
-        // Other entities
+        // Entity-specific names
+        public const int RoleNameMinLength = 2;
         public const int RoleNameMaxLength = 100;
+        public const int SpaceTypeNameMinLength = 2;
         public const int SpaceTypeNameMaxLength = 200;
+        public const int SpaceNameMinLength = 2;
+        public const int SpaceNameMaxLength = 200;
+        public const int ControlPointNameMinLength = 2;
         public const int ControlPointNameMaxLength = 200;
+        public const int BenefitTypeNameMinLength = 2;
+        public const int BenefitTypeNameMaxLength = 100;
     }
 
     /// <summary>
@@ -66,9 +83,11 @@ public static class DomainConstants
         public const int TransientEntityId = 0; // Entity not yet persisted
 
         // Quantity validation
-        public const int MinQuota = 0;
+        public const int MinQuota = 1;
         public const int MinQuantity = 0;
         public const int MinAmount = 0;
+        public const int MinRoleCount = 1;
+        public const int MinControlPointCount = 1;
     }
 
     /// <summary>
@@ -78,31 +97,31 @@ public static class DomainConstants
     public static class ErrorMessages
     {
         // Null/Empty validation
-        public const string CannotBeNullOrEmpty = "{0} cannot be null or empty.";
+        public const string CannotBeNullOrEmpty = "{0} no puede ser nulo o vacío.";
 
         // Length validation
-        public const string MinLengthRequired = "{0} must be at least {1} characters long.";
-        public const string MaxLengthExceeded = "{0} cannot exceed {1} characters.";
-        public const string LengthMustBeBetween = "{0} must be between {1} and {2} characters.";
+        public const string MinLengthRequired = "{0} debe tener al menos {1} caracteres.";
+        public const string MaxLengthExceeded = "{0} no puede exceder {1} caracteres.";
+        public const string LengthMustBeBetween = "{0} debe tener entre {1} y {2} caracteres.";
 
         // Numeric validation
-        public const string MustBeGreaterThanZero = "{0} must be greater than zero.";
-        public const string MustBeGreaterThanOrEqualTo = "{0} must be greater than or equal to {1}.";
-        public const string MustBeLessThanOrEqualTo = "{0} must be less than or equal to {1}.";
-        public const string MustBeBetween = "{0} must be between {1} and {2}.";
+        public const string MustBeGreaterThanZero = "{0} debe ser mayor que cero.";
+        public const string MustBeGreaterThanOrEqualTo = "{0} debe ser mayor o igual a {1}.";
+        public const string MustBeLessThanOrEqualTo = "{0} debe ser menor o igual a {1}.";
+        public const string MustBeBetween = "{0} debe estar entre {1} y {2}.";
 
         // Date/Time validation
-        public const string DateCannotBeBefore = "{0} cannot be before {1}.";
-        public const string DateCannotBeAfter = "{0} cannot be after {1}.";
-        public const string DateCannotBeInTheFuture = "{0} cannot be in the future.";
-        public const string InvalidDateFormat = "Invalid date format for {0}.";
-        public const string InvalidTimeFormat = "Invalid {0} format: {1}";
-        public const string TimeCannotBeNullOrEmpty = "{0} cannot be null or empty.";
+        public const string DateCannotBeBefore = "{0} no puede ser anterior a {1}.";
+        public const string DateCannotBeAfter = "{0} no puede ser posterior a {1}.";
+        public const string DateCannotBeInTheFuture = "{0} no puede estar en el futuro.";
+        public const string InvalidDateFormat = "Formato de fecha inválido para {0}.";
+        public const string InvalidTimeFormat = "Formato de {0} inválido: {1}";
+        public const string TimeCannotBeNullOrEmpty = "{0} no puede ser nulo o vacío.";
 
         // Entity validation
-        public const string InvalidEmailFormat = "Invalid email format.";
-        public const string InvalidCharacters = "{0} contains invalid characters.";
-        public const string MustBelongToSameTenant = "{0} must belong to the same tenant.";
+        public const string InvalidEmailFormat = "Formato de email inválido.";
+        public const string InvalidCharacters = "{0} contiene caracteres inválidos.";
+        public const string MustBelongToSameTenant = "{0} debe pertenecer al mismo tenant.";
     }
 
     /// <summary>
@@ -112,6 +131,9 @@ public static class DomainConstants
     {
         // Email validation (simplified RFC 5322)
         public const string Email = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
+        
+        // Time validation (HH:mm format)
+        public const string Time24Hour = @"^([01]?[0-9]|2[0-3]):[0-5][0-9]$";
 
         // Other patterns can be added here as needed
         // public const string PhoneNumber = @"^\+?[1-9]\d{1,14}$";

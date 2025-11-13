@@ -41,12 +41,12 @@ public class AccessEvent : BaseEntity
     {
         if (controlPointId <= DomainConstants.NumericValidation.TransientEntityId)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "Control point ID"),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "ID"),
                 nameof(controlPointId));
 
         if (userId <= DomainConstants.NumericValidation.TransientEntityId)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "User ID"),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "ID de usuario"),
                 nameof(userId));
 
         EventDateTime = eventDateTime;

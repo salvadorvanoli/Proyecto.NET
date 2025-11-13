@@ -1,6 +1,7 @@
-﻿using Application.Roles.DTOs;
-using Application.Roles.Services;
+using Shared.DTOs.Roles;
+using Application.Roles;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Web.Api.Controllers;
 
@@ -9,6 +10,7 @@ namespace Web.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "AdministradorBackoffice")]
 public class RolesController : ControllerBase
 {
     private readonly IRoleService _roleService;
@@ -34,7 +36,7 @@ public class RolesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<RoleResponse>> CreateRole(
-        [FromBody] CreateRoleRequest request,
+        [FromBody] RoleRequest request,
         CancellationToken cancellationToken)
     {
         try
@@ -122,7 +124,7 @@ public class RolesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<RoleResponse>> UpdateRole(
         int id,
-        [FromBody] UpdateRoleRequest request,
+        [FromBody] RoleRequest request,
         CancellationToken cancellationToken)
     {
         try

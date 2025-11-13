@@ -33,13 +33,13 @@ public class Usage : BaseEntity
     public Usage(int tenantId, int benefitId, int userId, int quantity) : base(tenantId)
     {
         if (benefitId <= DomainConstants.NumericValidation.TransientEntityId)
-            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "Benefit ID"), nameof(benefitId));
+            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "ID de beneficio"), nameof(benefitId));
 
         if (userId <= DomainConstants.NumericValidation.TransientEntityId)
-            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "User ID"), nameof(userId));
+            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "ID de usuario"), nameof(userId));
 
         if (quantity < DomainConstants.NumericValidation.MinQuantity)
-            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Quantity", DomainConstants.NumericValidation.MinQuantity), nameof(quantity));
+            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Cantidad", DomainConstants.NumericValidation.MinQuantity), nameof(quantity));
 
         BenefitId = benefitId;
         UserId = userId;
@@ -50,7 +50,7 @@ public class Usage : BaseEntity
     {
         if (quantity < DomainConstants.NumericValidation.MinQuantity)
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Quantity", DomainConstants.NumericValidation.MinQuantity),
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Cantidad", DomainConstants.NumericValidation.MinQuantity),
                 nameof(quantity));
 
         Quantity = quantity;

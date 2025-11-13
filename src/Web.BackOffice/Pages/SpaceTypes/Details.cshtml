@@ -1,0 +1,86 @@
+@page
+@model Web.BackOffice.Pages.SpaceTypes.DetailsModel
+@{
+    ViewData["Title"] = "Detalles del Tipo de Espacio";
+}
+
+<div class="mb-4">
+    <h1 class="display-4">Detalles del Tipo de Espacio</h1>
+</div>
+
+@if (Model.ErrorMessage != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Model.SpaceType != null)
+{
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-info-circle"></i> Información General
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">ID:</dt>
+                        <dd class="col-sm-8">@Model.SpaceType.Id</dd>
+
+                        <dt class="col-sm-4">Nombre:</dt>
+                        <dd class="col-sm-8">
+                            <strong>@Model.SpaceType.Name</strong>
+                        </dd>
+
+                        <dt class="col-sm-4">Tenant ID:</dt>
+                        <dd class="col-sm-8">@Model.SpaceType.TenantId</dd>
+
+                        <dt class="col-sm-4">Espacios Asignados:</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-info">@Model.SpaceType.SpaceCount</span>
+                            @if (Model.SpaceType.SpaceCount > 0)
+                            {
+                                <span class="text-muted ms-2">
+                                    <i class="bi bi-exclamation-triangle"></i>
+                                    No se puede eliminar mientras tenga espacios asignados
+                                </span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-4">Fecha de Creación:</dt>
+                        <dd class="col-sm-8">@Model.SpaceType.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")</dd>
+
+                        <dt class="col-sm-4">Última Actualización:</dt>
+                        <dd class="col-sm-8">@Model.SpaceType.UpdatedAt.ToString("dd/MM/yyyy HH:mm:ss")</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <div class="btn-group" role="group">
+            <a asp-page="/SpaceTypes/Edit"
+               asp-route-id="@Model.SpaceType.Id"
+               class="btn btn-warning">
+                <i class="bi bi-pencil"></i> Editar
+            </a>
+            <a asp-page="/SpaceTypes/Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver a la Lista
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i> No se encontró el tipo de espacio solicitado.
+    </div>
+    <a asp-page="/SpaceTypes/Index" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver a la Lista
+    </a>
+}

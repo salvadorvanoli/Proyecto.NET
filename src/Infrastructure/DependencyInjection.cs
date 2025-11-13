@@ -1,4 +1,5 @@
 using Application.Common.Interfaces;
+using Infrastructure.Data;
 using Infrastructure.Persistence;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Http;
@@ -28,10 +29,10 @@ public static class DependencyInjection
             options.UseSqlServer(connectionString);
 
             // Enable sensitive data logging in development
-#if DEBUG
-            options.EnableSensitiveDataLogging();
-            options.EnableDetailedErrors();
-#endif
+            #if DEBUG
+                options.EnableSensitiveDataLogging();
+                options.EnableDetailedErrors();
+            #endif
         });
 
         // Register ApplicationDbContext as IApplicationDbContext
@@ -42,6 +43,11 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddScoped<Application.Benefits.Services.IBenefitService, Services.Benefits.BenefitService>();
         services.AddScoped<Application.AccessEvents.Services.IAccessEventService, Services.AccessEvents.AccessEventService>();
+        // Token service for JWT generation
+        services.AddSingleton<ITokenService, TokenService>();
+
+        // Register database seeder
+        services.AddScoped<DbSeeder>();
 
         return services;
     }

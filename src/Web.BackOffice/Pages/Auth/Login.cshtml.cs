@@ -1,4 +1,4 @@
-﻿using Application.Auth.DTOs;
+﻿using Shared.DTOs.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;

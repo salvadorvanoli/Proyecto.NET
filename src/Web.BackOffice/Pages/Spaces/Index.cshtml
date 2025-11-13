@@ -4,12 +4,220 @@
     ViewData["Title"] = "Gestionar Espacios";
 }
 
-<div class="text-center">
+<div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="display-4">Gestionar Espacios</h1>
-    <p>Esta página permitirá administrar los espacios del sistema.</p>
+    <a asp-page="/Spaces/Create" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Crear Espacio
+    </a>
 </div>
 
+@if (Model.ErrorMessage != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Model.SuccessMessage != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Filtros y búsqueda -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text"
+                           class="form-control"
+                           name="searchTerm"
+                           value="@Model.SearchTerm"
+                           placeholder="Buscar espacios por nombre..." />
+                </div>
+            </div>
+            <div class="col-md-4">
+                <select class="form-select" name="spaceTypeFilter">
+                    <option value="">Todos los tipos</option>
+                    @foreach (var spaceType in Model.SpaceTypes)
+                    {
+                        <option value="@spaceType.Id" selected="@(Model.SpaceTypeFilter == spaceType.Id)">
+                            @spaceType.Name
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary flex-grow-1" type="submit">Buscar</button>
+                    @if (!string.IsNullOrWhiteSpace(Model.SearchTerm) || Model.SpaceTypeFilter.HasValue)
+                    {
+                        <a asp-page="/Spaces/Index" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i>
+                        </a>
+                    }
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Información de resultados -->
+@if (!string.IsNullOrWhiteSpace(Model.SearchTerm) || Model.SpaceTypeFilter.HasValue)
+{
+    <div class="alert alert-info">
+        <i class="bi bi-filter"></i> Mostrando <strong>@Model.TotalSpaces</strong> resultado(s)
+        @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+        {
+            <span> para "<strong>@Model.SearchTerm</strong>"</span>
+        }
+        @if (Model.SpaceTypeFilter.HasValue)
+        {
+            var selectedType = Model.SpaceTypes.FirstOrDefault(st => st.Id == Model.SpaceTypeFilter.Value);
+            if (selectedType != null)
+            {
+                <span> del tipo "<strong>@selectedType.Name</strong>"</span>
+            }
+        }
+    </div>
+}
+
+@if (Model.DisplayedSpaces == null || !Model.DisplayedSpaces.Any())
+{
+    @if (!string.IsNullOrWhiteSpace(Model.SearchTerm) || Model.SpaceTypeFilter.HasValue)
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-search"></i> No se encontraron espacios que coincidan con los filtros aplicados.
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> No hay espacios registrados en el sistema.
+        </div>
+    }
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Tipo de Espacio</th>
+                    <th>Puntos de Control</th>
+                    <th>Tenant ID</th>
+                    <th>Creado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var space in Model.DisplayedSpaces)
+                {
+                    <tr>
+                        <td>@space.Id</td>
+                        <td>
+                            <strong>@space.Name</strong>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">@space.SpaceTypeName</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">@space.ControlPointCount</span>
+                        </td>
+                        <td>@space.TenantId</td>
+                        <td>@space.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a asp-page="/Spaces/Details"
+                                   asp-route-id="@space.Id"
+                                   class="btn btn-sm btn-info"
+                                   title="Ver detalles">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a asp-page="/Spaces/Edit"
+                                   asp-route-id="@space.Id"
+                                   class="btn btn-sm btn-warning"
+                                   title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post"
+                                      asp-page-handler="Delete"
+                                      asp-route-id="@space.Id"
+                                      class="d-inline"
+                                      onsubmit="return confirm('¿Está seguro que desea eliminar el espacio \'@space.Name\'?');">
+                                    <button type="submit"
+                                            class="btn btn-sm btn-danger"
+                                            title="Eliminar">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginación -->
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="Paginación de espacios">
+            <ul class="pagination justify-content-center">
+                <!-- Botón anterior -->
+                <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                    <a class="page-link"
+                       asp-page="/Spaces/Index"
+                       asp-route-pageNumber="@(Model.CurrentPage - 1)"
+                       asp-route-searchTerm="@Model.SearchTerm"
+                       asp-route-spaceTypeFilter="@Model.SpaceTypeFilter">
+                        Anterior
+                    </a>
+                </li>
+
+                <!-- Números de página -->
+                @for (int i = 1; i <= Model.TotalPages; i++)
+                {
+                    <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                        <a class="page-link"
+                           asp-page="/Spaces/Index"
+                           asp-route-pageNumber="@i"
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-spaceTypeFilter="@Model.SpaceTypeFilter">
+                            @i
+                        </a>
+                    </li>
+                }
+
+                <!-- Botón siguiente -->
+                <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link"
+                       asp-page="/Spaces/Index"
+                       asp-route-pageNumber="@(Model.CurrentPage + 1)"
+                       asp-route-searchTerm="@Model.SearchTerm"
+                       asp-route-spaceTypeFilter="@Model.SpaceTypeFilter">
+                        Siguiente
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="text-center text-muted">
+            <small>Página @Model.CurrentPage de @Model.TotalPages (@Model.TotalSpaces espacios en total)</small>
+        </div>
+    }
+}
+
 <div class="mt-4">
-    <a asp-page="/Menu" class="btn btn-secondary">Volver al Menú</a>
+    <a asp-page="/Menu" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Volver al Menú
+    </a>
 </div>
 

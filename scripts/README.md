@@ -78,7 +78,7 @@ Script recomendado para desarrollo local que automatiza todo el proceso.
 El sistema carga automáticamente datos de prueba al iniciar en modo desarrollo:
 
 - **Tenant Demo**: Tenant de prueba para desarrollo
-- **Usuario Admin**: `admin@backoffice.com` / `Admin123!`
+- **Usuario Admin**: `admin1@backoffice.com` / `Admin123!`
 
 Los datos se cargan desde el código C# (`DatabaseSeeder.cs` en Infrastructure) cuando `SEED_DATABASE=true`.
 

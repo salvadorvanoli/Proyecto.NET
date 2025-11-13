@@ -1,6 +1,7 @@
-﻿using Application.News.DTOs;
-using Application.News.Services;
+using Shared.DTOs.News;
+using Application.News;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Web.Api.Controllers;
 
@@ -9,6 +10,7 @@ namespace Web.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class NewsController : ControllerBase
 {
     private readonly INewsService _newsService;
@@ -30,11 +32,12 @@ public class NewsController : ControllerBase
     /// <response code="400">Invalid request.</response>
     /// <response code="500">An error occurred while creating the news.</response>
     [HttpPost]
-    [ProducesResponseType(typeof(NewsResponseDto), StatusCodes.Status201Created)]
+    [Authorize(Roles = "AdministradorBackoffice")]
+    [ProducesResponseType(typeof(NewsResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<NewsResponseDto>> CreateNews(
-        [FromBody] CreateNewsRequest request,
+    public async Task<ActionResult<NewsResponse>> CreateNews(
+        [FromBody] NewsRequest request,
         CancellationToken cancellationToken)
     {
         try
@@ -67,9 +70,9 @@ public class NewsController : ControllerBase
     /// <response code="200">News found.</response>
     /// <response code="404">News not found.</response>
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(NewsResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(NewsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<NewsResponseDto>> GetNewsById(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult<NewsResponse>> GetNewsById(int id, CancellationToken cancellationToken)
     {
         var news = await _newsService.GetNewsByIdAsync(id, cancellationToken);
 
@@ -88,10 +91,10 @@ public class NewsController : ControllerBase
     /// <returns>List of news articles.</returns>
     /// <response code="200">News retrieved successfully.</response>
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<NewsResponseDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<NewsResponseDto>>> GetAllNews(CancellationToken cancellationToken)
+    [ProducesResponseType(typeof(IEnumerable<NewsResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<NewsResponse>>> GetNewsByTenant(CancellationToken cancellationToken)
     {
-        var news = await _newsService.GetAllNewsAsync(cancellationToken);
+        var news = await _newsService.GetNewsByTenantAsync(cancellationToken);
         return Ok(news);
     }
 
@@ -106,12 +109,13 @@ public class NewsController : ControllerBase
     /// <response code="404">News not found.</response>
     /// <response code="400">Invalid request.</response>
     [HttpPut("{id}")]
-    [ProducesResponseType(typeof(NewsResponseDto), StatusCodes.Status200OK)]
+    [Authorize(Roles = "AdministradorBackoffice")]
+    [ProducesResponseType(typeof(NewsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<NewsResponseDto>> UpdateNews(
+    public async Task<ActionResult<NewsResponse>> UpdateNews(
         int id,
-        [FromBody] UpdateNewsRequest request,
+        [FromBody] NewsRequest request,
         CancellationToken cancellationToken)
     {
         try
@@ -143,6 +147,7 @@ public class NewsController : ControllerBase
     /// <response code="204">News deleted successfully.</response>
     /// <response code="404">News not found.</response>
     [HttpDelete("{id}")]
+    [Authorize(Roles = "AdministradorBackoffice")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteNews(int id, CancellationToken cancellationToken)

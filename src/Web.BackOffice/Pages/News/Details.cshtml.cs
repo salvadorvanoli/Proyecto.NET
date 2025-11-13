@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Web.BackOffice.Models;
+using Shared.DTOs.News;
 using Web.BackOffice.Services;
 
 namespace Web.BackOffice.Pages.News;
@@ -16,7 +16,7 @@ public class DetailsModel : PageModel
         _logger = logger;
     }
 
-    public NewsDto? News { get; set; }
+    public NewsResponse? News { get; set; }
 
     [TempData]
     public string? ErrorMessage { get; set; }

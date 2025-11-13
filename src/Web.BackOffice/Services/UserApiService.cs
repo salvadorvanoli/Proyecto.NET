@@ -1,5 +1,5 @@
 ﻿using System.Net.Http.Json;
-using Web.BackOffice.Models;
+using Shared.DTOs.Users;
 
 namespace Web.BackOffice.Services;
 
@@ -18,12 +18,12 @@ public class UserApiService : IUserApiService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<UserDto>> GetAllUsersAsync()
+    public async Task<IEnumerable<UserResponse>> GetUsersByTenantAsync()
     {
         try
         {
-            var users = await _httpClient.GetFromJsonAsync<IEnumerable<UserDto>>(BaseUrl);
-            return users ?? Enumerable.Empty<UserDto>();
+            var users = await _httpClient.GetFromJsonAsync<IEnumerable<UserResponse>>(BaseUrl);
+            return users ?? Enumerable.Empty<UserResponse>();
         }
         catch (Exception ex)
         {
@@ -32,11 +32,11 @@ public class UserApiService : IUserApiService
         }
     }
 
-    public async Task<UserDto?> GetUserByIdAsync(int id)
+    public async Task<UserResponse?> GetUserByIdAsync(int id)
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<UserDto>($"{BaseUrl}/{id}");
+            return await _httpClient.GetFromJsonAsync<UserResponse>($"{BaseUrl}/{id}");
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -49,14 +49,14 @@ public class UserApiService : IUserApiService
         }
     }
 
-    public async Task<UserDto> CreateUserAsync(CreateUserDto createUserDto)
+    public async Task<UserResponse> CreateUserAsync(CreateUserRequest createUserDto)
     {
         try
         {
             var response = await _httpClient.PostAsJsonAsync(BaseUrl, createUserDto);
             response.EnsureSuccessStatusCode();
 
-            var user = await response.Content.ReadFromJsonAsync<UserDto>();
+            var user = await response.Content.ReadFromJsonAsync<UserResponse>();
             return user ?? throw new InvalidOperationException("Failed to deserialize user response");
         }
         catch (Exception ex)
@@ -66,14 +66,14 @@ public class UserApiService : IUserApiService
         }
     }
 
-    public async Task<UserDto> UpdateUserAsync(int id, UpdateUserDto updateUserDto)
+    public async Task<UserResponse> UpdateUserAsync(int id, UpdateUserRequest updateUserDto)
     {
         try
         {
             var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", updateUserDto);
             response.EnsureSuccessStatusCode();
 
-            var user = await response.Content.ReadFromJsonAsync<UserDto>();
+            var user = await response.Content.ReadFromJsonAsync<UserResponse>();
             return user ?? throw new InvalidOperationException("Failed to deserialize user response");
         }
         catch (Exception ex)

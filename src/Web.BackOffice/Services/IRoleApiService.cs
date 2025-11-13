@@ -1,4 +1,4 @@
-﻿using Web.BackOffice.Models;
+﻿using Shared.DTOs.Roles;
 
 namespace Web.BackOffice.Services;
 
@@ -7,12 +7,12 @@ namespace Web.BackOffice.Services;
 /// </summary>
 public interface IRoleApiService
 {
-    Task<IEnumerable<RoleDto>> GetAllRolesAsync();
-    Task<RoleDto?> GetRoleByIdAsync(int id);
-    Task<RoleDto> CreateRoleAsync(CreateRoleDto createRoleDto);
-    Task<RoleDto> UpdateRoleAsync(int id, UpdateRoleDto updateRoleDto);
+    Task<IEnumerable<RoleResponse>> GetRolesByTenantAsync();
+    Task<RoleResponse?> GetRoleByIdAsync(int id);
+    Task<RoleResponse> CreateRoleAsync(RoleRequest createRoleDto);
+    Task<RoleResponse> UpdateRoleAsync(int id, RoleRequest updateRoleDto);
     Task<bool> DeleteRoleAsync(int id);
-    Task AssignRolesToUserAsync(int userId, AssignRoleDto assignRoleDto);
-    Task<IEnumerable<RoleDto>> GetUserRolesAsync(int userId);
+    Task AssignRolesToUserAsync(int userId, AssignRoleRequest assignRoleDto);
+    Task<IEnumerable<RoleResponse>> GetUserRolesAsync(int userId);
 }
 

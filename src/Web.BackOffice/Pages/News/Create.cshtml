@@ -20,28 +20,28 @@
             <div class="card-body">
                 <form method="post">
                     <div class="mb-3">
-                        <label asp-for="Input.Title" class="form-label">Título</label>
-                        <input asp-for="Input.Title" class="form-control" required />
-                        <span asp-validation-for="Input.Title" class="text-danger"></span>
+                        <label asp-for="News.Title" class="form-label">Título</label>
+                        <input asp-for="News.Title" class="form-control" required />
+                        <span asp-validation-for="News.Title" class="text-danger"></span>
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="Input.Content" class="form-label">Contenido</label>
-                        <textarea asp-for="Input.Content" class="form-control" rows="10" required></textarea>
-                        <span asp-validation-for="Input.Content" class="text-danger"></span>
+                        <label asp-for="News.Content" class="form-label">Contenido</label>
+                        <textarea asp-for="News.Content" class="form-control" rows="10" required></textarea>
+                        <span asp-validation-for="News.Content" class="text-danger"></span>
                         <div class="form-text">Máximo 5000 caracteres.</div>
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="Input.PublishDate" class="form-label">Fecha de Publicación</label>
-                        <input asp-for="Input.PublishDate" class="form-control" type="datetime-local" required />
-                        <span asp-validation-for="Input.PublishDate" class="text-danger"></span>
+                        <label asp-for="News.PublishDate" class="form-label">Fecha de Publicación</label>
+                        <input asp-for="News.PublishDate" class="form-control" type="datetime-local" required />
+                        <span asp-validation-for="News.PublishDate" class="text-danger"></span>
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="Input.ImageUrl" class="form-label">URL de la Imagen</label>
-                        <input asp-for="Input.ImageUrl" class="form-control" type="url" placeholder="https://ejemplo.com/imagen.jpg" />
-                        <span asp-validation-for="Input.ImageUrl" class="text-danger"></span>
+                        <label asp-for="News.ImageUrl" class="form-label">URL de la Imagen</label>
+                        <input asp-for="News.ImageUrl" class="form-control" type="url" placeholder="https://ejemplo.com/imagen.jpg" />
+                        <span asp-validation-for="News.ImageUrl" class="text-danger"></span>
                         <div class="form-text">Ingrese la URL completa de la imagen (opcional).</div>
                     </div>
 

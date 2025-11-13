@@ -1,0 +1,204 @@
+@page
+@model Web.BackOffice.Pages.AccessRules.DetailsModel
+@{
+    ViewData["Title"] = "Detalles de la Regla de Acceso";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3">
+                <i class="bi bi-shield-lock"></i> Detalles de la Regla de Acceso
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-page="/Index">Inicio</a></li>
+                    <li class="breadcrumb-item"><a asp-page="Index">Reglas de Acceso</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Detalles</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle"></i> @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Información de la Regla de Acceso</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Estado:</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.AccessRule.IsActive)
+                            {
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Activa
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-x-circle"></i> Inactiva
+                                </span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-4">Horario de Acceso:</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.AccessRule.Is24x7)
+                            {
+                                <span class="badge bg-primary">24/7 - Sin restricción de horario</span>
+                            }
+                            else
+                            {
+                                <strong>@Model.AccessRule.StartTime - @Model.AccessRule.EndTime</strong>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-4">Periodo de Validez:</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.AccessRule.IsPermanent)
+                            {
+                                <span class="badge bg-info">Permanente - Sin fecha de expiración</span>
+                            }
+                            else
+                            {
+                                <strong>@Model.AccessRule.StartDate?.ToString("dd/MM/yyyy") - @Model.AccessRule.EndDate?.ToString("dd/MM/yyyy")</strong>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-4">ID:</dt>
+                        <dd class="col-sm-8">@Model.AccessRule.Id</dd>
+
+                        <dt class="col-sm-4">Tenant ID:</dt>
+                        <dd class="col-sm-8">@Model.AccessRule.TenantId</dd>
+
+                        <dt class="col-sm-4">Creado:</dt>
+                        <dd class="col-sm-8">@Model.AccessRule.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")</dd>
+
+                        <dt class="col-sm-4">Actualizado:</dt>
+                        <dd class="col-sm-8">@Model.AccessRule.UpdatedAt.ToString("dd/MM/yyyy HH:mm:ss")</dd>
+                    </dl>
+
+                    <hr class="my-4">
+
+                    <h6 class="mb-3"><i class="bi bi-people"></i> Roles con Acceso</h6>
+                    @if (Model.AccessRule.RoleNames.Any())
+                    {
+                        <div class="mb-3">
+                            @foreach (var roleName in Model.AccessRule.RoleNames)
+                            {
+                                <span class="badge bg-secondary me-2 mb-2 fs-6">
+                                    <i class="bi bi-person-badge"></i> @roleName
+                                </span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No hay roles asignados a esta regla.</p>
+                    }
+
+                    <hr class="my-4">
+
+                    <h6 class="mb-3"><i class="bi bi-geo-alt"></i> Puntos de Control</h6>
+                    @if (Model.AccessRule.ControlPointNames.Any())
+                    {
+                        <div class="mb-3">
+                            @foreach (var cpName in Model.AccessRule.ControlPointNames)
+                            {
+                                <span class="badge bg-dark me-2 mb-2 fs-6">
+                                    <i class="bi bi-geo-alt-fill"></i> @cpName
+                                </span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No hay puntos de control asignados a esta regla.</p>
+                    }
+
+                    <div class="d-flex gap-2 mt-4">
+                        <a asp-page="Edit" asp-route-id="@Model.AccessRule.Id" class="btn btn-primary">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                        <a asp-page="Index" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Volver
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-info-circle"></i> Resumen
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Roles:</span>
+                        <strong>@Model.AccessRule.RoleNames.Count</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Puntos de Control:</span>
+                        <strong>@Model.AccessRule.ControlPointNames.Count</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Tipo de Acceso:</span>
+                        <strong>@(Model.AccessRule.Is24x7 ? "24/7" : "Horario Limitado")</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Duración:</span>
+                        <strong>@(Model.AccessRule.IsPermanent ? "Permanente" : "Temporal")</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-clock-history"></i> Estado Actual
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.AccessRule.IsActive)
+                    {
+                        <div class="alert alert-success" role="alert">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <strong>Regla Activa</strong>
+                            <p class="mb-0 small mt-2">Esta regla está actualmente activa y permitiendo accesos según la configuración establecida.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <strong>Regla Inactiva</strong>
+                            <p class="mb-0 small mt-2">Esta regla no está activa actualmente. Puede estar fuera del horario o periodo de validez configurado.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,5 +1,5 @@
 ﻿using System.Net.Http.Json;
-using Web.BackOffice.Models;
+using Shared.DTOs.Roles;
 
 namespace Web.BackOffice.Services;
 
@@ -18,12 +18,12 @@ public class RoleApiService : IRoleApiService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<RoleDto>> GetAllRolesAsync()
+    public async Task<IEnumerable<RoleResponse>> GetRolesByTenantAsync()
     {
         try
         {
-            var roles = await _httpClient.GetFromJsonAsync<IEnumerable<RoleDto>>(BaseUrl);
-            return roles ?? Enumerable.Empty<RoleDto>();
+            var roles = await _httpClient.GetFromJsonAsync<IEnumerable<RoleResponse>>(BaseUrl);
+            return roles ?? Enumerable.Empty<RoleResponse>();
         }
         catch (Exception ex)
         {
@@ -32,11 +32,11 @@ public class RoleApiService : IRoleApiService
         }
     }
 
-    public async Task<RoleDto?> GetRoleByIdAsync(int id)
+    public async Task<RoleResponse?> GetRoleByIdAsync(int id)
     {
         try
         {
-            return await _httpClient.GetFromJsonAsync<RoleDto>($"{BaseUrl}/{id}");
+            return await _httpClient.GetFromJsonAsync<RoleResponse>($"{BaseUrl}/{id}");
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -49,14 +49,14 @@ public class RoleApiService : IRoleApiService
         }
     }
 
-    public async Task<RoleDto> CreateRoleAsync(CreateRoleDto createRoleDto)
+    public async Task<RoleResponse> CreateRoleAsync(RoleRequest createRoleDto)
     {
         try
         {
             var response = await _httpClient.PostAsJsonAsync(BaseUrl, createRoleDto);
             response.EnsureSuccessStatusCode();
 
-            var role = await response.Content.ReadFromJsonAsync<RoleDto>();
+            var role = await response.Content.ReadFromJsonAsync<RoleResponse>();
             return role ?? throw new InvalidOperationException("Failed to deserialize role response");
         }
         catch (Exception ex)
@@ -66,14 +66,14 @@ public class RoleApiService : IRoleApiService
         }
     }
 
-    public async Task<RoleDto> UpdateRoleAsync(int id, UpdateRoleDto updateRoleDto)
+    public async Task<RoleResponse> UpdateRoleAsync(int id, RoleRequest updateRoleDto)
     {
         try
         {
             var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", updateRoleDto);
             response.EnsureSuccessStatusCode();
 
-            var role = await response.Content.ReadFromJsonAsync<RoleDto>();
+            var role = await response.Content.ReadFromJsonAsync<RoleResponse>();
             return role ?? throw new InvalidOperationException("Failed to deserialize role response");
         }
         catch (Exception ex)
@@ -111,7 +111,7 @@ public class RoleApiService : IRoleApiService
         }
     }
 
-    public async Task AssignRolesToUserAsync(int userId, AssignRoleDto assignRoleDto)
+    public async Task AssignRolesToUserAsync(int userId, AssignRoleRequest assignRoleDto)
     {
         try
         {
@@ -125,12 +125,12 @@ public class RoleApiService : IRoleApiService
         }
     }
 
-    public async Task<IEnumerable<RoleDto>> GetUserRolesAsync(int userId)
+    public async Task<IEnumerable<RoleResponse>> GetUserRolesAsync(int userId)
     {
         try
         {
-            var roles = await _httpClient.GetFromJsonAsync<IEnumerable<RoleDto>>($"{BaseUrl}/user/{userId}");
-            return roles ?? Enumerable.Empty<RoleDto>();
+            var roles = await _httpClient.GetFromJsonAsync<IEnumerable<RoleResponse>>($"{BaseUrl}/user/{userId}");
+            return roles ?? Enumerable.Empty<RoleResponse>();
         }
         catch (Exception ex)
         {

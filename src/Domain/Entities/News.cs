@@ -37,16 +37,38 @@ public class News : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Title"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Título"),
                 nameof(title));
 
         if (string.IsNullOrWhiteSpace(content))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Content"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Contenido"),
                 nameof(content));
 
-        Title = title.Trim();
-        Content = content.Trim();
+        var trimmedTitle = title.Trim();
+        if (trimmedTitle.Length < DomainConstants.StringLengths.TitleMinLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MinLengthRequired, "Título", DomainConstants.StringLengths.TitleMinLength),
+                nameof(title));
+
+        if (trimmedTitle.Length > DomainConstants.StringLengths.TitleMaxLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MaxLengthExceeded, "Título", DomainConstants.StringLengths.TitleMaxLength),
+                nameof(title));
+
+        var trimmedContent = content.Trim();
+        if (trimmedContent.Length < DomainConstants.StringLengths.ContentMinLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MinLengthRequired, "Contenido", DomainConstants.StringLengths.ContentMinLength),
+                nameof(content));
+
+        if (trimmedContent.Length > DomainConstants.StringLengths.ContentMaxLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MaxLengthExceeded, "Contenido", DomainConstants.StringLengths.ContentMaxLength),
+                nameof(content));
+
+        Title = trimmedTitle;
+        Content = trimmedContent;
         PublishDate = publishDate;
         ImageUrl = imageUrl?.Trim();
     }
@@ -58,16 +80,38 @@ public class News : BaseEntity
     {
         if (string.IsNullOrWhiteSpace(title))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Title"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Título"),
                 nameof(title));
 
         if (string.IsNullOrWhiteSpace(content))
             throw new ArgumentException(
-                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Content"),
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Contenido"),
                 nameof(content));
 
-        Title = title.Trim();
-        Content = content.Trim();
+        var trimmedTitle = title.Trim();
+        if (trimmedTitle.Length < DomainConstants.StringLengths.TitleMinLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MinLengthRequired, "Título", DomainConstants.StringLengths.TitleMinLength),
+                nameof(title));
+
+        if (trimmedTitle.Length > DomainConstants.StringLengths.TitleMaxLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MaxLengthExceeded, "Título", DomainConstants.StringLengths.TitleMaxLength),
+                nameof(title));
+
+        var trimmedContent = content.Trim();
+        if (trimmedContent.Length < DomainConstants.StringLengths.ContentMinLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MinLengthRequired, "Contenido", DomainConstants.StringLengths.ContentMinLength),
+                nameof(content));
+
+        if (trimmedContent.Length > DomainConstants.StringLengths.ContentMaxLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MaxLengthExceeded, "Contenido", DomainConstants.StringLengths.ContentMaxLength),
+                nameof(content));
+
+        Title = trimmedTitle;
+        Content = trimmedContent;
         ImageUrl = imageUrl?.Trim();
         UpdateTimestamp();
     }

@@ -22,7 +22,7 @@ public static class HealthCheckConfiguration
                 tags: new[] { "db", "sql", "sqlserver" });
         }
 
-        var apiBaseUrl = configuration["ApiSettings:BaseUrl"];
+        var apiBaseUrl = configuration["API_BASE_URL"];
         if (!string.IsNullOrEmpty(apiBaseUrl))
         {
             healthChecksBuilder.AddUrlGroup(
@@ -56,17 +56,17 @@ public static class HealthCheckConfiguration
                 });
                 await context.Response.WriteAsync(result);
             }
-        });
+        }).AllowAnonymous(); // Permitir acceso sin autenticación
 
         endpoints.MapHealthChecks("/health/live", new HealthCheckOptions
         {
             Predicate = _ => false
-        });
+        }).AllowAnonymous(); // Permitir acceso sin autenticación
 
         endpoints.MapHealthChecks("/health/ready", new HealthCheckOptions
         {
             Predicate = check => check.Tags.Contains("db") || check.Tags.Contains("api")
-        });
+        }).AllowAnonymous(); // Permitir acceso sin autenticación
 
         return endpoints;
     }

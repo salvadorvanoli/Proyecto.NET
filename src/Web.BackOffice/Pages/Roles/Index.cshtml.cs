@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Web.BackOffice.Models;
+using Shared.DTOs.Roles;
 using Web.BackOffice.Services;
 using Domain.Constants;
 
@@ -18,8 +18,8 @@ public class IndexModel : PageModel
         _logger = logger;
     }
 
-    public IEnumerable<RoleDto> Roles { get; set; } = Enumerable.Empty<RoleDto>();
-    public IEnumerable<RoleDto> DisplayedRoles { get; set; } = Enumerable.Empty<RoleDto>();
+    public IEnumerable<RoleResponse> Roles { get; set; } = Enumerable.Empty<RoleResponse>();
+    public IEnumerable<RoleResponse> DisplayedRoles { get; set; } = Enumerable.Empty<RoleResponse>();
 
     // Paginación
     public int CurrentPage { get; set; } = 1;
@@ -40,7 +40,7 @@ public class IndexModel : PageModel
     {
         try
         {
-            Roles = await _roleApiService.GetAllRolesAsync();
+            Roles = await _roleApiService.GetRolesByTenantAsync();
 
             // Aplicar búsqueda si hay término de búsqueda
             var filteredRoles = Roles.ToList();

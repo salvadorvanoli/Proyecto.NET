@@ -1,4 +1,4 @@
-﻿using Web.BackOffice.Models;
+﻿using Shared.DTOs.News;
 
 namespace Web.BackOffice.Services;
 
@@ -7,10 +7,10 @@ namespace Web.BackOffice.Services;
 /// </summary>
 public interface INewsApiService
 {
-    Task<IEnumerable<NewsDto>> GetAllNewsAsync();
-    Task<NewsDto?> GetNewsByIdAsync(int id);
-    Task<NewsDto> CreateNewsAsync(CreateNewsDto createNewsDto);
-    Task<NewsDto> UpdateNewsAsync(int id, UpdateNewsDto updateNewsDto);
+    Task<IEnumerable<NewsResponse>> GetNewsByTenantAsync();
+    Task<NewsResponse?> GetNewsByIdAsync(int id);
+    Task<NewsResponse> CreateNewsAsync(NewsRequest createNewsDto);
+    Task<NewsResponse> UpdateNewsAsync(int id, NewsRequest updateNewsDto);
     Task<bool> DeleteNewsAsync(int id);
 }
 

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Web.BackOffice.Models;
+using Shared.DTOs.Roles;
+using Shared.DTOs.Users;
 using Web.BackOffice.Services;
 using System.Security.Claims;
 
@@ -23,10 +24,10 @@ public class DetailsModel : PageModel
         _logger = logger;
     }
 
-    public RoleDto? Role { get; set; }
-    public IEnumerable<UserDto> AllUsers { get; set; } = Enumerable.Empty<UserDto>();
-    public IEnumerable<UserDto> DisplayedUsers { get; set; } = Enumerable.Empty<UserDto>();
-    public IEnumerable<UserDto> UsersWithRole { get; set; } = Enumerable.Empty<UserDto>();
+    public RoleResponse? Role { get; set; }
+    public IEnumerable<UserResponse> AllUsers { get; set; } = Enumerable.Empty<UserResponse>();
+    public IEnumerable<UserResponse> DisplayedUsers { get; set; } = Enumerable.Empty<UserResponse>();
+    public IEnumerable<UserResponse> UsersWithRole { get; set; } = Enumerable.Empty<UserResponse>();
     public int CurrentUserId { get; set; }
 
     // Paginación
@@ -64,7 +65,7 @@ public class DetailsModel : PageModel
             }
 
             // Load all users in the tenant
-            AllUsers = await _userApiService.GetAllUsersAsync();
+            AllUsers = await _userApiService.GetUsersByTenantAsync();
 
             // Aplicar búsqueda si hay término de búsqueda
             var filteredUsers = AllUsers;
@@ -113,7 +114,7 @@ public class DetailsModel : PageModel
             }
 
             // Get all users in the tenant
-            var allUsers = await _userApiService.GetAllUsersAsync();
+            var allUsers = await _userApiService.GetUsersByTenantAsync();
             var allUsersList = allUsers.ToList();
 
             // For each user, assign or remove the role based on selection
@@ -152,7 +153,7 @@ public class DetailsModel : PageModel
                 }
 
                 // Update user's roles
-                var assignRoleDto = new AssignRoleDto
+                var assignRoleDto = new AssignRoleRequest
                 {
                     RoleIds = userRoleIds
                 };
@@ -171,12 +172,12 @@ public class DetailsModel : PageModel
         }
     }
 
-    private async Task<IEnumerable<UserDto>> GetUsersWithRoleAsync(int roleId)
+    private async Task<IEnumerable<UserResponse>> GetUsersWithRoleAsync(int roleId)
     {
         try
         {
-            var allUsers = await _userApiService.GetAllUsersAsync();
-            var usersWithRole = new List<UserDto>();
+            var allUsers = await _userApiService.GetUsersByTenantAsync();
+            var usersWithRole = new List<UserResponse>();
 
             foreach (var user in allUsers)
             {
@@ -192,7 +193,7 @@ public class DetailsModel : PageModel
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting users with role {RoleId}", roleId);
-            return Enumerable.Empty<UserDto>();
+            return Enumerable.Empty<UserResponse>();
         }
     }
 }

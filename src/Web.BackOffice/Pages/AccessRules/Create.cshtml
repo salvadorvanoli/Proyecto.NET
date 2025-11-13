@@ -1,0 +1,229 @@
+@page
+@model Web.BackOffice.Pages.AccessRules.CreateModel
+@{
+    ViewData["Title"] = "Crear Regla de Acceso";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3">
+                <i class="bi bi-shield-lock"></i> Crear Regla de Acceso
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-page="/Index">Inicio</a></li>
+                    <li class="breadcrumb-item"><a asp-page="Index">Reglas de Acceso</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Crear</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    @if (Model.ErrorMessage != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Información de la Regla de Acceso</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                        <!-- Roles Section -->
+                        <div class="mb-4">
+                            <label asp-for="AccessRule.RoleIds" class="form-label">
+                                Roles <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="AccessRule.RoleIds" 
+                                    asp-items="Model.Roles"
+                                    class="form-select"
+                                    multiple
+                                    size="5">
+                            </select>
+                            <span asp-validation-for="AccessRule.RoleIds" class="text-danger"></span>
+                            <div class="form-text">
+                                Seleccione los roles que tendrán acceso con esta regla. Mantenga presionada la tecla Ctrl (Cmd en Mac) para seleccionar múltiples roles.
+                            </div>
+                        </div>
+
+                        <!-- Control Points Section -->
+                        <div class="mb-4">
+                            <label asp-for="AccessRule.ControlPointIds" class="form-label">
+                                Puntos de Control <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="AccessRule.ControlPointIds" 
+                                    asp-items="Model.ControlPoints"
+                                    class="form-select"
+                                    multiple
+                                    size="5">
+                            </select>
+                            <span asp-validation-for="AccessRule.ControlPointIds" class="text-danger"></span>
+                            <div class="form-text">
+                                Seleccione los puntos de control donde se aplicará esta regla. Mantenga presionada la tecla Ctrl (Cmd en Mac) para seleccionar múltiples puntos.
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Time Range Section -->
+                        <div class="mb-3">
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       id="use24x7" 
+                                       asp-for="Use24x7"
+                                       onchange="toggleTimeInputs()">
+                                <label class="form-check-label" for="use24x7">
+                                    <strong>Acceso 24/7</strong> (Sin restricción de horario)
+                                </label>
+                            </div>
+                            
+                            <div id="timeInputs">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label asp-for="AccessRule.StartTime" class="form-label">Hora Inicio</label>
+                                        <input asp-for="AccessRule.StartTime" 
+                                               type="time" 
+                                               class="form-control" />
+                                        <span asp-validation-for="AccessRule.StartTime" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="AccessRule.EndTime" class="form-label">Hora Fin</label>
+                                        <input asp-for="AccessRule.EndTime" 
+                                               type="time" 
+                                               class="form-control" />
+                                        <span asp-validation-for="AccessRule.EndTime" class="text-danger"></span>
+                                    </div>
+                                </div>
+                                <div class="form-text mt-2">
+                                    <i class="bi bi-info-circle"></i> Puede configurar horarios que crucen la medianoche (ej: 22:00 - 02:00)
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <!-- Date Range Section -->
+                        <div class="mb-3">
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" 
+                                       type="checkbox" 
+                                       id="usePermanent" 
+                                       asp-for="UsePermanent"
+                                       onchange="toggleDateInputs()">
+                                <label class="form-check-label" for="usePermanent">
+                                    <strong>Acceso Permanente</strong> (Sin fecha de expiración)
+                                </label>
+                            </div>
+                            
+                            <div id="dateInputs">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label asp-for="AccessRule.StartDate" class="form-label">Fecha Inicio</label>
+                                        <input asp-for="AccessRule.StartDate" 
+                                               type="date" 
+                                               class="form-control" />
+                                        <span asp-validation-for="AccessRule.StartDate" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="AccessRule.EndDate" class="form-label">Fecha Fin</label>
+                                        <input asp-for="AccessRule.EndDate" 
+                                               type="date" 
+                                               class="form-control" />
+                                        <span asp-validation-for="AccessRule.EndDate" class="text-danger"></span>
+                                    </div>
+                                </div>
+                                <div class="form-text mt-2">
+                                    <i class="bi bi-info-circle"></i> Configure el periodo durante el cual esta regla estará activa
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Crear Regla de Acceso
+                            </button>
+                            <a asp-page="Index" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-info-circle"></i> Ayuda
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6>¿Qué es una Regla de Acceso?</h6>
+                    <p class="small">
+                        Una regla de acceso define quién puede acceder, dónde, cuándo y por cuánto tiempo.
+                    </p>
+                    <hr>
+                    <h6>Configuración Recomendada</h6>
+                    <ul class="small">
+                        <li><strong>Acceso Permanente 24/7:</strong> Para accesos sin restricciones</li>
+                        <li><strong>Horario Laboral:</strong> Ej: 08:00 - 18:00</li>
+                        <li><strong>Acceso Temporal:</strong> Configure fechas de inicio y fin para accesos temporales</li>
+                        <li><strong>Acceso Nocturno:</strong> Puede cruzar medianoche, ej: 22:00 - 06:00</li>
+                    </ul>
+                    <hr>
+                    <h6>Validaciones</h6>
+                    <ul class="small">
+                        <li>Debe seleccionar al menos un rol</li>
+                        <li>Debe seleccionar al menos un punto de control</li>
+                        <li>Si no es 24/7, debe especificar horario</li>
+                        <li>Si no es permanente, debe especificar fechas</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function toggleTimeInputs() {
+            const use24x7 = document.getElementById('use24x7').checked;
+            const timeInputs = document.getElementById('timeInputs');
+            timeInputs.style.display = use24x7 ? 'none' : 'block';
+            
+            if (use24x7) {
+                document.querySelector('input[name="AccessRule.StartTime"]').value = '';
+                document.querySelector('input[name="AccessRule.EndTime"]').value = '';
+            }
+        }
+
+        function toggleDateInputs() {
+            const usePermanent = document.getElementById('usePermanent').checked;
+            const dateInputs = document.getElementById('dateInputs');
+            dateInputs.style.display = usePermanent ? 'none' : 'block';
+            
+            if (usePermanent) {
+                document.querySelector('input[name="AccessRule.StartDate"]').value = '';
+                document.querySelector('input[name="AccessRule.EndDate"]').value = '';
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleTimeInputs();
+            toggleDateInputs();
+        });
+    </script>
+}

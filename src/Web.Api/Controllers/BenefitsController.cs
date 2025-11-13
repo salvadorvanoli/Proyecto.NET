@@ -1,6 +1,8 @@
-using Application.Benefits.DTOs;
+using Shared.DTOs.Benefits;
+using Application.Benefits;
 using Application.Benefits.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Web.Api.Controllers;
 
@@ -9,72 +11,193 @@ namespace Web.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class BenefitsController : ControllerBase
 {
     private readonly IBenefitService _benefitService;
+    private readonly ILogger<BenefitsController> _logger;
 
-    public BenefitsController(IBenefitService benefitService)
+    public BenefitsController(IBenefitService benefitService, ILogger<BenefitsController> logger)
     {
         _benefitService = benefitService;
+        _logger = logger;
     }
 
     /// <summary>
-    /// Gets all benefits for a specific user.
+    /// Gets a benefit by ID.
     /// </summary>
-    /// <param name="userId">The ID of the user.</param>
-    /// <returns>A list of benefits.</returns>
-    [HttpGet("user/{userId}")]
-    public async Task<ActionResult<List<BenefitResponse>>> GetUserBenefits(int userId)
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(BenefitResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BenefitResponse>> GetBenefit(int id, CancellationToken cancellationToken)
     {
-        try
+        var benefit = await _benefitService.GetBenefitByIdAsync(id, cancellationToken);
+        
+        if (benefit == null)
         {
-            var benefits = await _benefitService.GetUserBenefitsAsync(userId);
-            return Ok(benefits);
+            return NotFound();
         }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { message = "Error retrieving user benefits", error = ex.Message });
-        }
+
+        return Ok(benefit);
     }
 
     /// <summary>
     /// Gets all benefits for the current tenant.
     /// </summary>
-    /// <returns>A list of all benefits.</returns>
-    [HttpGet]
-    public async Task<ActionResult<List<BenefitResponse>>> GetAllBenefits()
+    [HttpGet("by-tenant")]
+    [ProducesResponseType(typeof(IEnumerable<BenefitResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<BenefitResponse>>> GetBenefitsByTenant(CancellationToken cancellationToken)
     {
         try
         {
-            var benefits = await _benefitService.GetAllBenefitsAsync();
+            var benefits = await _benefitService.GetBenefitsByTenantAsync(cancellationToken);
+            _logger.LogInformation("Retrieved {Count} benefits for tenant", benefits.Count());
             return Ok(benefits);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving benefits", error = ex.Message });
+            _logger.LogError(ex, "Error retrieving benefits by tenant");
+            return StatusCode(500, "An error occurred while retrieving benefits");
         }
     }
 
     /// <summary>
-    /// Gets a specific benefit by ID.
+    /// Gets benefits filtered by benefit type.
     /// </summary>
-    /// <param name="id">The ID of the benefit.</param>
-    /// <returns>The benefit information.</returns>
-    [HttpGet("{id}")]
-    public async Task<ActionResult<BenefitResponse>> GetBenefit(int id)
+    [HttpGet("by-type/{benefitTypeId}")]
+    [ProducesResponseType(typeof(IEnumerable<BenefitResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<BenefitResponse>>> GetBenefitsByType(int benefitTypeId, CancellationToken cancellationToken)
     {
         try
         {
-            var benefit = await _benefitService.GetBenefitByIdAsync(id);
-            
-            if (benefit == null)
-                return NotFound(new { message = "Benefit not found" });
-            
-            return Ok(benefit);
+            var benefits = await _benefitService.GetBenefitsByTypeAsync(benefitTypeId, cancellationToken);
+            _logger.LogInformation("Retrieved {Count} benefits for benefit type {BenefitTypeId}", benefits.Count(), benefitTypeId);
+            return Ok(benefits);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error retrieving benefit", error = ex.Message });
+            _logger.LogError(ex, "Error retrieving benefits for benefit type {BenefitTypeId}", benefitTypeId);
+            return StatusCode(500, "An error occurred while retrieving benefits");
+        }
+    }
+
+    /// <summary>
+    /// Gets active benefits (valid and with available quotas).
+    /// </summary>
+    [HttpGet("active")]
+    [ProducesResponseType(typeof(IEnumerable<BenefitResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<BenefitResponse>>> GetActiveBenefits(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var benefits = await _benefitService.GetActiveBenefitsAsync(cancellationToken);
+            _logger.LogInformation("Retrieved {Count} active benefits", benefits.Count());
+            return Ok(benefits);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving active benefits");
+            return StatusCode(500, "An error occurred while retrieving active benefits");
+        }
+    }
+
+    /// <summary>
+    /// Creates a new benefit.
+    /// </summary>
+    [HttpPost]
+    [Authorize(Roles = "AdministradorBackoffice")]
+    [ProducesResponseType(typeof(BenefitResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<BenefitResponse>> CreateBenefit([FromBody] BenefitRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var benefit = await _benefitService.CreateBenefitAsync(request, cancellationToken);
+            _logger.LogInformation("Created benefit with ID {Id}", benefit.Id);
+            return CreatedAtAction(nameof(GetBenefit), new { id = benefit.Id }, benefit);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation while creating benefit");
+            return BadRequest(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid argument while creating benefit");
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating benefit");
+            return StatusCode(500, "An error occurred while creating the benefit");
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing benefit.
+    /// </summary>
+    [HttpPut("{id}")]
+    [Authorize(Roles = "AdministradorBackoffice")]
+    [ProducesResponseType(typeof(BenefitResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BenefitResponse>> UpdateBenefit(int id, [FromBody] BenefitRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var benefit = await _benefitService.UpdateBenefitAsync(id, request, cancellationToken);
+            _logger.LogInformation("Updated benefit with ID {Id}", id);
+            return Ok(benefit);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Benefit with ID {Id} not found", id);
+            return NotFound(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid argument while updating benefit with ID {Id}", id);
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating benefit with ID {Id}", id);
+            return StatusCode(500, "An error occurred while updating the benefit");
+        }
+    }
+
+    /// <summary>
+    /// Deletes a benefit.
+    /// </summary>
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "AdministradorBackoffice")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> DeleteBenefit(int id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _benefitService.DeleteBenefitAsync(id, cancellationToken);
+            
+            if (!result)
+            {
+                _logger.LogWarning("Benefit with ID {Id} not found", id);
+                return NotFound();
+            }
+
+            _logger.LogInformation("Deleted benefit with ID {Id}", id);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Cannot delete benefit with ID {Id}", id);
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting benefit with ID {Id}", id);
+            return StatusCode(500, "An error occurred while deleting the benefit");
         }
     }
 }

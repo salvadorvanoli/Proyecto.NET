@@ -1,8 +1,14 @@
-﻿using Application.Auth.Services;
+﻿using Application.Auth;
 using Application.Common.Interfaces;
-using Application.Users.Services;
-using Application.Roles.Services;
-using Application.News.Services;
+using Application.Users;
+using Application.Roles;
+using Application.News;
+using Application.SpaceTypes;
+using Application.Spaces;
+using Application.ControlPoints;
+using Application.AccessRules;
+using Application.BenefitTypes;
+using Application.Benefits;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application;
@@ -22,6 +28,12 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<INewsService, NewsService>();
+        services.AddScoped<ISpaceTypeService, SpaceTypeService>();
+        services.AddScoped<ISpaceService, SpaceService>();
+        services.AddScoped<IControlPointService, ControlPointService>();
+        services.AddScoped<IAccessRuleService, AccessRuleService>();
+        services.AddScoped<IBenefitTypeService, BenefitTypeService>();
+        services.AddScoped<IBenefitService, BenefitService>();
 
         return services;
     }

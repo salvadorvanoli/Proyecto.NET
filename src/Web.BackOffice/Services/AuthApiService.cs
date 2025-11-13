@@ -1,5 +1,5 @@
 ﻿using System.Net.Http.Json;
-using Application.Auth.DTOs;
+using Shared.DTOs.Auth;
 
 namespace Web.BackOffice.Services;
 
