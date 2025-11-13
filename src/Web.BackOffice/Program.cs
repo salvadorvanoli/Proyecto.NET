@@ -41,28 +41,28 @@ builder.Services.AddTransient<TenantHeaderHandler>();
 
 builder.Services.AddHttpClient<IUserApiService, UserApiService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5236/");
+    client.BaseAddress = new Uri("http://localhost:5000/");
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
 .AddHttpMessageHandler<TenantHeaderHandler>();
 
 builder.Services.AddHttpClient<IRoleApiService, RoleApiService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5236/");
+    client.BaseAddress = new Uri("http://localhost:5000/");
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
 .AddHttpMessageHandler<TenantHeaderHandler>();
 
 builder.Services.AddHttpClient<INewsApiService, NewsApiService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5236/");
+    client.BaseAddress = new Uri("http://localhost:5000/");
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
 .AddHttpMessageHandler<TenantHeaderHandler>();
 
 builder.Services.AddHttpClient<IAuthApiService, AuthApiService>(client =>
 {
-    client.BaseAddress = new Uri("http://localhost:5236/");
+    client.BaseAddress = new Uri("http://localhost:5000/");
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 

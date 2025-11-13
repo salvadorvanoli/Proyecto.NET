@@ -1,6 +1,10 @@
 @page "/register"
+@rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
+@using Application.Users.DTOs
+@using Web.FrontOffice.Services.Interfaces
 @inject NavigationManager Navigation
+@inject IRegisterApiService RegisterApiService
 
 <PageTitle>Registrarse</PageTitle>
 
@@ -31,6 +35,14 @@
                     <InputText id="lastName" @bind-Value="registerModel.LastName" class="form-control" placeholder="Pérez" />
                     <ValidationMessage For="@(() => registerModel.LastName)" />
                 </div>
+            </div>
+
+            <div class="form-group">
+                <label for="dateOfBirth" class="form-label">
+                    <i class="bi bi-calendar"></i> Fecha de Nacimiento
+                </label>
+                <InputDate id="dateOfBirth" @bind-Value="registerModel.DateOfBirth" class="form-control" />
+                <ValidationMessage For="@(() => registerModel.DateOfBirth)" />
             </div>
 
             <div class="form-group">
@@ -116,12 +128,39 @@
                 return;
             }
 
-            // TODO: Implementar lógica real de registro
-            await Task.Delay(1500); // Simular llamada API
+            // Validar edad mínima (18 años)
+            var age = DateTime.Now.Year - registerModel.DateOfBirth.Year;
+            if (registerModel.DateOfBirth > DateTime.Now.AddYears(-age)) age--;
+            
+            if (age < 18)
+            {
+                errorMessage = "Debes ser mayor de 18 años para registrarte";
+                isLoading = false;
+                return;
+            }
 
-            successMessage = "¡Cuenta creada exitosamente! Redirigiendo...";
-            await Task.Delay(1500);
-            Navigation.NavigateTo("/login");
+            // Crear request para el API
+            var createUserRequest = new CreateUserRequest
+            {
+                Email = registerModel.Email,
+                Password = registerModel.Password,
+                FirstName = registerModel.FirstName,
+                LastName = registerModel.LastName,
+                DateOfBirth = registerModel.DateOfBirth
+            };
+
+            var response = await RegisterApiService.RegisterAsync(createUserRequest);
+
+            if (response != null)
+            {
+                successMessage = "¡Cuenta creada exitosamente! Redirigiendo al inicio de sesión...";
+                await Task.Delay(2000);
+                Navigation.NavigateTo("/login");
+            }
+            else
+            {
+                errorMessage = "Error al crear la cuenta. Es posible que el correo ya esté registrado.";
+            }
         }
         catch (Exception ex)
         {
@@ -136,10 +175,17 @@
     private class RegisterModel
     {
         [Required(ErrorMessage = "El nombre es requerido")]
+        [MinLength(2, ErrorMessage = "El nombre debe tener al menos 2 caracteres")]
+        [MaxLength(50, ErrorMessage = "El nombre no puede exceder 50 caracteres")]
         public string FirstName { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "El apellido es requerido")]
+        [MinLength(2, ErrorMessage = "El apellido debe tener al menos 2 caracteres")]
+        [MaxLength(50, ErrorMessage = "El apellido no puede exceder 50 caracteres")]
         public string LastName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La fecha de nacimiento es requerida")]
+        public DateTime DateOfBirth { get; set; } = DateTime.Now.AddYears(-20);
 
         [Required(ErrorMessage = "El correo es requerido")]
         [EmailAddress(ErrorMessage = "Formato de correo inválido")]

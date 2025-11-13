@@ -1,21 +1,16 @@
 @* Menú de usuario con dropdown para login/logout *@
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @inject NavigationManager Navigation
+@inject ProtectedLocalStorage ProtectedLocalStore
 
 <div class="user-menu">
     @if (isLoggedIn)
     {
-        <div class="dropdown">
-            <button class="btn btn-link user-button" type="button" id="userMenuDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-person-circle"></i>
-                <span class="user-name d-none d-md-inline">@userName</span>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenuDropdown">
-                <li><a class="dropdown-item" href="/profile"><i class="bi bi-person"></i> Mi Perfil</a></li>
-                <li><a class="dropdown-item" href="/access-history"><i class="bi bi-clock-history"></i> Historial</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" @onclick="Logout" href="javascript:void(0)"><i class="bi bi-box-arrow-right"></i> Cerrar Sesión</a></li>
-            </ul>
-        </div>
+        <button class="btn btn-danger" @onclick="ShowLogoutConfirmation">
+            <i class="bi bi-box-arrow-right"></i>
+            <span class="d-none d-md-inline ms-1">Cerrar Sesión</span>
+        </button>
     }
     else
     {
@@ -26,24 +21,89 @@
     }
 </div>
 
+@* Modal de confirmación *@
+@if (showModal)
+{
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-exclamation-circle text-warning"></i>
+                        Confirmar cierre de sesión
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="HideModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Estás seguro que deseas cerrar sesión?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="HideModal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmLogout">
+                        <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
 @code {
     private bool isLoggedIn = false;
     private string userName = "Usuario";
+    private bool showModal = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await CheckAuthenticationState();
+            StateHasChanged();
+        }
+    }
+
+    private async Task CheckAuthenticationState()
+    {
+        try
+        {
+            var result = await ProtectedLocalStore.GetAsync<string>("userSession");
+            isLoggedIn = result.Success && !string.IsNullOrEmpty(result.Value);
+            if (isLoggedIn)
+            {
+                // Aquí podrías deserializar el objeto completo si necesitas más datos
+                userName = "Usuario";
+            }
+        }
+        catch
+        {
+            isLoggedIn = false;
+        }
+    }
 
     private void NavigateToLogin()
     {
         Navigation.NavigateTo("/login");
     }
 
-    private void Logout()
+    private void ShowLogoutConfirmation()
     {
-        isLoggedIn = false;
-        userName = "Usuario";
+        showModal = true;
     }
 
-    protected override void OnInitialized()
+    private void HideModal()
     {
+        showModal = false;
+    }
+
+    private async Task ConfirmLogout()
+    {
+        await ProtectedLocalStore.DeleteAsync("userSession");
         isLoggedIn = false;
-        userName = "Juan Pérez";
+        userName = "Usuario";
+        showModal = false;
+        Navigation.NavigateTo("/", forceLoad: true);
     }
 }
