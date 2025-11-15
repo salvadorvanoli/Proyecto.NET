@@ -88,8 +88,10 @@ jobs:
               echo "Resource ${address} already in state, skipping import."
             else
               echo "Importing ${address} with identifier ${identifier}"
-              terraform import -lock=false ${address} ${identifier} || {
-                echo "Import failed for ${address} ${identifier}";
+              # normalize identifier: if AWS CLI returned multiple IDs accidentally joined
+              identifier_single=$(echo "$identifier" | awk '{print $1}')
+              terraform import -lock=false "${address}" "${identifier_single}" || {
+                echo "Import failed for ${address} ${identifier_single}";
               }
             fi
           }
@@ -100,8 +102,8 @@ jobs:
           if [ -n "$alb_vpc_id" ] && [ "$alb_vpc_id" != "None" ]; then
             import_if_missing aws_vpc.main "$alb_vpc_id"
 
-            # get ALB subnets (public)
-            mapfile -t alb_subnets < <(aws elbv2 describe-load-balancers --names proyectonet-alb --region "$AWS_REGION" --query 'LoadBalancers[0].AvailabilityZones[].SubnetId' --output text 2>/dev/null || true)
+            # get ALB subnets (public) - ensure one id per line using json + jq
+            readarray -t alb_subnets < <(aws elbv2 describe-load-balancers --names proyectonet-alb --region "$AWS_REGION" --output json --query 'LoadBalancers[0].AvailabilityZones[].SubnetId' 2>/dev/null | jq -r '.[]' || true)
             if [ ${#alb_subnets[@]} -ge 1 ]; then
               import_if_missing "aws_subnet.public[0]" "${alb_subnets[0]}"
             fi
@@ -112,26 +114,22 @@ jobs:
             echo "ALB not found or VPC ID not available, skipping VPC/subnet import from ALB."
           fi
 
-          # get DB subnet group subnets (private)
-          db_subnets=$(aws rds describe-db-subnet-groups --db-subnet-group-name proyectonet-db-subnet-group --region "$AWS_REGION" --query 'DBSubnetGroups[0].Subnets[].SubnetIdentifier' --output text 2>/dev/null || true)
-          if [ -n "$db_subnets" ] && [ "$db_subnets" != "None" ]; then
-            # split into array
-            IFS=$'\n' read -r -a db_subnet_array <<< "$db_subnets"
-            if [ ${#db_subnet_array[@]} -ge 1 ]; then
-              import_if_missing "aws_subnet.private[0]" "${db_subnet_array[0]}"
-            fi
-            if [ ${#db_subnet_array[@]} -ge 2 ]; then
-              import_if_missing "aws_subnet.private[1]" "${db_subnet_array[1]}"
-            fi
+          # get DB subnet group subnets (private) - ensure one id per line using json + jq
+          readarray -t db_subnet_array < <(aws rds describe-db-subnet-groups --db-subnet-group-name proyectonet-db-subnet-group --region "$AWS_REGION" --output json --query 'DBSubnetGroups[0].Subnets[].SubnetIdentifier' 2>/dev/null | jq -r '.[]' || true)
+          if [ ${#db_subnet_array[@]} -ge 1 ]; then
+            import_if_missing "aws_subnet.private[0]" "${db_subnet_array[0]}"
           else
             echo "DB subnet group not found or has no subnets, skipping private subnet imports."
+          fi
+          if [ ${#db_subnet_array[@]} -ge 2 ]; then
+            import_if_missing "aws_subnet.private[1]" "${db_subnet_array[1]}"
           fi
 
           # Attempt to import common security groups by tag or name
           echo "Detecting security groups with tag Name starting with proyectonet..."
-          sg_list=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=proyectonet*" --region "$AWS_REGION" --query 'SecurityGroups[].[GroupId,GroupName]' --output text 2>/dev/null || true)
+          sg_list=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=proyectonet*" --region "$AWS_REGION" --output json --query 'SecurityGroups[].[GroupId,GroupName]' 2>/dev/null | jq -r '.[] | @tsv' || true)
           if [ -n "$sg_list" ]; then
-            echo "$sg_list" | while read -r sgid sgname; do
+            echo "$sg_list" | while IFS=$'\t' read -r sgid sgname; do
               # Map likely names to terraform addresses
               case "$sgname" in
                 *rds*|*proyectonet-rds*|proyectonet-rds-sg)
