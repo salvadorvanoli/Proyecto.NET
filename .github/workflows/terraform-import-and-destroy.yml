@@ -1,0 +1,193 @@
+﻿name: Terraform Import and Destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Ambiente objetivo (production/staging/development)"
+        required: false
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+          - development
+      run_import:
+        description: "Intentar importar recursos existentes al state (true/false)"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+      run_destroy:
+        description: "Ejecutar terraform destroy después del import (true/false)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "true"
+          - "false"
+      confirm_destroy:
+        description: "Confirmación adicional para destruir (must set to 'yes' to actually destroy)"
+        required: false
+        default: "no"
+        type: choice
+        options:
+          - "no"
+          - "yes"
+
+jobs:
+  import:
+    name: Detect & Import existing resources
+    if: ${{ github.event.inputs.run_import != 'false' }}
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      TF_VAR_db_password: ${{ secrets.TF_VAR_db_password }}
+      TF_VAR_jwt_secret: ${{ secrets.TF_VAR_jwt_secret }}
+      TF_VAR_db_username: ${{ secrets.TF_VAR_db_username }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install awscli and jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq unzip curl
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install --update || sudo ./aws/install
+          aws --version
+          rm -rf awscliv2.zip aws/
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform init
+        working-directory: terraform
+        run: terraform init -input=false
+
+      - name: Import resources if missing in state
+        working-directory: terraform
+        run: |
+          set -euo pipefail
+          echo "Checking current terraform state..."
+          terraform state list || true
+
+          # helper to import if not present
+          import_if_missing() {
+            address="$1"
+            identifier="$2"
+            if terraform state list | grep -q "^${address}$"; then
+              echo "Resource ${address} already in state, skipping import."
+            else
+              echo "Importing ${address} with identifier ${identifier}"
+              terraform import -lock=false ${address} ${identifier} || {
+                echo "Import failed for ${address} ${identifier}";
+              }
+            fi
+          }
+
+          # ALB
+          alb_arn=$(aws elbv2 describe-load-balancers --names proyectonet-alb --region "$AWS_REGION" --query 'LoadBalancers[0].LoadBalancerArn' --output text 2>/dev/null || true)
+          if [ -n "$alb_arn" ] && [ "$alb_arn" != "None" ]; then
+            import_if_missing aws_lb.main "$alb_arn"
+          else
+            echo "ALB proyectonet-alb not found"
+          fi
+
+          # Target groups
+          api_tg_arn=$(aws elbv2 describe-target-groups --names proyectonet-api-tg --region "$AWS_REGION" --query 'TargetGroups[0].TargetGroupArn' --output text 2>/dev/null || true)
+          if [ -n "$api_tg_arn" ] && [ "$api_tg_arn" != "None" ]; then
+            import_if_missing aws_lb_target_group.api "$api_tg_arn"
+          else
+            echo "Target group proyectonet-api-tg not found"
+          fi
+
+          back_tg_arn=$(aws elbv2 describe-target-groups --names proyectonet-backoffice-tg --region "$AWS_REGION" --query 'TargetGroups[0].TargetGroupArn' --output text 2>/dev/null || true)
+          if [ -n "$back_tg_arn" ] && [ "$back_tg_arn" != "None" ]; then
+            import_if_missing aws_lb_target_group.backoffice "$back_tg_arn"
+          else
+            echo "Target group proyectonet-backoffice-tg not found"
+          fi
+
+          # ECR repositories (import by name)
+          import_if_missing aws_ecr_repository.api proyectonet-api || true
+          import_if_missing aws_ecr_repository.backoffice proyectonet-backoffice || true
+
+          # CloudWatch log groups
+          import_if_missing aws_cloudwatch_log_group.api "/ecs/proyectonet-api" || true
+          import_if_missing aws_cloudwatch_log_group.backoffice "/ecs/proyectonet-backoffice" || true
+
+          # DB subnet group
+          import_if_missing aws_db_subnet_group.main proyectonet-db-subnet-group || true
+
+          # RDS instance
+          import_if_missing aws_db_instance.sqlserver proyectonet-sqlserver || true
+
+          # ECS cluster
+          import_if_missing aws_ecs_cluster.main proyectonet-cluster || true
+
+          # ECS services (format: cluster/service)
+          import_if_missing aws_ecs_service.api "proyectonet-cluster/proyectonet-api-service" || true
+          import_if_missing aws_ecs_service.backoffice "proyectonet-cluster/proyectonet-backoffice-service" || true
+
+          echo "Imports complete. Current state:"
+          terraform state list || true
+
+      - name: Terraform plan after import
+        working-directory: terraform
+        run: |
+          terraform plan -input=false
+
+  destroy:
+    name: Terraform Destroy (optional)
+    needs: import
+    if: ${{ github.event.inputs.run_destroy == 'true' && github.event.inputs.confirm_destroy == 'yes' }}
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      TF_VAR_db_password: ${{ secrets.TF_VAR_db_password }}
+      TF_VAR_jwt_secret: ${{ secrets.TF_VAR_jwt_secret }}
+      TF_VAR_db_username: ${{ secrets.TF_VAR_db_username }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init -input=false
+
+      - name: Terraform Plan Destroy (preview)
+        working-directory: terraform
+        run: |
+          echo "=== Terraform plan -destroy (preview) ==="
+          terraform plan -destroy -input=false -out=tfplan.destroy || true
+          terraform show -no-color tfplan.destroy | sed -n '1,200p' || true
+
+      - name: Terraform Destroy (execute)
+        working-directory: terraform
+        run: |
+          echo "*** Ejecutando terraform destroy - AUTO-APPROVE ***"
+          terraform destroy -auto-approve -input=false || true
+
+      - name: Show outputs after destroy
+        working-directory: terraform
+        run: |
+          echo "Terraform destroy finished. Listing state (should be empty):"
+          terraform state list || true
+
