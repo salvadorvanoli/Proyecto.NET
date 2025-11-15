@@ -44,6 +44,14 @@ on:
         options:
           - "true"
           - "false"
+      run_update_services:
+        description: "Forzar actualización de servicios ECS después del build (true/false)"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
 
 jobs:
   infra:
@@ -144,6 +152,7 @@ jobs:
 
   update-services:
     name: Update ECS services
+    if: ${{ github.event.inputs.run_update_services != 'false' }}
     needs: build
     runs-on: ubuntu-latest
     env:
@@ -158,7 +167,14 @@ jobs:
       - name: Install awscli and jq
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq awscli
+          sudo apt-get install -y jq unzip curl
+          echo "Installing AWS CLI v2..."
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+          aws --version
+          # cleanup
+          rm -rf awscliv2.zip aws/
 
       - name: Update ECS services to force new deployment
         run: |
@@ -187,3 +203,70 @@ jobs:
               echo "Skipping $svcName"
             fi
           done
+
+  report:
+    name: Report deployment URL
+    needs: [infra, build, update-services]
+    runs-on: ubuntu-latest
+    if: always()
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install AWS CLI and jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq unzip curl
+          echo "Installing AWS CLI v2..."
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+          aws --version
+          rm -rf awscliv2.zip aws/
+
+      - name: Get ALB DNS and produce deploy URL
+        id: get_url
+        run: |
+          set -euo pipefail
+          ALB_NAME="proyectonet-alb"
+          echo "Looking for ALB: $ALB_NAME"
+          dns=""
+          # try by exact name
+          dns=$(aws elbv2 describe-load-balancers --names "$ALB_NAME" --region "$AWS_REGION" --output text --query 'LoadBalancers[0].DNSName' 2>/dev/null || true)
+          if [ -z "$dns" ]; then
+            echo "ALB not found by exact name, searching all ALBs for proyectonet..."
+            dns=$(aws elbv2 describe-load-balancers --region "$AWS_REGION" --query 'LoadBalancers[?contains(LoadBalancerName, `proyectonet`)].DNSName' --output text || true)
+          fi
+
+          if [ -n "$dns" ] && [ "$dns" != "None" ]; then
+            url="http://$dns"
+            echo "Found ALB DNS: $dns"
+            echo "Deployment URL: $url"
+            echo "deploy_url=$url" >> $GITHUB_OUTPUT
+          else
+            echo "No ALB DNS found via AWS CLI. Trying terraform state file as fallback..."
+            if [ -f terraform/terraform.tfstate ]; then
+              url=$(jq -r '.outputs.backoffice_url.value' terraform/terraform.tfstate 2>/dev/null || true)
+              if [ -n "$url" ] && [ "$url" != "null" ]; then
+                echo "Found URL in terraform.tfstate: $url"
+                echo "deploy_url=$url" >> $GITHUB_OUTPUT
+              else
+                echo "No backoffice_url in terraform.tfstate"
+                echo "deploy_url=NOT_FOUND" >> $GITHUB_OUTPUT
+              fi
+            else
+              echo "terraform.tfstate not present in repository"
+              echo "deploy_url=NOT_FOUND" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Show final URL
+        run: |
+          echo "Final deploy URL: ${{ steps.get_url.outputs.deploy_url }}"
+    outputs:
+      deploy_url: ${{ steps.get_url.outputs.deploy_url }}
