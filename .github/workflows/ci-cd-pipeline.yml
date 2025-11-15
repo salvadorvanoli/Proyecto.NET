@@ -7,22 +7,48 @@ on:
         description: "Ambiente de despliegue (production, staging, etc.)"
         required: false
         default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+          - development
+      run_infra:
+        description: "Ejecutar provisioning de infra con Terraform (true/false)"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
       recreate_db:
         description: "Recrear base de datos (true/false)"
         required: false
         default: "false"
+        type: choice
+        options:
+          - "true"
+          - "false"
       deploy_api:
         description: "Desplegar API (true/false)"
         required: false
         default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
       deploy_backoffice:
         description: "Desplegar BackOffice (true/false)"
         required: false
         default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
 
 jobs:
   infra:
     name: Provision infra (Terraform)
+    if: ${{ github.event.inputs.run_infra != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -71,7 +97,6 @@ jobs:
 
   build:
     name: Build & push images
-    needs: infra
     runs-on: ubuntu-latest
     env:
       ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
