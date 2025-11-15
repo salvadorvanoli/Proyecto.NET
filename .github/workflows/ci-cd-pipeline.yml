@@ -168,10 +168,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y jq unzip curl
-          echo "Installing AWS CLI v2..."
+          echo "Installing or updating AWS CLI v2..."
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
           unzip awscliv2.zip
-          sudo ./aws/install
+          # Use --update so installer succeeds whether AWS CLI v2 is already present or not
+          sudo ./aws/install --update || sudo ./aws/install
           aws --version
           # cleanup
           rm -rf awscliv2.zip aws/
@@ -222,10 +223,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y jq unzip curl
-          echo "Installing AWS CLI v2..."
+          echo "Installing or updating AWS CLI v2..."
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
           unzip awscliv2.zip
-          sudo ./aws/install
+          # Use --update so installer succeeds whether AWS CLI v2 is already present or not
+          sudo ./aws/install --update || sudo ./aws/install
           aws --version
           rm -rf awscliv2.zip aws/
 
@@ -268,5 +270,19 @@ jobs:
       - name: Show final URL
         run: |
           echo "Final deploy URL: ${{ steps.get_url.outputs.deploy_url }}"
+
+      - name: Write deploy URL to file
+        if: always()
+        run: |
+          echo "${{ steps.get_url.outputs.deploy_url }}" > deploy-url.txt
+
+      - name: Upload deploy URL artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-url
+          path: deploy-url.txt
+
     outputs:
       deploy_url: ${{ steps.get_url.outputs.deploy_url }}
+
