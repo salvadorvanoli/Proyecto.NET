@@ -1,0 +1,84 @@
+﻿name: Terraform Destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Ambiente objetivo (production/staging/development)"
+        required: false
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+          - development
+      confirm:
+        description: "¿Confirmas que deseas DESTRUIR la infraestructura? (must set to 'yes' to run)"
+        required: true
+        default: "no"
+        type: choice
+        options:
+          - "no"
+          - "yes"
+
+jobs:
+  destroy:
+    name: Terraform Destroy (manual, destructive)
+    if: ${{ github.event.inputs.confirm == 'yes' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        working-directory: terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          TF_VAR_db_password: ${{ secrets.TF_VAR_db_password }}
+          TF_VAR_jwt_secret: ${{ secrets.TF_VAR_jwt_secret }}
+          TF_VAR_db_username: ${{ secrets.TF_VAR_db_username }}
+        run: terraform init -input=false
+
+      - name: Terraform Plan Destroy (preview)
+        working-directory: terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          TF_VAR_db_password: ${{ secrets.TF_VAR_db_password }}
+          TF_VAR_jwt_secret: ${{ secrets.TF_VAR_jwt_secret }}
+          TF_VAR_db_username: ${{ secrets.TF_VAR_db_username }}
+        run: |
+          echo "=== Terraform plan -destroy (preview) ==="
+          terraform plan -destroy -input=false -out=tfplan.destroy
+          terraform show -no-color tfplan.destroy | sed -n '1,200p'
+
+      - name: Terraform Destroy (execute)
+        working-directory: terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          TF_VAR_db_password: ${{ secrets.TF_VAR_db_password }}
+          TF_VAR_jwt_secret: ${{ secrets.TF_VAR_jwt_secret }}
+          TF_VAR_db_username: ${{ secrets.TF_VAR_db_username }}
+        run: |
+          echo "*** Ejecutando terraform destroy - AUTO-APPROVE ***"
+          terraform destroy -auto-approve -input=false
+
+      - name: Show outputs after destroy
+        working-directory: terraform
+        run: |
+          echo "Terraform destroy finished. Listing state (should be empty):"
+          terraform state list || true
+
