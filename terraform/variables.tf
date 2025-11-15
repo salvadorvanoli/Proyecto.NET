@@ -104,7 +104,7 @@ variable "jwt_secret" {
   description = "Secret key para firmar JWT tokens (mínimo 32 caracteres)"
   type        = string
   sensitive   = true
-  default = "ThisIsASecret"
+  default = "ThisIsASecretKeyForJWTSigningAndItMustBeLongEnoughToBeSecure"
 }
 
 variable "jwt_issuer" {
