@@ -94,7 +94,71 @@ jobs:
             fi
           }
 
-          # ALB
+          # --- NEW: Import VPC and subnets (derived from ALB and DB subnet group) ---
+          echo "Attempting to detect VPC and subnets to import..."
+          alb_vpc_id=$(aws elbv2 describe-load-balancers --names proyectonet-alb --region "$AWS_REGION" --query 'LoadBalancers[0].VpcId' --output text 2>/dev/null || true)
+          if [ -n "$alb_vpc_id" ] && [ "$alb_vpc_id" != "None" ]; then
+            import_if_missing aws_vpc.main "$alb_vpc_id"
+
+            # get ALB subnets (public)
+            mapfile -t alb_subnets < <(aws elbv2 describe-load-balancers --names proyectonet-alb --region "$AWS_REGION" --query 'LoadBalancers[0].AvailabilityZones[].SubnetId' --output text 2>/dev/null || true)
+            if [ ${#alb_subnets[@]} -ge 1 ]; then
+              import_if_missing "aws_subnet.public[0]" "${alb_subnets[0]}"
+            fi
+            if [ ${#alb_subnets[@]} -ge 2 ]; then
+              import_if_missing "aws_subnet.public[1]" "${alb_subnets[1]}"
+            fi
+          else
+            echo "ALB not found or VPC ID not available, skipping VPC/subnet import from ALB."
+          fi
+
+          # get DB subnet group subnets (private)
+          db_subnets=$(aws rds describe-db-subnet-groups --db-subnet-group-name proyectonet-db-subnet-group --region "$AWS_REGION" --query 'DBSubnetGroups[0].Subnets[].SubnetIdentifier' --output text 2>/dev/null || true)
+          if [ -n "$db_subnets" ] && [ "$db_subnets" != "None" ]; then
+            # split into array
+            IFS=$'\n' read -r -a db_subnet_array <<< "$db_subnets"
+            if [ ${#db_subnet_array[@]} -ge 1 ]; then
+              import_if_missing "aws_subnet.private[0]" "${db_subnet_array[0]}"
+            fi
+            if [ ${#db_subnet_array[@]} -ge 2 ]; then
+              import_if_missing "aws_subnet.private[1]" "${db_subnet_array[1]}"
+            fi
+          else
+            echo "DB subnet group not found or has no subnets, skipping private subnet imports."
+          fi
+
+          # Attempt to import common security groups by tag or name
+          echo "Detecting security groups with tag Name starting with proyectonet..."
+          sg_list=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=proyectonet*" --region "$AWS_REGION" --query 'SecurityGroups[].[GroupId,GroupName]' --output text 2>/dev/null || true)
+          if [ -n "$sg_list" ]; then
+            echo "$sg_list" | while read -r sgid sgname; do
+              # Map likely names to terraform addresses
+              case "$sgname" in
+                *rds*|*proyectonet-rds*|proyectonet-rds-sg)
+                  import_if_missing aws_security_group.rds "$sgid" || true
+                  ;;
+                *alb*|*loadbalancer*|proyectonet-alb-sg)
+                  import_if_missing aws_security_group.alb "$sgid" || true
+                  ;;
+                *ecs*|*tasks*|proyectonet-ecs*|proyectonet-ecs-sg)
+                  import_if_missing aws_security_group.ecs_tasks "$sgid" || true
+                  ;;
+                *)
+                  # try generic import if address exists in tf
+                  echo "Found SG $sgname ($sgid) - attempting generic imports"
+                  # Try common addresses
+                  import_if_missing aws_security_group.ecs_tasks "$sgid" || true
+                  import_if_missing aws_security_group.alb "$sgid" || true
+                  import_if_missing aws_security_group.rds "$sgid" || true
+                  ;;
+              esac
+            done
+          else
+            echo "No security groups found with proyectonet tag pattern."
+          fi
+
+          # --- existing imports (ALB, TGs, ECR, logs, DB, ECS services) ---
+          # ALB (if still present, will skip if already imported)
           alb_arn=$(aws elbv2 describe-load-balancers --names proyectonet-alb --region "$AWS_REGION" --query 'LoadBalancers[0].LoadBalancerArn' --output text 2>/dev/null || true)
           if [ -n "$alb_arn" ] && [ "$alb_arn" != "None" ]; then
             import_if_missing aws_lb.main "$alb_arn"
@@ -190,4 +254,3 @@ jobs:
         run: |
           echo "Terraform destroy finished. Listing state (should be empty):"
           terraform state list || true
-
