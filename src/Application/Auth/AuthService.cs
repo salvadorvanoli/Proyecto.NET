@@ -22,10 +22,10 @@ public class AuthService : IAuthService
 
     public async Task<LoginResponse?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
-        // Find user by email
+        // Find user by email (case-insensitive)
         var user = await _context.Users
             .Include(u => u.Roles)
-            .FirstOrDefaultAsync(u => u.Email == request.Email.ToLower(), cancellationToken);
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower(), cancellationToken);
 
         if (user == null)
         {

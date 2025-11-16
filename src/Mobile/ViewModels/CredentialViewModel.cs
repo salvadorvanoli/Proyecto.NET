@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using Mobile.Services;
+using Mobile.Pages;
 using Microsoft.Extensions.Logging;
 
 namespace Mobile.ViewModels;
@@ -11,14 +12,16 @@ namespace Mobile.ViewModels;
 public class CredentialViewModel : BaseViewModel
 {
     private readonly INfcCredentialService _nfcCredentialService;
+    private readonly IAuthService _authService;
     private readonly ILogger<CredentialViewModel> _logger;
 
     private int? _userId;
     private int? _credentialId;
     private string _userName = "Usuario";
+    private string _roles = "";
     private bool _isEmulating;
     private bool _isHceAvailable;
-    private string _statusMessage = "Configura tu credencial para comenzar";
+    private string _statusMessage = "Cargando credencial...";
 
     public int? UserId
     {
@@ -36,6 +39,12 @@ public class CredentialViewModel : BaseViewModel
     {
         get => _userName;
         set => SetProperty(ref _userName, value);
+    }
+
+    public string Roles
+    {
+        get => _roles;
+        set => SetProperty(ref _roles, value);
     }
 
     public bool IsEmulating
@@ -58,36 +67,52 @@ public class CredentialViewModel : BaseViewModel
 
     public ICommand StartEmulationCommand { get; }
     public ICommand StopEmulationCommand { get; }
-    public ICommand SaveCredentialsCommand { get; }
-    public ICommand GoToSettingsCommand { get; }
+    public ICommand LogoutCommand { get; }
 
     public CredentialViewModel(
         INfcCredentialService nfcCredentialService,
+        IAuthService authService,
         ILogger<CredentialViewModel> logger)
     {
         _nfcCredentialService = nfcCredentialService;
+        _authService = authService;
         _logger = logger;
 
         Title = "Mi Credencial Digital";
 
         StartEmulationCommand = new Command(async () => await StartEmulation());
         StopEmulationCommand = new Command(StopEmulation);
-        SaveCredentialsCommand = new Command(async () => await SaveCredentials());
-        GoToSettingsCommand = new Command(async () => await GoToSettings());
+        LogoutCommand = new Command(async () => await Logout());
         
-        // Load saved credentials
-        LoadCredentials();
+        // Load user credentials automatically
+        Task.Run(async () => await LoadUserCredentials());
     }
 
-    private void LoadCredentials()
+    private async Task LoadUserCredentials()
     {
-        UserId = AppSettings.UserId;
-        CredentialId = AppSettings.CredentialId;
-        IsHceAvailable = _nfcCredentialService.IsHceAvailable;
-
-        if (UserId.HasValue && CredentialId.HasValue)
+        try
         {
-            StatusMessage = $"Credencial configurada\nUsuario ID: {UserId}\nCredencial ID: {CredentialId}";
+            var user = await _authService.GetCurrentUserAsync();
+            
+            if (user != null)
+            {
+                UserId = user.UserId;
+                CredentialId = user.UserId; // For now, credential ID = user ID
+                UserName = user.FullName;
+                Roles = string.Join(", ", user.Roles);
+                IsHceAvailable = _nfcCredentialService.IsHceAvailable;
+
+                StatusMessage = $"Credencial lista\n{UserName}\nRoles: {Roles}";
+            }
+            else
+            {
+                StatusMessage = "No hay usuario autenticado";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading user credentials");
+            StatusMessage = "Error cargando credencial";
         }
     }
 
@@ -95,7 +120,7 @@ public class CredentialViewModel : BaseViewModel
     {
         if (!UserId.HasValue || !CredentialId.HasValue)
         {
-            await Shell.Current.DisplayAlert("Error", "Debes configurar tu Usuario ID y Credencial ID primero", "OK");
+            await Shell.Current.DisplayAlert("Error", "No se pudo cargar la credencial. Intenta cerrar sesión e iniciar de nuevo.", "OK");
             return;
         }
 
@@ -141,24 +166,29 @@ public class CredentialViewModel : BaseViewModel
         }
     }
 
-    private async Task SaveCredentials()
+    private async Task Logout()
     {
-        if (!UserId.HasValue || !CredentialId.HasValue)
+        try
         {
-            await Shell.Current.DisplayAlert("Error", "Debes ingresar Usuario ID y Credencial ID", "OK");
-            return;
+            StopEmulation(); // Stop any active emulation
+            
+            await _authService.LogoutAsync();
+            
+            // Cambiar a la página de login
+            var loginViewModel = new LoginViewModel(_authService);
+            var loginPage = new LoginPage(loginViewModel);
+            Microsoft.Maui.Controls.Application.Current!.MainPage = new NavigationPage(loginPage);
         }
-
-        AppSettings.UserId = UserId;
-        AppSettings.CredentialId = CredentialId;
-
-        await Shell.Current.DisplayAlert("Guardado", "Credenciales guardadas correctamente", "OK");
-        
-        StatusMessage = $"Credencial configurada\nUsuario ID: {UserId}\nCredencial ID: {CredentialId}";
-    }
-
-    private async Task GoToSettings()
-    {
-        await Shell.Current.GoToAsync("//SettingsPage");
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during logout");
+            
+            // Usar Application.Current.MainPage para mostrar el alert
+            if (Microsoft.Maui.Controls.Application.Current?.MainPage != null)
+            {
+                await Microsoft.Maui.Controls.Application.Current.MainPage.DisplayAlert(
+                    "Error", "Error al cerrar sesión", "OK");
+            }
+        }
     }
 }

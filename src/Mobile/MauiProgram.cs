@@ -39,6 +39,15 @@ public static class MauiProgram
 			client.DefaultRequestHeaders.Add("X-Tenant-Id", "1");
 		});
 
+		// Configure HttpClient for AuthService
+		builder.Services.AddHttpClient("AuthClient", client =>
+		{
+			client.BaseAddress = new Uri("http://192.168.1.23:5000/");
+			client.Timeout = TimeSpan.FromSeconds(30);
+			client.DefaultRequestHeaders.Add("X-Tenant-Id", "1");
+		});
+		builder.Services.AddSingleton<IAuthService, AuthService>();
+
 		// Register services
 		builder.Services.AddTransient<IMobileAccessRuleService, AccessRuleService>();
 		
@@ -57,11 +66,13 @@ public static class MauiProgram
 		builder.Services.AddSingleton<ISyncService, SyncService>();
 		
 		// Register ViewModels
+		builder.Services.AddTransient<LoginViewModel>();
 		builder.Services.AddTransient<AccessNfcViewModel>();
 		builder.Services.AddTransient<CredentialViewModel>();
 		builder.Services.AddTransient<SettingsViewModel>();
 		
 		// Register pages
+		builder.Services.AddTransient<LoginPage>();
 		builder.Services.AddTransient<AccessNfcPage>();
 		builder.Services.AddTransient<CredentialPage>();
 		builder.Services.AddTransient<SettingsPage>();
