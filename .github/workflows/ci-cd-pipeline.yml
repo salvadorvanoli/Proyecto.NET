@@ -1,0 +1,288 @@
+﻿name: CI/CD Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Ambiente de despliegue (production, staging, etc.)"
+        required: false
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+          - development
+      run_infra:
+        description: "Ejecutar provisioning de infra con Terraform (true/false)"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+      recreate_db:
+        description: "Recrear base de datos (true/false)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "true"
+          - "false"
+      deploy_api:
+        description: "Desplegar API (true/false)"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+      deploy_backoffice:
+        description: "Desplegar BackOffice (true/false)"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+      run_update_services:
+        description: "Forzar actualización de servicios ECS después del build (true/false)"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+jobs:
+  infra:
+    name: Provision infra (Terraform)
+    if: ${{ github.event.inputs.run_infra != 'false' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        working-directory: terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          TF_VAR_db_password: ${{ secrets.TF_VAR_db_password }}
+          TF_VAR_jwt_secret: ${{ secrets.TF_VAR_jwt_secret }}
+          TF_VAR_db_username: ${{ secrets.TF_VAR_db_username }}
+        run: terraform init -input=false
+
+      - name: Terraform Validate
+        working-directory: terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          TF_VAR_db_password: ${{ secrets.TF_VAR_db_password }}
+          TF_VAR_jwt_secret: ${{ secrets.TF_VAR_jwt_secret }}
+          TF_VAR_db_username: ${{ secrets.TF_VAR_db_username }}
+        run: terraform validate || true
+
+      - name: Terraform Apply
+        working-directory: terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          TF_VAR_db_password: ${{ secrets.TF_VAR_db_password }}
+          TF_VAR_jwt_secret: ${{ secrets.TF_VAR_jwt_secret }}
+          TF_VAR_db_username: ${{ secrets.TF_VAR_db_username }}
+        run: terraform apply -auto-approve -input=false
+
+  build:
+    name: Build & push images
+    runs-on: ubuntu-latest
+    env:
+      ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+      API_REPO: proyectonet-api
+      BACKOFFICE_REPO: proyectonet-backoffice
+      IMAGE_TAG: latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          mask-password: true
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+
+      - name: Build and push Docker image for BackOffice
+        if: ${{ github.event.inputs.deploy_backoffice != 'false' }}
+        env:
+          ECR_REGISTRY: ${{ env.ECR_REGISTRY }}
+          BACKOFFICE_REPO: ${{ env.BACKOFFICE_REPO }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+        run: |
+          echo "Building BackOffice using root Dockerfile (target final-backoffice)"
+          docker build -t ${BACKOFFICE_REPO}:${IMAGE_TAG} --target final-backoffice -f Dockerfile .
+          docker tag ${BACKOFFICE_REPO}:${IMAGE_TAG} ${ECR_REGISTRY}/${BACKOFFICE_REPO}:${IMAGE_TAG}
+          docker push ${ECR_REGISTRY}/${BACKOFFICE_REPO}:${IMAGE_TAG}
+
+      - name: Build and push Docker image for API
+        if: ${{ github.event.inputs.deploy_api != 'false' }}
+        env:
+          ECR_REGISTRY: ${{ env.ECR_REGISTRY }}
+          API_REPO: ${{ env.API_REPO }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          RECREATE_DATABASE: ${{ github.event.inputs.recreate_db }}
+        run: |
+          echo "Building API using root Dockerfile (target final-api)"
+          docker build -t ${API_REPO}:${IMAGE_TAG} --target final-api -f Dockerfile --build-arg RECREATE_DATABASE=${RECREATE_DATABASE} .
+          docker tag ${API_REPO}:${IMAGE_TAG} ${ECR_REGISTRY}/${API_REPO}:${IMAGE_TAG}
+          docker push ${ECR_REGISTRY}/${API_REPO}:${IMAGE_TAG}
+
+  update-services:
+    name: Update ECS services
+    if: ${{ github.event.inputs.run_update_services != 'false' }}
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install awscli and jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq unzip curl
+          echo "Installing or updating AWS CLI v2..."
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          # Use --update so installer succeeds whether AWS CLI v2 is already present or not
+          sudo ./aws/install --update || sudo ./aws/install
+          aws --version
+          # cleanup
+          rm -rf awscliv2.zip aws/
+
+      - name: Update ECS services to force new deployment
+        run: |
+          set -euo pipefail
+          echo "Detecting ECS cluster..."
+          clusters_json=$(aws ecs list-clusters --region "$AWS_REGION" --output json)
+          clusterArn=$(echo "$clusters_json" | jq -r '.clusterArns[]' | grep -i "proyectonet" || true)
+          if [ -z "$clusterArn" ]; then
+            clusterArn=$(echo "$clusters_json" | jq -r '.clusterArns[0]')
+          fi
+          if [ -z "$clusterArn" ] || [ "$clusterArn" = "null" ]; then
+            echo "No ECS cluster found. Skipping service update.";
+            exit 0;
+          fi
+          clusterName=$(basename "$clusterArn")
+          echo "Using cluster: $clusterName"
+
+          services_json=$(aws ecs list-services --cluster "$clusterName" --region "$AWS_REGION" --output json)
+          for svc in $(echo "$services_json" | jq -r '.serviceArns[]'); do
+            svcName=$(basename "$svc")
+            echo "Checking service: $svcName"
+            if echo "$svcName" | grep -qi "backoffice" || echo "$svcName" | grep -qi "api"; then
+              echo "Forcing new deployment for $svcName"
+              aws ecs update-service --cluster "$clusterName" --service "$svcName" --force-new-deployment --region "$AWS_REGION"
+            else
+              echo "Skipping $svcName"
+            fi
+          done
+
+  report:
+    name: Report deployment URL
+    needs: [infra, build, update-services]
+    runs-on: ubuntu-latest
+    if: always()
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install AWS CLI and jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq unzip curl
+          echo "Installing or updating AWS CLI v2..."
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          # Use --update so installer succeeds whether AWS CLI v2 is already present or not
+          sudo ./aws/install --update || sudo ./aws/install
+          aws --version
+          rm -rf awscliv2.zip aws/
+
+      - name: Get ALB DNS and produce deploy URL
+        id: get_url
+        run: |
+          set -euo pipefail
+          ALB_NAME="proyectonet-alb"
+          echo "Looking for ALB: $ALB_NAME"
+          dns=""
+          # try by exact name
+          dns=$(aws elbv2 describe-load-balancers --names "$ALB_NAME" --region "$AWS_REGION" --output text --query 'LoadBalancers[0].DNSName' 2>/dev/null || true)
+          if [ -z "$dns" ]; then
+            echo "ALB not found by exact name, searching all ALBs for proyectonet..."
+            dns=$(aws elbv2 describe-load-balancers --region "$AWS_REGION" --query 'LoadBalancers[?contains(LoadBalancerName, `proyectonet`)].DNSName' --output text || true)
+          fi
+
+          if [ -n "$dns" ] && [ "$dns" != "None" ]; then
+            url="http://$dns"
+            echo "Found ALB DNS: $dns"
+            echo "Deployment URL: $url"
+            echo "deploy_url=$url" >> $GITHUB_OUTPUT
+          else
+            echo "No ALB DNS found via AWS CLI. Trying terraform state file as fallback..."
+            if [ -f terraform/terraform.tfstate ]; then
+              url=$(jq -r '.outputs.backoffice_url.value' terraform/terraform.tfstate 2>/dev/null || true)
+              if [ -n "$url" ] && [ "$url" != "null" ]; then
+                echo "Found URL in terraform.tfstate: $url"
+                echo "deploy_url=$url" >> $GITHUB_OUTPUT
+              else
+                echo "No backoffice_url in terraform.tfstate"
+                echo "deploy_url=NOT_FOUND" >> $GITHUB_OUTPUT
+              fi
+            else
+              echo "terraform.tfstate not present in repository"
+              echo "deploy_url=NOT_FOUND" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Show final URL
+        run: |
+          echo "Final deploy URL: ${{ steps.get_url.outputs.deploy_url }}"
+
+      - name: Write deploy URL to file
+        if: always()
+        run: |
+          echo "${{ steps.get_url.outputs.deploy_url }}" > deploy-url.txt
+
+      - name: Upload deploy URL artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-url
+          path: deploy-url.txt
+
+    outputs:
+      deploy_url: ${{ steps.get_url.outputs.deploy_url }}
+
