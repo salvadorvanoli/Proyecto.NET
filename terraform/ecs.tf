@@ -165,7 +165,7 @@ resource "aws_ecs_task_definition" "backoffice" {
         },
         {
           name  = "API_BASE_URL"
-          value = "http://${aws_lb.main.dns_name}/"
+          value = "http://${aws_lb.main.dns_name}"
         },
         {
           name  = "ConnectionStrings__DefaultConnection"
