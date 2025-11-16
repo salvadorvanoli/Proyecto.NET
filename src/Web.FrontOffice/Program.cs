@@ -45,7 +45,6 @@ builder.Services.AddHttpClient<INewsApiService, NewsApiService>(client =>
 });
 
 // Configure HttpClient for User API
-// TODO: Agregar HttpMessageHandler para incluir X-Tenant-Id automáticamente desde las claims del usuario
 builder.Services.AddHttpClient<IUserApiService, UserApiService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
@@ -53,7 +52,6 @@ builder.Services.AddHttpClient<IUserApiService, UserApiService>(client =>
 });
 
 // Configure HttpClient for Benefit API
-// TODO: Agregar HttpMessageHandler para incluir X-Tenant-Id automáticamente desde las claims del usuario
 builder.Services.AddHttpClient<IBenefitApiService, BenefitApiService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
@@ -61,7 +59,6 @@ builder.Services.AddHttpClient<IBenefitApiService, BenefitApiService>(client =>
 });
 
 // Configure HttpClient for AccessEvent API
-// TODO: Agregar HttpMessageHandler para incluir X-Tenant-Id automáticamente desde las claims del usuario
 builder.Services.AddHttpClient<IAccessEventApiService, AccessEventApiService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);

@@ -1,6 +1,5 @@
 using Shared.DTOs.Benefits;
 using Application.Benefits;
-using Application.Benefits.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 

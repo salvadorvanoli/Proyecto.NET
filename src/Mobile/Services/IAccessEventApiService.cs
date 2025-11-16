@@ -1,4 +1,5 @@
 using Application.AccessEvents.DTOs;
+using Shared.DTOs.AccessEvents;
 
 namespace Mobile.Services;
 
@@ -16,4 +17,9 @@ public interface IAccessEventApiService
     /// Obtiene el historial de eventos de acceso de un usuario
     /// </summary>
     Task<List<AccessEventResponse>> GetUserAccessEventsAsync(int userId, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Valida si un usuario tiene acceso a un control point específico
+    /// </summary>
+    Task<AccessValidationResult> ValidateAccessAsync(int userId, int controlPointId, CancellationToken cancellationToken = default);
 }

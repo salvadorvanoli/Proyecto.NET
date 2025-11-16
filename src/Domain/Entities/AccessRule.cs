@@ -18,16 +18,26 @@ public class AccessRule : BaseEntity
     /// </summary>
     public DateRange? ValidityPeriod { get; protected set; }
 
+    /// <summary>
+    /// Foreign key to the control point this rule applies to.
+    /// </summary>
+    public int ControlPointId { get; protected set; }
+
     // Navigation properties
+    public virtual ControlPoint ControlPoint { get; protected set; } = null!;
     public virtual ICollection<Role> Roles { get; protected set; } = new List<Role>();
 
     protected AccessRule() : base()
     {
     }
 
-    public AccessRule(int tenantId, TimeRange? timeRange = null, DateRange? validityPeriod = null)
+    public AccessRule(int tenantId, int controlPointId, TimeRange? timeRange = null, DateRange? validityPeriod = null)
         : base(tenantId)
     {
+        if (controlPointId <= 0)
+            throw new ArgumentException("ControlPointId must be greater than zero", nameof(controlPointId));
+
+        ControlPointId = controlPointId;
         TimeRange = timeRange;
         ValidityPeriod = validityPeriod;
     }

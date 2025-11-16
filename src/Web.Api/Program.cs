@@ -53,11 +53,10 @@ try
         hostOptions.ShutdownTimeout = TimeSpan.FromSeconds(30);
     });
 
-    builder.Services.AddControllers(options =>
-    {
-        // Agregar filtro de autorización por tenant a todos los controladores
-        options.Filters.Add<TenantAuthorizationFilter>();
-    });
+    builder.Services.AddControllers();
+    
+    // Registrar TenantAuthorizationFilter como servicio para uso con atributos
+    builder.Services.AddScoped<TenantAuthorizationFilter>();
 
     // ========================================
     // SEGURIDAD: Configurar JWT Authentication
@@ -239,12 +238,17 @@ try
             var dbSeeder = services.GetRequiredService<DbSeeder>();
             await dbSeeder.MigrateAsync();
 
+            // Crear las tablas si no existen (para cuando no hay migraciones)
+            var context = services.GetRequiredService<ApplicationDbContext>();
+            await context.Database.EnsureCreatedAsync();
+            logger.LogInformation("Database schema ensured.");
+
             // Ejecutar el seed si está habilitado
             var seedDatabase = builder.Configuration.GetValue<bool>("SEED_DATABASE", false);
             if (seedDatabase || app.Environment.IsDevelopment())
             {
                 logger.LogInformation("Seeding database...");
-                await dbSeeder.SeedAsync();
+                await DatabaseSeeder.SeedAsync(services, app.Environment);
             }
 
             logger.LogInformation("Database initialization completed successfully!");

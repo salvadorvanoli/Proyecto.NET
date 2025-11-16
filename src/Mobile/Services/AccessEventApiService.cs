@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Application.AccessEvents.DTOs;
+using Shared.DTOs.AccessEvents;
 using Microsoft.Extensions.Logging;
 
 namespace Mobile.Services;
@@ -88,6 +89,43 @@ public class AccessEventApiService : IAccessEventApiService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error inesperado al obtener eventos de acceso");
+            throw;
+        }
+    }
+
+    public async Task<AccessValidationResult> ValidateAccessAsync(int userId, int controlPointId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("Validating access for user {UserId} to control point {ControlPointId}", userId, controlPointId);
+
+            var requestBody = new { UserId = userId, ControlPointId = controlPointId };
+            var response = await _httpClient.PostAsJsonAsync("api/accessevents/validate", requestBody, _jsonOptions, cancellationToken);
+            
+            response.EnsureSuccessStatusCode();
+            
+            var result = await response.Content.ReadFromJsonAsync<AccessValidationResult>(_jsonOptions, cancellationToken);
+            
+            if (result == null)
+            {
+                throw new InvalidOperationException("El servidor retornó una respuesta vacía");
+            }
+
+            _logger.LogInformation("Access validation result: {Result}, Reason: {Reason}", result.Result, result.Reason);
+            
+            return result;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Error HTTP al validar acceso");
+            var detailedMessage = $"Error HTTP: {ex.Message}\n" +
+                                  $"InnerException: {ex.InnerException?.Message ?? "N/A"}\n" +
+                                  $"URL: {_httpClient.BaseAddress}api/accessevents/validate";
+            throw new InvalidOperationException(detailedMessage, ex);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error inesperado al validar acceso");
             throw;
         }
     }

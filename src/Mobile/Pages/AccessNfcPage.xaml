@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Mobile.ViewModels"
              x:Class="Mobile.Pages.AccessNfcPage"
-             Title="Control de Acceso NFC">
+             x:DataType="vm:AccessNfcViewModel"
+             Title="{Binding Title}">
     
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="20">
@@ -13,6 +15,27 @@
                    FontAttributes="Bold"
                    HorizontalOptions="Center"/>
             
+            <!-- Connectivity Status -->
+            <Frame BorderColor="LightGray" Padding="10" CornerRadius="10">
+                <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
+                    <Label Text="{Binding ConnectivityStatusText}"
+                           TextColor="{Binding ConnectivityStatusColor}"
+                           FontSize="16"
+                           FontAttributes="Bold"/>
+                    
+                    <Frame IsVisible="{Binding ShowSyncBadge}"
+                           BackgroundColor="Orange"
+                           Padding="8,4"
+                           CornerRadius="12"
+                           HasShadow="False">
+                        <Label Text="{Binding SyncBadgeText}"
+                               TextColor="White"
+                               FontSize="12"
+                               FontAttributes="Bold"/>
+                    </Frame>
+                </HorizontalStackLayout>
+            </Frame>
+            
             <!-- NFC Status -->
             <Frame BorderColor="LightGray" Padding="15" CornerRadius="10">
                 <VerticalStackLayout Spacing="10">
@@ -21,57 +44,52 @@
                            FontAttributes="Bold"/>
                     <HorizontalStackLayout Spacing="10">
                         <Label Text="NFC Disponible:"/>
-                        <Label x:Name="NfcAvailableLabel" 
-                               Text="-"
+                        <Label Text="{Binding NfcAvailableText}" 
+                               TextColor="{Binding NfcAvailableColor}"
                                FontAttributes="Bold"/>
                     </HorizontalStackLayout>
                     <HorizontalStackLayout Spacing="10">
                         <Label Text="NFC Habilitado:"/>
-                        <Label x:Name="NfcEnabledLabel" 
-                               Text="-"
+                        <Label Text="{Binding NfcEnabledText}" 
+                               TextColor="{Binding NfcEnabledColor}"
                                FontAttributes="Bold"/>
                     </HorizontalStackLayout>
                 </VerticalStackLayout>
             </Frame>
 
             <!-- Scan Area -->
-            <Frame x:Name="ScanFrame"
-                   BorderColor="Gray"
-                   BackgroundColor="LightBlue"
+            <Frame BorderColor="Gray"
+                   BackgroundColor="{Binding ScanFrameColor}"
                    Padding="40"
                    CornerRadius="20"
                    HasShadow="True">
                 <VerticalStackLayout Spacing="15">
                     
-                    <!-- NFC Icon (using Unicode symbol) -->
+                    <!-- NFC Icon -->
                     <Label Text="📡"
                            FontSize="64"
                            HorizontalOptions="Center"/>
                     
-                    <Label x:Name="StatusLabel"
-                           Text="Listo para Escanear"
+                    <Label Text="{Binding StatusText}"
                            FontSize="20"
                            FontAttributes="Bold"
                            HorizontalOptions="Center"
                            HorizontalTextAlignment="Center"/>
                     
-                    <Label x:Name="InstructionLabel"
-                           Text="Acerca tu tarjeta o dispositivo NFC al lector"
+                    <Label Text="{Binding InstructionText}"
                            FontSize="14"
                            HorizontalOptions="Center"
                            HorizontalTextAlignment="Center"/>
                     
                     <!-- Activity Indicator -->
-                    <ActivityIndicator x:Name="ScanningIndicator"
-                                     IsRunning="False"
+                    <ActivityIndicator IsRunning="{Binding IsValidating}"
                                      Color="Blue"
                                      HeightRequest="40"/>
                 </VerticalStackLayout>
             </Frame>
 
             <!-- Control Point Info -->
-            <Frame x:Name="ControlPointFrame"
-                   IsVisible="False"
+            <Frame IsVisible="{Binding ShowControlPoint}"
                    BorderColor="LightGray"
                    Padding="15"
                    CornerRadius="10">
@@ -79,28 +97,30 @@
                     <Label Text="Punto de Acceso Detectado"
                            FontSize="16"
                            FontAttributes="Bold"/>
-                    <Label x:Name="ControlPointLabel"
+                    <Label Text="{Binding ControlPointText}"
                            FontSize="14"/>
                 </VerticalStackLayout>
             </Frame>
 
             <!-- Result Frame -->
-            <Frame x:Name="ResultFrame"
-                   IsVisible="False"
+            <Frame IsVisible="{Binding ShowResult}"
+                   BorderColor="{Binding ResultFrameBorderColor}"
                    Padding="20"
                    CornerRadius="10"
                    HasShadow="True">
                 <VerticalStackLayout Spacing="15">
-                    <Label x:Name="ResultIconLabel"
+                    <Label Text="{Binding ResultIcon}"
+                           TextColor="{Binding ResultIconColor}"
                            FontSize="48"
                            HorizontalOptions="Center"/>
                     
-                    <Label x:Name="ResultTitleLabel"
+                    <Label Text="{Binding ResultTitle}"
+                           TextColor="{Binding ResultTitleColor}"
                            FontSize="24"
                            FontAttributes="Bold"
                            HorizontalOptions="Center"/>
                     
-                    <Label x:Name="ResultMessageLabel"
+                    <Label Text="{Binding ResultMessage}"
                            FontSize="16"
                            HorizontalOptions="Center"
                            HorizontalTextAlignment="Center"/>
@@ -109,36 +129,47 @@
                     
                     <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
                         <Label Grid.Row="0" Grid.Column="0" Text="Usuario:" FontAttributes="Bold"/>
-                        <Label Grid.Row="0" Grid.Column="1" x:Name="UserLabel"/>
+                        <Label Grid.Row="0" Grid.Column="1" Text="{Binding UserText}"/>
                         
                         <Label Grid.Row="1" Grid.Column="0" Text="Punto de Acceso:" FontAttributes="Bold"/>
-                        <Label Grid.Row="1" Grid.Column="1" x:Name="LocationLabel"/>
+                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding LocationText}"/>
                         
                         <Label Grid.Row="2" Grid.Column="0" Text="Fecha y Hora:" FontAttributes="Bold"/>
-                        <Label Grid.Row="2" Grid.Column="1" x:Name="DateTimeLabel"/>
+                        <Label Grid.Row="2" Grid.Column="1" Text="{Binding DateTimeText}"/>
                         
                         <Label Grid.Row="3" Grid.Column="0" Text="Tag ID:" FontAttributes="Bold"/>
-                        <Label Grid.Row="3" Grid.Column="1" x:Name="TagIdLabel"/>
+                        <Label Grid.Row="3" Grid.Column="1" Text="{Binding TagIdText}"/>
                     </Grid>
                 </VerticalStackLayout>
             </Frame>
 
             <!-- Buttons -->
-            <Button x:Name="StartButton"
-                    Text="Iniciar Escucha NFC"
-                    Clicked="OnStartClicked"
+            <Button Text="Iniciar Escucha NFC"
+                    Command="{Binding StartListeningCommand}"
+                    IsVisible="{Binding StartButtonVisible}"
                     BackgroundColor="Green"
                     TextColor="White"/>
             
-            <Button x:Name="StopButton"
-                    Text="Detener Escucha"
-                    Clicked="OnStopClicked"
+            <Button Text="Detener Escucha"
+                    Command="{Binding StopListeningCommand}"
+                    IsVisible="{Binding StopButtonVisible}"
                     BackgroundColor="Red"
+                    TextColor="White"/>
+            
+            <Button Text="Sincronizar Ahora"
+                    Command="{Binding SyncNowCommand}"
+                    IsVisible="{Binding ShowSyncBadge}"
+                    BackgroundColor="DodgerBlue"
+                    TextColor="White"/>
+            
+            <Button Text="📥 Descargar Reglas de Acceso"
+                    Command="{Binding SyncRulesCommand}"
+                    BackgroundColor="Orange"
                     TextColor="White"
-                    IsVisible="False"/>
+                    Margin="0,10,0,0"/>
             
             <Button Text="Ver Historial"
-                    Clicked="OnHistoryClicked"
+                    Command="{Binding ViewHistoryCommand}"
                     BackgroundColor="Gray"
                     TextColor="White"/>
 

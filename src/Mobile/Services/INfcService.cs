@@ -39,4 +39,14 @@ public class NfcTagDetectedEventArgs : EventArgs
     public string TagId { get; set; } = string.Empty;
     public int ControlPointId { get; set; }
     public string ControlPointName { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// User ID from digital credential (HCE mode)
+    /// </summary>
+    public int? UserId { get; set; }
+    
+    /// <summary>
+    /// Credential ID from digital credential (HCE mode)
+    /// </summary>
+    public int? CredentialId { get; set; }
 }

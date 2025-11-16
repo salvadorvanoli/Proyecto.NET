@@ -56,8 +56,8 @@
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
 
-  <!-- Paquetes Comunes para Todos los Proyectos -->
-  <ItemGroup>
+  <!-- Paquetes Comunes para Todos los Proyectos (excepto Mobile) -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'Mobile'">
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.10" />
   </ItemGroup>
 

@@ -1,4 +1,4 @@
-using Application.Users.DTOs;
+using Shared.DTOs.Users;
 
 namespace Web.FrontOffice.Services.Interfaces;
 

@@ -1,5 +1,9 @@
 using Application.AccessEvents.DTOs;
 using Application.AccessEvents.Services;
+using Application.AccessEvents;
+using Application.AccessRules;
+using Shared.DTOs.AccessEvents;
+using Shared.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Web.Api.Controllers;
@@ -12,11 +16,19 @@ namespace Web.Api.Controllers;
 public class AccessEventsController : ControllerBase
 {
     private readonly IAccessEventService _accessEventService;
+    private readonly IAccessValidationService _accessValidationService;
+    private readonly IAccessRuleService _accessRuleService;
     private readonly ILogger<AccessEventsController> _logger;
 
-    public AccessEventsController(IAccessEventService accessEventService, ILogger<AccessEventsController> logger)
+    public AccessEventsController(
+        IAccessEventService accessEventService,
+        IAccessValidationService accessValidationService,
+        IAccessRuleService accessRuleService,
+        ILogger<AccessEventsController> logger)
     {
         _accessEventService = accessEventService;
+        _accessValidationService = accessValidationService;
+        _accessRuleService = accessRuleService;
         _logger = logger;
     }
 
@@ -114,4 +126,59 @@ public class AccessEventsController : ControllerBase
             return StatusCode(500, new { message = "Error creating access event", error = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Validates if a user has access to a specific control point.
+    /// </summary>
+    /// <param name="userId">The user ID attempting access.</param>
+    /// <param name="controlPointId">The control point ID to access.</param>
+    /// <returns>Validation result with access decision and reason.</returns>
+    [HttpPost("validate")]
+    public async Task<ActionResult<AccessValidationResult>> ValidateAccess(
+        [FromBody] ValidateAccessRequest request)
+    {
+        try
+        {
+            _logger.LogInformation("Validating access for user {UserId} to control point {ControlPointId}", 
+                request.UserId, request.ControlPointId);
+
+            var validationResult = await _accessValidationService.ValidateAccessAsync(request.UserId, request.ControlPointId);
+            
+            _logger.LogInformation("Access validation completed. User {UserId}, ControlPoint {ControlPointId}, Result: {Result}, Reason: {Reason}", 
+                request.UserId, request.ControlPointId, validationResult.Result, validationResult.Reason);
+
+            return Ok(validationResult);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error validating access for user {UserId} to control point {ControlPointId}", 
+                request.UserId, request.ControlPointId);
+            return StatusCode(500, new { message = "Error validating access", error = ex.Message, stackTrace = ex.StackTrace });
+        }
+    }
+
+    /// <summary>
+    /// Gets all active access rules for offline caching.
+    /// </summary>
+    /// <returns>List of access rules with user, control point, and time restrictions.</returns>
+    [HttpGet("rules")]
+    public async Task<ActionResult<List<AccessRuleDto>>> GetAccessRules()
+    {
+        try
+        {
+            _logger.LogInformation("Getting all active access rules for offline sync");
+            
+            var rules = await _accessRuleService.GetAllActiveRulesAsync();
+            
+            _logger.LogInformation("Retrieved {Count} active access rules", rules.Count);
+            
+            return Ok(rules);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving access rules");
+            return StatusCode(500, new { message = "Error retrieving access rules", error = ex.Message });
+        }
+    }
 }
+

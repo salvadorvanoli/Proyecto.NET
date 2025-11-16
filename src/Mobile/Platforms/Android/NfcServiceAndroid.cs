@@ -188,78 +188,162 @@ public partial class NfcService
         
         int controlPointId = 0;
         string controlPointName = "Unknown";
+        int? userId = null;
+        int? credentialId = null;
 
-        // Intentar leer mensaje NDEF
-        var ndef = Ndef.Get(tag);
-        if (ndef != null)
+        // PRIORIDAD 1: Intentar leer HCE (ISO-DEP) para credenciales digitales
+        var isoDep = IsoDep.Get(tag);
+        if (isoDep != null)
         {
             try
             {
-                ndef.Connect();
-                var ndefMessage = ndef.NdefMessage;
-                
-                if (ndefMessage != null)
-                {
-                    var records = ndefMessage.GetRecords();
-                    if (records != null && records.Length > 0)
-                    {
-                        var record = records[0];
-                        var payload = record?.GetPayload();
-                        
-                        if (payload != null && payload.Length > 0)
-                        {
-                            // Los registros de texto NDEF tienen el formato:
-                            // [0] = Status byte (indica idioma)
-                            // [1..n] = Código de idioma (ej: "en")
-                            // [n+1..] = Texto
-                            
-                            // Saltar el byte de status y el código de idioma
-                            var statusByte = payload[0];
-                            var languageCodeLength = statusByte & 0x3F; // Los 6 bits inferiores
-                            var textOffset = 1 + languageCodeLength;
-                            
-                            if (payload.Length > textOffset)
-                            {
-                                var text = Encoding.UTF8.GetString(payload, textOffset, payload.Length - textOffset);
-                                _logger.LogInformation("NDEF text payload: {Text}", text);
+                _logger.LogInformation("ISO-DEP tag found, attempting to connect...");
+                isoDep.Connect();
+                _logger.LogInformation("✓ Connected to ISO-DEP tag (HCE)");
 
-                                // Parsear "CONTROL_POINT:3:Entrada Estacionamiento"
-                                var parts = text.Split(':');
-                                if (parts.Length >= 3 && parts[0] == "CONTROL_POINT")
+                // SELECT AID command (debe coincidir con el AID del servicio HCE)
+                byte[] selectAid = { 0x00, 0xA4, 0x04, 0x00, 0x07, 0xF0, 0x39, 0x41, 0x48, 0x14, 0x81, 0x00, 0x00 };
+                _logger.LogInformation("Sending SELECT AID command...");
+                var response = isoDep.Transceive(selectAid);
+                _logger.LogInformation("SELECT AID response length: {Length}", response?.Length ?? 0);
+                
+                if (response != null && response.Length >= 2)
+                {
+                    // Verificar status code 90 00 (success)
+                    var sw1 = response[response.Length - 2];
+                    var sw2 = response[response.Length - 1];
+                    
+                    if (sw1 == 0x90 && sw2 == 0x00)
+                    {
+                        _logger.LogInformation("AID selected successfully, requesting data");
+                        
+                        // GET DATA command
+                        byte[] getData = { 0x00, 0xCA, 0x00, 0x00, 0x00 };
+                        var dataResponse = isoDep.Transceive(getData);
+                        
+                        if (dataResponse != null && dataResponse.Length > 2)
+                        {
+                            // Quitar los últimos 2 bytes (status code)
+                            var dataLength = dataResponse.Length - 2;
+                            var credentialData = Encoding.UTF8.GetString(dataResponse, 0, dataLength);
+                            _logger.LogInformation("Credential data received: {Data}", credentialData);
+                            
+                            // Parsear "CRED:1|USER:2"
+                            var parts = credentialData.Split('|');
+                            foreach (var part in parts)
+                            {
+                                var keyValue = part.Split(':');
+                                if (keyValue.Length == 2)
                                 {
-                                    if (int.TryParse(parts[1], out var cpId))
+                                    if (keyValue[0] == "CRED" && int.TryParse(keyValue[1], out var cId))
                                     {
-                                        controlPointId = cpId;
-                                        controlPointName = parts[2];
+                                        credentialId = cId;
+                                    }
+                                    else if (keyValue[0] == "USER" && int.TryParse(keyValue[1], out var uId))
+                                    {
+                                        userId = uId;
                                     }
                                 }
+                            }
+                            
+                            if (credentialId.HasValue && userId.HasValue)
+                            {
+                                _logger.LogInformation("Digital credential detected - UserId: {UserId}, CredentialId: {CredentialId}", 
+                                    userId, credentialId);
+                                
+                                // Para credenciales digitales, usamos el controlPointId del dispositivo lector
+                                // (se establece en la configuración del punto de control)
+                                controlPointId = AppSettings.ControlPointId ?? 1; // Default to 1 if not configured
+                                controlPointName = $"Control Point {controlPointId}";
                             }
                         }
                     }
                 }
                 
-                ndef.Close();
+                isoDep.Close();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error reading NDEF message");
+                _logger.LogError(ex, "Error reading ISO-DEP HCE data");
             }
         }
 
-        // Si no se pudo leer NDEF, usar el ID del tag como fallback
+        // PRIORIDAD 2: Intentar leer mensaje NDEF (tags NFC tradicionales)
+        if (!userId.HasValue || !credentialId.HasValue)
+        {
+            var ndef = Ndef.Get(tag);
+            if (ndef != null)
+            {
+                try
+                {
+                    ndef.Connect();
+                    var ndefMessage = ndef.NdefMessage;
+                    
+                    if (ndefMessage != null)
+                    {
+                        var records = ndefMessage.GetRecords();
+                        if (records != null && records.Length > 0)
+                        {
+                            var record = records[0];
+                            var payload = record?.GetPayload();
+                            
+                            if (payload != null && payload.Length > 0)
+                            {
+                                // Los registros de texto NDEF tienen el formato:
+                                // [0] = Status byte (indica idioma)
+                                // [1..n] = Código de idioma (ej: "en")
+                                // [n+1..] = Texto
+                                
+                                // Saltar el byte de status y el código de idioma
+                                var statusByte = payload[0];
+                                var languageCodeLength = statusByte & 0x3F; // Los 6 bits inferiores
+                                var textOffset = 1 + languageCodeLength;
+                                
+                                if (payload.Length > textOffset)
+                                {
+                                    var text = Encoding.UTF8.GetString(payload, textOffset, payload.Length - textOffset);
+                                    _logger.LogInformation("NDEF text payload: {Text}", text);
+
+                                    // Parsear "CONTROL_POINT:3:Entrada Estacionamiento"
+                                    var parts = text.Split(':');
+                                    if (parts.Length >= 3 && parts[0] == "CONTROL_POINT")
+                                    {
+                                        if (int.TryParse(parts[1], out var cpId))
+                                        {
+                                            controlPointId = cpId;
+                                            controlPointName = parts[2];
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    ndef.Close();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error reading NDEF message");
+                }
+            }
+        }
+
+        // Si no se pudo leer NDEF ni HCE, usar el ID del tag como fallback
         if (controlPointId == 0)
         {
-            _logger.LogWarning("Could not read NDEF data, using tag ID hash as fallback");
+            _logger.LogWarning("Could not read NDEF or HCE data, using tag ID hash as fallback");
             controlPointId = (Math.Abs(tagId.GetHashCode()) % 6) + 1;
             controlPointName = $"Control Point {controlPointId}";
         }
 
-        // Disparar evento
+        // Disparar evento con todos los datos
         var eventArgs = new NfcTagDetectedEventArgs
         {
             TagId = tagId,
             ControlPointId = controlPointId,
-            ControlPointName = controlPointName
+            ControlPointName = controlPointName,
+            UserId = userId,
+            CredentialId = credentialId
         };
 
         TagDetected?.Invoke(this, eventArgs);

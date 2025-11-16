@@ -23,14 +23,15 @@ public class MainActivity : MauiAppCompatActivity
     protected override void OnCreate(Bundle? savedInstanceState)
     {
         base.OnCreate(savedInstanceState);
-        
-        // Obtener el servicio NFC
-        _nfcService = IPlatformApplication.Current?.Services.GetService<INfcService>();
+        // NO acceder a Services aquí - MAUI no está listo
     }
 
     protected override void OnResume()
     {
         base.OnResume();
+        
+        // Inicializar NFC service aquí cuando MAUI está listo
+        _nfcService ??= IPlatformApplication.Current?.Services.GetService<INfcService>();
         
         // Procesar intent si viene de NFC
         if (_nfcService is NfcService nfcService)

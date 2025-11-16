@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:Mobile.ViewModels"
+             xmlns:models="clr-namespace:Mobile.Models"
+             x:Class="Mobile.Pages.SettingsPage"
+             x:DataType="viewmodels:SettingsViewModel"
+             Title="{Binding Title}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+
+            <Label Text="⚙️ Configuración de Modo" 
+                   FontSize="24" 
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"/>
+
+            <Frame Padding="20" BorderColor="{StaticResource Gray200}">
+                <VerticalStackLayout Spacing="15">
+                    <Label Text="Selecciona cómo quieres usar este dispositivo:" 
+                           FontSize="16"/>
+
+                    <Button Text="📱 Credencial Digital" 
+                            Clicked="OnCredentialModeClicked"
+                            BackgroundColor="{StaticResource Primary}"/>
+
+                    <Button Text="🚪 Punto de Control" 
+                            Clicked="OnControlPointModeClicked"
+                            BackgroundColor="{StaticResource Secondary}"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <Frame Padding="15" BackgroundColor="{StaticResource Gray100}">
+                <Label Text="{Binding ModeDescription}" 
+                       FontSize="14"
+                       LineBreakMode="WordWrap"/>
+            </Frame>
+
+            <Button Text="✅ Guardar y Continuar" 
+                    Command="{Binding SaveAndNavigateCommand}"
+                    BackgroundColor="{StaticResource Primary}"/>
+
+            <Frame Padding="15" BackgroundColor="{StaticResource Gray100}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="ℹ️ Información" FontSize="16" FontAttributes="Bold"/>
+                    <Label FontSize="12" LineBreakMode="WordWrap">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="Modo Credencial: " FontAttributes="Bold"/>
+                                <Span Text="Úsalo en el celular del usuario. Emula una tarjeta NFC.&#x0a;&#x0a;"/>
+                                <Span Text="Modo Punto de Control: " FontAttributes="Bold"/>
+                                <Span Text="Úsalo en el celular/tablet fijo en la entrada. Lee credenciales y valida acceso."/>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                </VerticalStackLayout>
+            </Frame>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>

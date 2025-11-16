@@ -351,5 +351,85 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
             Console.WriteLine("✅ Sample access events created successfully!");
         }
+
+        // Seed NFC Testing User with Credential
+        var nfcTestUser = await context.Users.FirstOrDefaultAsync(u => u.Email == "admin11@backoffice.com");
+        if (nfcTestUser == null)
+        {
+            Console.WriteLine("\n🔑 Creating NFC testing user...");
+            
+            var tenant = await context.Tenants.FirstAsync();
+            var passwordHash = passwordHasher.HashPassword("Admin123!");
+            var personalData = new PersonalData("Usuario", "NFC Testing", new DateOnly(1995, 5, 15));
+
+            nfcTestUser = new User(tenant.Id, "admin11@backoffice.com", passwordHash, personalData);
+            context.Users.Add(nfcTestUser);
+            await context.SaveChangesAsync();
+
+            // Assign role
+            var adminRole = await context.Roles.FirstAsync(r => r.Name == "AdministradorBackoffice" && r.TenantId == tenant.Id);
+            nfcTestUser.AssignRole(adminRole);
+            await context.SaveChangesAsync();
+
+            Console.WriteLine($"   Usuario NFC creado: {nfcTestUser.Email}");
+        }
+
+        // Ensure user has active credential
+        if (nfcTestUser.CredentialId == null)
+        {
+            Console.WriteLine("\n🆔 Creating credential for NFC testing user...");
+            
+            var credential = new Credential(
+                tenantId: nfcTestUser.TenantId,
+                userId: nfcTestUser.Id,
+                issueDate: DateTime.UtcNow,
+                isActive: true
+            );
+            
+            context.Credentials.Add(credential);
+            await context.SaveChangesAsync();
+
+            // Reload user and assign credential
+            nfcTestUser = await context.Users.FirstAsync(u => u.Id == nfcTestUser.Id);
+            nfcTestUser.AssignCredential(credential.Id);
+            await context.SaveChangesAsync();
+
+            Console.WriteLine($"   Credencial creada: ID={credential.Id}, Activa={credential.IsActive}");
+        }
+
+        // Seed Access Rules for Control Points
+        var allControlPointsWithRules = await context.ControlPoints.Include(cp => cp.AccessRules).ToListAsync();
+        
+        foreach (var controlPoint in allControlPointsWithRules)
+        {
+            if (!controlPoint.AccessRules.Any())
+            {
+                Console.WriteLine($"\n🔐 Creating access rule for control point: {controlPoint.Name}...");
+                
+                // Create AccessRule with ControlPointId (one-to-many relationship)
+                var accessRule = new AccessRule(controlPoint.TenantId, controlPoint.Id);
+                context.AccessRules.Add(accessRule);
+
+                // Assign AdministradorBackoffice role to this access rule
+                var adminRole = await context.Roles
+                    .FirstOrDefaultAsync(r => r.Name == "AdministradorBackoffice" && r.TenantId == controlPoint.TenantId);
+
+                if (adminRole != null)
+                {
+                    accessRule.Roles.Add(adminRole);
+                    await context.SaveChangesAsync();
+                    Console.WriteLine($"   AccessRule creada y rol 'AdministradorBackoffice' asignado al ControlPoint");
+                }
+            }
+        }
+
+        Console.WriteLine("\n✅ NFC testing setup completed!");
+        Console.WriteLine("===========================================");
+        Console.WriteLine("TESTING CREDENTIALS:");
+        Console.WriteLine($"Email: {nfcTestUser.Email}");
+        Console.WriteLine("Password: Admin123!");
+        Console.WriteLine($"UserId: {nfcTestUser.Id}");
+        Console.WriteLine($"CredentialId: {nfcTestUser.CredentialId}");
+        Console.WriteLine("===========================================");
     }
 }

@@ -8,14 +8,21 @@
     Shell.FlyoutBehavior="Flyout"
     Title="Control de Accesos">
 
-    <FlyoutItem Title="Inicio" Icon="home.png">
+    <FlyoutItem Title="⚙️ Configuración">
         <ShellContent
-            Title="Home"
-            ContentTemplate="{DataTemplate local:MainPage}"
-            Route="MainPage" />
+            Title="Modo de Operación"
+            ContentTemplate="{DataTemplate pages:SettingsPage}"
+            Route="SettingsPage" />
     </FlyoutItem>
 
-    <FlyoutItem Title="Validación NFC" Icon="nfc.png">
+    <FlyoutItem Title="🪪 Credencial Digital">
+        <ShellContent
+            Title="Mi Credencial"
+            ContentTemplate="{DataTemplate pages:CredentialPage}"
+            Route="CredentialPage" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="📱 Punto de Control">
         <ShellContent
             Title="Escanear NFC"
             ContentTemplate="{DataTemplate pages:AccessNfcPage}"
