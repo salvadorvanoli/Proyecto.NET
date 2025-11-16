@@ -44,7 +44,7 @@
                                 <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bi bi-person-circle"></i>
                                     <span class="ms-1">@User.Identity.Name</span>
-                                    <span class="badge bg-info ms-2">Tenant @User.FindFirst("tenant_id")?.Value</span>
+                                    <span class="badge bg-info ms-2">Tenant @User.FindFirst("TenantId")?.Value</span>
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                                     <li>
@@ -80,7 +80,7 @@
             @if (User.Identity?.IsAuthenticated == true)
             {
                 <span class="text-muted">
-                    | Usuario: <strong>@User.Identity.Name</strong> | Tenant ID: <strong>@User.FindFirst("tenant_id")?.Value</strong>
+                    | Usuario: <strong>@User.Identity.Name</strong> | Tenant ID: <strong>@User.FindFirst("TenantId")?.Value</strong>
                 </span>
             }
         </div>
