@@ -30,6 +30,7 @@ public class AccessNfcViewModel : BaseViewModel
     private bool _isValidating;
     private bool _showResult;
     private bool _showControlPoint;
+    private string _controlPointId = "1"; // Default to point 1
     
     // NFC Status
     private string _nfcAvailableText = "-";
@@ -131,6 +132,12 @@ public class AccessNfcViewModel : BaseViewModel
     {
         get => _showControlPoint;
         set => SetProperty(ref _showControlPoint, value);
+    }
+
+    public string ControlPointId
+    {
+        get => _controlPointId;
+        set => SetProperty(ref _controlPointId, value);
     }
 
     public string NfcAvailableText
@@ -340,8 +347,20 @@ public class AccessNfcViewModel : BaseViewModel
 
     private async void OnNfcTagDetected(object? sender, NfcTagDetectedEventArgs e)
     {
+        // Usar el ControlPointId ingresado por el usuario en lugar del que viene en el evento
+        if (!int.TryParse(ControlPointId, out int controlPointIdToUse))
+        {
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await Shell.Current.DisplayAlert("Error", 
+                    "El ID del Punto de Control debe ser un número válido.", 
+                    "OK");
+            });
+            return;
+        }
+        
         _logger.LogInformation("NFC Tag detected in ViewModel: ControlPoint {ControlPointId}, Tag {TagId}, UserId {UserId}, CredentialId {CredentialId}",
-            e.ControlPointId, e.TagId, e.UserId, e.CredentialId);
+            controlPointIdToUse, e.TagId, e.UserId, e.CredentialId);
 
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {
@@ -367,7 +386,7 @@ public class AccessNfcViewModel : BaseViewModel
 
                 // Mostrar información del punto de control
                 ShowControlPoint = true;
-                ControlPointText = $"{e.ControlPointName} (ID: {e.ControlPointId})";
+                ControlPointText = $"Punto de Control #{controlPointIdToUse}";
 
                 // Mostrar validando
                 StatusText = "Validando acceso con servidor...";
@@ -381,9 +400,9 @@ public class AccessNfcViewModel : BaseViewModel
                     // SIEMPRE validar con backend - El punto de control NUNCA está offline
                     _logger.LogInformation("🌐 Validating with backend");
                     _logger.LogInformation("Backend URL: http://192.168.1.23:5000");
-                    _logger.LogInformation("UserId: {UserId}, ControlPointId: {ControlPointId}", userIdToValidate, e.ControlPointId);
+                    _logger.LogInformation("UserId: {UserId}, ControlPointId: {ControlPointId}", userIdToValidate, controlPointIdToUse);
                     
-                    validationResult = await ValidateAccessAsync(userIdToValidate, e.ControlPointId);
+                    validationResult = await ValidateAccessAsync(userIdToValidate, controlPointIdToUse);
                     
                     _logger.LogInformation("✅ Validation result from backend: {Result}", validationResult.Result);
 
@@ -391,7 +410,7 @@ public class AccessNfcViewModel : BaseViewModel
                     var request = new CreateAccessEventRequest
                     {
                         UserId = userIdToValidate,
-                        ControlPointId = e.ControlPointId,
+                        ControlPointId = controlPointIdToUse,
                         EventDateTime = eventDateTime,
                         Result = validationResult.Result
                     };

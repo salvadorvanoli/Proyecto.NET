@@ -22,6 +22,12 @@ public class CredentialViewModel : BaseViewModel
     private bool _isEmulating;
     private bool _isHceAvailable;
     private string _statusMessage = "Cargando credencial...";
+    private bool _isOnline;
+    private string _connectivityStatusText = "Verificando...";
+    private string _connectivityStatusIcon = "📡";
+    private Color _connectivityStatusColor = Colors.Gray;
+    private string _activationButtonText = "🚀 Activar Credencial";
+    private Color _activationButtonColor = Colors.Green;
 
     public int? UserId
     {
@@ -65,8 +71,45 @@ public class CredentialViewModel : BaseViewModel
         set => SetProperty(ref _statusMessage, value);
     }
 
+    public bool IsOnline
+    {
+        get => _isOnline;
+        set => SetProperty(ref _isOnline, value);
+    }
+
+    public string ConnectivityStatusText
+    {
+        get => _connectivityStatusText;
+        set => SetProperty(ref _connectivityStatusText, value);
+    }
+
+    public string ConnectivityStatusIcon
+    {
+        get => _connectivityStatusIcon;
+        set => SetProperty(ref _connectivityStatusIcon, value);
+    }
+
+    public Color ConnectivityStatusColor
+    {
+        get => _connectivityStatusColor;
+        set => SetProperty(ref _connectivityStatusColor, value);
+    }
+
+    public string ActivationButtonText
+    {
+        get => _activationButtonText;
+        set => SetProperty(ref _activationButtonText, value);
+    }
+
+    public Color ActivationButtonColor
+    {
+        get => _activationButtonColor;
+        set => SetProperty(ref _activationButtonColor, value);
+    }
+
     public ICommand StartEmulationCommand { get; }
     public ICommand StopEmulationCommand { get; }
+    public ICommand ToggleEmulationCommand { get; }
     public ICommand LogoutCommand { get; }
 
     public CredentialViewModel(
@@ -82,10 +125,50 @@ public class CredentialViewModel : BaseViewModel
 
         StartEmulationCommand = new Command(async () => await StartEmulation());
         StopEmulationCommand = new Command(StopEmulation);
+        ToggleEmulationCommand = new Command(async () => await ToggleEmulation());
         LogoutCommand = new Command(async () => await Logout());
+        
+        // Subscribe to connectivity changes
+        Connectivity.ConnectivityChanged += OnConnectivityChanged;
+        UpdateConnectivityStatus();
         
         // Load user credentials automatically
         Task.Run(async () => await LoadUserCredentials());
+    }
+
+    private void OnConnectivityChanged(object? sender, Microsoft.Maui.Networking.ConnectivityChangedEventArgs e)
+    {
+        UpdateConnectivityStatus();
+    }
+
+    private void UpdateConnectivityStatus()
+    {
+        IsOnline = Connectivity.NetworkAccess == NetworkAccess.Internet;
+        
+        if (IsOnline)
+        {
+            ConnectivityStatusText = "Online";
+            ConnectivityStatusIcon = "✅";
+            ConnectivityStatusColor = Colors.Green;
+        }
+        else
+        {
+            ConnectivityStatusText = "Offline";
+            ConnectivityStatusIcon = "⚠️";
+            ConnectivityStatusColor = Colors.Orange;
+        }
+    }
+
+    private async Task ToggleEmulation()
+    {
+        if (IsEmulating)
+        {
+            StopEmulation();
+        }
+        else
+        {
+            await StartEmulation();
+        }
     }
 
     private async Task LoadUserCredentials()
@@ -102,7 +185,7 @@ public class CredentialViewModel : BaseViewModel
                 Roles = string.Join(", ", user.Roles);
                 IsHceAvailable = _nfcCredentialService.IsHceAvailable;
 
-                StatusMessage = $"Credencial lista\n{UserName}\nRoles: {Roles}";
+                StatusMessage = "Toca el botón para activar";
             }
             else
             {
@@ -135,7 +218,9 @@ public class CredentialViewModel : BaseViewModel
             await _nfcCredentialService.StartEmulatingAsync();
 
             IsEmulating = true;
-            StatusMessage = "✅ Credencial activa\n\nAcerca tu celular al punto de control";
+            StatusMessage = "Credencial activa\nAcerca tu celular al punto de control";
+            ActivationButtonText = "⏸️ Desactivar Credencial";
+            ActivationButtonColor = Colors.Red;
             
             _logger.LogInformation("Credential emulation started");
         }
@@ -157,7 +242,9 @@ public class CredentialViewModel : BaseViewModel
         {
             _nfcCredentialService.StopEmulating();
             IsEmulating = false;
-            StatusMessage = "Emulación detenida";
+            StatusMessage = "Toca el botón para activar";
+            ActivationButtonText = "🚀 Activar Credencial";
+            ActivationButtonColor = Colors.Green;
             _logger.LogInformation("Credential emulation stopped");
         }
         catch (Exception ex)

@@ -14,6 +14,32 @@
                    FontSize="24"
                    FontAttributes="Bold"
                    HorizontalOptions="Center"/>
+
+            <!-- Control Point Selection -->
+            <Frame BorderColor="{StaticResource Primary}" 
+                   Padding="15" 
+                   CornerRadius="10"
+                   BackgroundColor="{StaticResource Gray100}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="📍 Punto de Control"
+                           FontSize="18"
+                           FontAttributes="Bold"/>
+                    <HorizontalStackLayout Spacing="10">
+                        <Label Text="ID del Punto:" 
+                               VerticalOptions="Center"
+                               WidthRequest="100"/>
+                        <Entry Text="{Binding ControlPointId}" 
+                               Placeholder="Ej: 1"
+                               Keyboard="Numeric"
+                               HorizontalOptions="FillAndExpand"
+                               VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+                    <Label Text="Este ID simula la ubicación del punto de control para probar diferentes permisos de acceso."
+                           FontSize="12"
+                           TextColor="{StaticResource Gray600}"
+                           LineBreakMode="WordWrap"/>
+                </VerticalStackLayout>
+            </Frame>
             
             <!-- NFC Status -->
             <Frame BorderColor="LightGray" Padding="15" CornerRadius="10">
