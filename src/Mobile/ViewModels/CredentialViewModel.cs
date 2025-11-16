@@ -1,6 +1,5 @@
 using System.Windows.Input;
 using Mobile.Services;
-using Mobile.Pages;
 using Microsoft.Extensions.Logging;
 
 namespace Mobile.ViewModels;
@@ -261,21 +260,13 @@ public class CredentialViewModel : BaseViewModel
             
             await _authService.LogoutAsync();
             
-            // Cambiar a la página de login
-            var loginViewModel = new LoginViewModel(_authService);
-            var loginPage = new LoginPage(loginViewModel);
-            Microsoft.Maui.Controls.Application.Current!.MainPage = new NavigationPage(loginPage);
+            // Navegar a la página de login
+            await Shell.Current.GoToAsync("//LoginPage");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during logout");
-            
-            // Usar Application.Current.MainPage para mostrar el alert
-            if (Microsoft.Maui.Controls.Application.Current?.MainPage != null)
-            {
-                await Microsoft.Maui.Controls.Application.Current.MainPage.DisplayAlert(
-                    "Error", "Error al cerrar sesión", "OK");
-            }
+            await Shell.Current.DisplayAlert("Error", "Error al cerrar sesión", "OK");
         }
     }
 }
