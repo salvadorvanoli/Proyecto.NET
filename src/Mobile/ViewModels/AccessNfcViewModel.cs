@@ -30,8 +30,6 @@ public class AccessNfcViewModel : BaseViewModel
     private bool _isValidating;
     private bool _showResult;
     private bool _showControlPoint;
-    private bool _isOnline;
-    private int _pendingSyncCount;
     
     // NFC Status
     private string _nfcAvailableText = "-";
@@ -79,22 +77,13 @@ public class AccessNfcViewModel : BaseViewModel
         // Subscribe to NFC events
         _nfcService.TagDetected += OnNfcTagDetected;
 
-        // Subscribe to sync events
-        _syncService.ConnectivityChanged += OnConnectivityChanged;
-        _syncService.SyncStatusChanged += OnSyncStatusChanged;
-
         // Initialize commands
         StartListeningCommand = new Command(async () => await StartListeningAsync(), () => !IsBusy && CanStartListening);
         StopListeningCommand = new Command(StopListening, () => IsListening);
         ViewHistoryCommand = new Command(async () => await ViewHistoryAsync());
-        SyncNowCommand = new Command(async () => await SyncNowAsync(), () => IsOnline && PendingSyncCount > 0);
-        SyncRulesCommand = new Command(async () => await SyncRulesAsync(), () => IsOnline && !IsBusy);
 
         // Update NFC status
         UpdateNfcStatus();
-        
-        // Update connectivity status
-        UpdateConnectivityStatus();
     }
 
     #region Properties
@@ -256,39 +245,6 @@ public class AccessNfcViewModel : BaseViewModel
     public bool StopButtonVisible => IsListening;
     public bool CanStartListening => NfcAvailable && NfcEnabled;
 
-    public bool IsOnline
-    {
-        get => _isOnline;
-        set
-        {
-            if (SetProperty(ref _isOnline, value))
-            {
-                OnPropertyChanged(nameof(ConnectivityStatusText));
-                OnPropertyChanged(nameof(ConnectivityStatusColor));
-                ((Command)SyncNowCommand).ChangeCanExecute();
-            }
-        }
-    }
-
-    public int PendingSyncCount
-    {
-        get => _pendingSyncCount;
-        set
-        {
-            if (SetProperty(ref _pendingSyncCount, value))
-            {
-                OnPropertyChanged(nameof(ShowSyncBadge));
-                OnPropertyChanged(nameof(SyncBadgeText));
-                ((Command)SyncNowCommand).ChangeCanExecute();
-            }
-        }
-    }
-
-    public string ConnectivityStatusText => IsOnline ? "● Online" : "● Offline";
-    public Color ConnectivityStatusColor => IsOnline ? Colors.Green : Colors.Orange;
-    public bool ShowSyncBadge => PendingSyncCount > 0;
-    public string SyncBadgeText => $"{PendingSyncCount} pendiente{(PendingSyncCount != 1 ? "s" : "")}";
-
     #endregion
 
     #region Commands
@@ -296,8 +252,6 @@ public class AccessNfcViewModel : BaseViewModel
     public ICommand StartListeningCommand { get; }
     public ICommand StopListeningCommand { get; }
     public ICommand ViewHistoryCommand { get; }
-    public ICommand SyncNowCommand { get; }
-    public ICommand SyncRulesCommand { get; }
 
     #endregion
 
@@ -328,12 +282,6 @@ public class AccessNfcViewModel : BaseViewModel
         }
 
         ((Command)StartListeningCommand).ChangeCanExecute();
-    }
-
-    private async void UpdateConnectivityStatus()
-    {
-        IsOnline = _syncService.IsConnected;
-        PendingSyncCount = await _syncService.GetPendingSyncCountAsync();
     }
 
     private async Task StartListeningAsync()
@@ -422,76 +370,51 @@ public class AccessNfcViewModel : BaseViewModel
                 ControlPointText = $"{e.ControlPointName} (ID: {e.ControlPointId})";
 
                 // Mostrar validando
-                StatusText = IsOnline ? "Validando acceso..." : "Validando (Offline)...";
+                StatusText = "Validando acceso con servidor...";
                 ScanFrameColor = Colors.Orange;
 
                 AccessValidationResult validationResult;
-                LocalAccessEvent localEvent;
                 DateTime eventDateTime = DateTime.UtcNow;
 
-                if (IsOnline)
+                try
                 {
-                    try
+                    // SIEMPRE validar con backend - El punto de control NUNCA está offline
+                    _logger.LogInformation("🌐 Validating with backend");
+                    _logger.LogInformation("Backend URL: http://192.168.1.23:5000");
+                    _logger.LogInformation("UserId: {UserId}, ControlPointId: {ControlPointId}", userIdToValidate, e.ControlPointId);
+                    
+                    validationResult = await ValidateAccessAsync(userIdToValidate, e.ControlPointId);
+                    
+                    _logger.LogInformation("✅ Validation result from backend: {Result}", validationResult.Result);
+
+                    // Crear evento en backend
+                    var request = new CreateAccessEventRequest
                     {
-                        // Validar con backend
-                        _logger.LogInformation("🌐 ONLINE MODE - Attempting to validate with backend");
-                        _logger.LogInformation("Backend URL configured: http://192.168.1.23:5000");
-                        _logger.LogInformation("UserId: {UserId}, ControlPointId: {ControlPointId}", userIdToValidate, e.ControlPointId);
-                        
-                        validationResult = await ValidateAccessAsync(userIdToValidate, e.ControlPointId);
-                        
-                        _logger.LogInformation("✅ Validation successful from backend: {Result}", validationResult.Result);
+                        UserId = userIdToValidate,
+                        ControlPointId = e.ControlPointId,
+                        EventDateTime = eventDateTime,
+                        Result = validationResult.Result
+                    };
 
-                        // Crear evento en backend
-                        var request = new CreateAccessEventRequest
-                        {
-                            UserId = userIdToValidate,
-                            ControlPointId = e.ControlPointId,
-                            EventDateTime = eventDateTime,
-                            Result = validationResult.Result
-                        };
+                    var accessEvent = await _accessEventApiService.CreateAccessEventAsync(request);
 
-                        var accessEvent = await _accessEventApiService.CreateAccessEventAsync(request);
-
-                        _logger.LogInformation("✅ Access event created online: RemoteId={EventId}, Result={Result}. NOT saving to local DB (already in backend)",
-                            accessEvent.Id, accessEvent.Result);
-                        
-                        // NO guardar localmente porque ya está en el backend
-                        // Esto evita duplicados y eventos "pendientes" innecesarios
-                    }
-                    catch (Exception ex)
-                    {
-                        // Si falla online, caer en modo offline
-                        _logger.LogError(ex, "❌ ONLINE VALIDATION FAILED - Error: {Message}", ex.Message);
-                        _logger.LogError("Exception Type: {Type}", ex.GetType().Name);
-                        if (ex.InnerException != null)
-                        {
-                            _logger.LogError("Inner Exception: {InnerMessage}", ex.InnerException.Message);
-                        }
-                        _logger.LogWarning("⚠️ Falling back to OFFLINE mode");
-                        
-                        // MOSTRAR EL ERROR AL USUARIO
-                        await Shell.Current.DisplayAlert("Error de Conexión", 
-                            $"No se pudo conectar al backend:\n\n{ex.Message}\n\nUsando modo offline.", 
-                            "OK");
-                        
-                        validationResult = await ValidateAccessOfflineAsync(userIdToValidate, e.ControlPointId);
-                        localEvent = await SaveEventOfflineAsync(validationResult, e, eventDateTime, userIdToValidate);
-                    }
+                    _logger.LogInformation("✅ Access event created: EventId={EventId}, Result={Result}",
+                        accessEvent.Id, accessEvent.Result);
                 }
-                else
+                catch (Exception ex)
                 {
-                    // Modo offline
-                    _logger.LogInformation("Processing in offline mode");
-                    validationResult = await ValidateAccessOfflineAsync(userIdToValidate, e.ControlPointId);
-                    localEvent = await SaveEventOfflineAsync(validationResult, e, eventDateTime, userIdToValidate);
+                    // Si falla la conexión, el punto de control NO FUNCIONA
+                    _logger.LogError(ex, "❌ BACKEND VALIDATION FAILED - Error: {Message}", ex.Message);
+                    
+                    await Shell.Current.DisplayAlert("Error de Conexión", 
+                        $"No se pudo conectar al servidor:\n\n{ex.Message}\n\nEl punto de control requiere conexión al backend para funcionar.", 
+                        "OK");
+                    
+                    return; // Salir sin mostrar resultado
                 }
 
                 // Mostrar resultado
                 ShowAccessResult(validationResult, e.TagId, eventDateTime);
-
-                // Actualizar contador de sync pendientes
-                UpdateConnectivityStatus();
             }
             catch (Exception ex)
             {
@@ -514,39 +437,6 @@ public class AccessNfcViewModel : BaseViewModel
             _logger.LogError(ex, "Error validating access");
             throw;
         }
-    }
-
-    private async Task<AccessValidationResult> ValidateAccessOfflineAsync(int userId, int controlPointId)
-    {
-        // Use the access rule service for proper offline validation
-        return await _accessRuleService.ValidateAccessOfflineAsync(userId, controlPointId, DateTime.UtcNow);
-    }
-
-    private async Task<LocalAccessEvent> SaveEventOfflineAsync(
-        AccessValidationResult validation, 
-        NfcTagDetectedEventArgs tagInfo,
-        DateTime eventDateTime,
-        int userId)
-    {
-        var localEvent = new LocalAccessEvent
-        {
-            UserId = userId,
-            ControlPointId = tagInfo.ControlPointId,
-            EventDateTime = eventDateTime,
-            Result = validation.Result,
-            Reason = validation.Reason,
-            UserName = validation.UserName,
-            ControlPointName = tagInfo.ControlPointName,
-            TagId = tagInfo.TagId,
-            IsSynced = false
-        };
-
-        await _localDatabase.SaveAccessEventAsync(localEvent);
-        
-        _logger.LogInformation("Saved access event offline: LocalId {Id}, Result: {Result}",
-            localEvent.Id, localEvent.Result);
-
-        return localEvent;
     }
 
     private void ShowAccessResult(AccessValidationResult validation, string tagId, DateTime eventDateTime)
@@ -600,99 +490,11 @@ public class AccessNfcViewModel : BaseViewModel
         await Shell.Current.DisplayAlert("Historial", "Funcionalidad de historial próximamente", "OK");
     }
 
-    private async Task SyncNowAsync()
-    {
-        if (IsBusy) return;
-
-        try
-        {
-            IsBusy = true;
-
-            _logger.LogInformation("Manual sync initiated");
-
-            var syncedCount = await _syncService.SyncPendingEventsAsync();
-
-            await Shell.Current.DisplayAlert(
-                "Sincronización Completada",
-                $"Se sincronizaron {syncedCount} evento(s) con el servidor.",
-                "OK");
-
-            UpdateConnectivityStatus();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during manual sync");
-            await Shell.Current.DisplayAlert("Error", $"Error al sincronizar: {ex.Message}", "OK");
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    private async Task SyncRulesAsync()
-    {
-        if (IsBusy) return;
-
-        try
-        {
-            IsBusy = true;
-
-            _logger.LogInformation("Manual rules sync initiated");
-
-            var syncedCount = await _accessRuleService.SyncAccessRulesAsync();
-
-            var cachedCount = await _localDatabase.GetCachedRulesCountAsync();
-
-            await Shell.Current.DisplayAlert(
-                "Reglas Sincronizadas",
-                $"Se descargaron {syncedCount} reglas de acceso.\\nTotal en caché: {cachedCount}\\n\\nAhora puedes validar accesos en modo offline.",
-                "OK");
-
-            _logger.LogInformation("Rules synced successfully: {Count}", syncedCount);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during manual rules sync");
-            await Shell.Current.DisplayAlert("Error", $"Error al sincronizar reglas: {ex.Message}", "OK");
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    private void OnConnectivityChanged(object? sender, Services.ConnectivityChangedEventArgs e)
-    {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            IsOnline = e.IsConnected;
-            
-            _logger.LogInformation("Connectivity changed in ViewModel: {Status}", 
-                e.IsConnected ? "Online" : "Offline");
-        });
-    }
-
-    private void OnSyncStatusChanged(object? sender, SyncStatusChangedEventArgs e)
-    {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            if (e.IsCompleted)
-            {
-                _logger.LogInformation("Sync completed: {Success} successful, {Failed} failed",
-                    e.SuccessfulSync, e.FailedSync);
-                
-                UpdateConnectivityStatus();
-            }
-        });
-    }
-
     #endregion
 
     public void OnAppearing()
     {
         UpdateNfcStatus();
-        UpdateConnectivityStatus();
     }
 
     public void OnDisappearing()

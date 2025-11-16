@@ -15,27 +15,6 @@
                    FontAttributes="Bold"
                    HorizontalOptions="Center"/>
             
-            <!-- Connectivity Status -->
-            <Frame BorderColor="LightGray" Padding="10" CornerRadius="10">
-                <HorizontalStackLayout Spacing="10" HorizontalOptions="Center">
-                    <Label Text="{Binding ConnectivityStatusText}"
-                           TextColor="{Binding ConnectivityStatusColor}"
-                           FontSize="16"
-                           FontAttributes="Bold"/>
-                    
-                    <Frame IsVisible="{Binding ShowSyncBadge}"
-                           BackgroundColor="Orange"
-                           Padding="8,4"
-                           CornerRadius="12"
-                           HasShadow="False">
-                        <Label Text="{Binding SyncBadgeText}"
-                               TextColor="White"
-                               FontSize="12"
-                               FontAttributes="Bold"/>
-                    </Frame>
-                </HorizontalStackLayout>
-            </Frame>
-            
             <!-- NFC Status -->
             <Frame BorderColor="LightGray" Padding="15" CornerRadius="10">
                 <VerticalStackLayout Spacing="10">
@@ -155,18 +134,6 @@
                     IsVisible="{Binding StopButtonVisible}"
                     BackgroundColor="Red"
                     TextColor="White"/>
-            
-            <Button Text="Sincronizar Ahora"
-                    Command="{Binding SyncNowCommand}"
-                    IsVisible="{Binding ShowSyncBadge}"
-                    BackgroundColor="DodgerBlue"
-                    TextColor="White"/>
-            
-            <Button Text="📥 Descargar Reglas de Acceso"
-                    Command="{Binding SyncRulesCommand}"
-                    BackgroundColor="Orange"
-                    TextColor="White"
-                    Margin="0,10,0,0"/>
             
             <Button Text="Ver Historial"
                     Command="{Binding ViewHistoryCommand}"
