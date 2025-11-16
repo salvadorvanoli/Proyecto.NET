@@ -1,6 +1,12 @@
 @page "/login"
+@rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
+@using Application.Auth.DTOs
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Web.FrontOffice.Services.Interfaces
 @inject NavigationManager Navigation
+@inject IAuthApiService AuthApiService
+@inject ProtectedLocalStorage ProtectedLocalStore
 
 <PageTitle>Iniciar Sesión</PageTitle>
 
@@ -74,17 +80,25 @@
 
         try
         {
-            // TODO: Implementar lógica real de autenticación
-            await Task.Delay(1000); // Simular llamada API
-
-            // Simulación de validación
-            if (loginModel.Email == "demo@portal.com" && loginModel.Password == "demo123")
+            var loginRequest = new LoginRequest
             {
-                Navigation.NavigateTo("/");
+                Email = loginModel.Email,
+                Password = loginModel.Password
+            };
+
+            var response = await AuthApiService.LoginAsync(loginRequest);
+
+            if (response != null)
+            {
+                // Guardar sesión en localStorage
+                await ProtectedLocalStore.SetAsync("userSession", System.Text.Json.JsonSerializer.Serialize(response));
+                
+                // Login exitoso - redirigir al home
+                Navigation.NavigateTo("/", forceLoad: true);
             }
             else
             {
-                errorMessage = "Credenciales incorrectas. Prueba con: demo@portal.com / demo123";
+                errorMessage = "Credenciales incorrectas. Verifica tu email y contraseña.";
             }
         }
         catch (Exception ex)

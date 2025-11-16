@@ -1,46 +1,101 @@
 @* Carrusel de noticias con Bootstrap *@
-<div id="newsCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000">
-    <div class="carousel-indicators">
-        <button type="button" data-bs-target="#newsCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Noticia 1"></button>
-        <button type="button" data-bs-target="#newsCarousel" data-bs-slide-to="1" aria-label="Noticia 2"></button>
-        <button type="button" data-bs-target="#newsCarousel" data-bs-slide-to="2" aria-label="Noticia 3"></button>
+@rendermode InteractiveServer
+@using Application.News.DTOs
+@using Web.FrontOffice.Services.Interfaces
+@inject INewsApiService NewsApiService
+
+@if (isLoading)
+{
+    <div class="text-center p-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando noticias...</span>
+        </div>
+        <p class="mt-3">Cargando noticias...</p>
     </div>
-    
-    <div class="carousel-inner">
-        <div class="carousel-item active">
-            <img src="images/newsTestImage.webp" class="d-block w-100" alt="Noticia 1" />
-            <div class="carousel-caption d-none d-md-block">
-                <h3>Nueva funcionalidad de acceso NFC</h3>
-                <p>Ahora puedes utilizar tu tarjeta NFC para acceder a todas las instalaciones de manera rápida y segura.</p>
-                <a href="/access-nfc" class="btn btn-light">Leer más</a>
-            </div>
+}
+else if (!newsList.Any())
+{
+    <div class="alert alert-info text-center" role="alert">
+        <i class="bi bi-info-circle"></i> No hay noticias disponibles en este momento.
+    </div>
+}
+else
+{
+    <div id="newsCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="5000">
+        <div class="carousel-indicators">
+            @for (int i = 0; i < newsList.Count; i++)
+            {
+                <button type="button" 
+                        data-bs-target="#newsCarousel" 
+                        data-bs-slide-to="@i" 
+                        class="@(i == 0 ? "active" : "")" 
+                        aria-current="@(i == 0 ? "true" : "false")" 
+                        aria-label="Noticia @(i + 1)">
+                </button>
+            }
         </div>
         
-        <div class="carousel-item">
-            <img src="images/newsTestImage.webp" class="d-block w-100" alt="Noticia 2" />
-            <div class="carousel-caption d-none d-md-block">
-                <h3>Nuevos beneficios disponibles</h3>
-                <p>Descubre los nuevos descuentos y promociones exclusivas para miembros. ¡No te los pierdas!</p>
-                <a href="/benefits" class="btn btn-light">Ver beneficios</a>
-            </div>
+        <div class="carousel-inner">
+            @for (int i = 0; i < newsList.Count; i++)
+            {
+                var news = newsList[i];
+                var imageUrl = !string.IsNullOrEmpty(news.ImageUrl) ? news.ImageUrl : "images/newsTestImage.webp";
+                
+                <div class="carousel-item @(i == 0 ? "active" : "")">
+                    <img src="@imageUrl" class="d-block w-100" alt="@news.Title" />
+                    <div class="carousel-caption d-none d-md-block">
+                        <h3>@news.Title</h3>
+                        <p>@GetShortContent(news.Content)</p>
+                        <small class="text-light">@news.PublishDate.ToString("dd/MM/yyyy")</small>
+                    </div>
+                </div>
+            }
         </div>
         
-        <div class="carousel-item">
-            <img src="images/newsTestImage.webp" class="d-block w-100" alt="Noticia 3" />
-            <div class="carousel-caption d-none d-md-block">
-                <h3>Actualización de perfil</h3>
-                <p>Mantén tu información actualizada para aprovechar al máximo todos los servicios disponibles.</p>
-                <a href="/profile" class="btn btn-dark">Actualizar perfil</a>
-            </div>
-        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#newsCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Anterior</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#newsCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Siguiente</span>
+        </button>
     </div>
-    
-    <button class="carousel-control-prev" type="button" data-bs-target="#newsCarousel" data-bs-slide="prev">
-        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-        <span class="visually-hidden">Anterior</span>
-    </button>
-    <button class="carousel-control-next" type="button" data-bs-target="#newsCarousel" data-bs-slide="next">
-        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-        <span class="visually-hidden">Siguiente</span>
-    </button>
-</div>
+}
+
+@code {
+    private List<NewsResponseDto> newsList = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadNews();
+    }
+
+    private async Task LoadNews()
+    {
+        isLoading = true;
+        try
+        {
+            var news = await NewsApiService.GetAllNewsAsync();
+            newsList = news.OrderByDescending(n => n.PublishDate).Take(5).ToList();
+        }
+        catch (Exception ex)
+        {
+            // Log error pero no mostrar al usuario
+            newsList = new List<NewsResponseDto>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetShortContent(string content)
+    {
+        if (string.IsNullOrEmpty(content))
+            return string.Empty;
+            
+        return content.Length > 150 ? content.Substring(0, 150) + "..." : content;
+    }
+}

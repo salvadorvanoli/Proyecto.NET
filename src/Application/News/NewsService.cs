@@ -2,6 +2,7 @@
 using Shared.DTOs.News;
 using Microsoft.EntityFrameworkCore;
 using DomainNews = Domain.Entities.News;
+using Domain.Entities;
 
 namespace Application.News;
 
@@ -44,6 +45,25 @@ public class NewsService : INewsService
         );
 
         _context.News.Add(news);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // Create notifications for all users in the tenant
+        var users = await _context.Users
+            .Where(u => u.TenantId == tenantId)
+            .ToListAsync(cancellationToken);
+
+        foreach (var user in users)
+        {
+            var notification = Notification.CreateNow(
+                tenantId,
+                $"Nueva noticia: {news.Title}",
+                $"Se ha publicado una nueva noticia. {news.Content.Substring(0, Math.Min(100, news.Content.Length))}...",
+                user.Id
+            );
+
+            _context.Notifications.Add(notification);
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
 
         return MapToResponse(news);
