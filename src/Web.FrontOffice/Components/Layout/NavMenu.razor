@@ -1,10 +1,14 @@
 ﻿@rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Web.FrontOffice.Services.Interfaces
+@using Web.FrontOffice.Services
+@using System.Text.Json
 @inject ProtectedLocalStorage ProtectedLocalStore
+@inject TenantThemeService ThemeService
 
-<div class="top-row ps-3 navbar navbar-dark">
+<div class="top-row ps-3 navbar navbar-dark" style="background-color: @secondaryColor">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">Web.FrontOffice</a>
+        <a class="navbar-brand" href="">@tenantName</a>
     </div>
 </div>
 
@@ -72,12 +76,17 @@
 @code {
     private bool perfilMenuExpanded = false;
     private bool isLoggedIn = false;
+    private string primaryColor = "#0A3D62";
+    private string secondaryColor = "#1976D2";
+    private string tenantName = "Universidad";
+    private int tenantId = 1;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             await CheckAuthenticationState();
+            await LoadTenantTheme();
             StateHasChanged();
         }
     }
@@ -87,12 +96,49 @@
         try
         {
             var result = await ProtectedLocalStore.GetAsync<string>("userSession");
-            isLoggedIn = result.Success && !string.IsNullOrEmpty(result.Value);
+            if (result.Success && !string.IsNullOrEmpty(result.Value))
+            {
+                isLoggedIn = true;
+                
+                // Obtener tenantId de la sesión
+                var userSession = JsonSerializer.Deserialize<UserSession>(result.Value);
+                if (userSession != null)
+                {
+                    tenantId = userSession.TenantId;
+                }
+            }
+            else
+            {
+                isLoggedIn = false;
+            }
         }
         catch
         {
             isLoggedIn = false;
         }
+    }
+
+    private async Task LoadTenantTheme()
+    {
+        try
+        {
+            await ThemeService.LoadThemeAsync(tenantId);
+            primaryColor = ThemeService.GetPrimaryColor();
+            secondaryColor = ThemeService.GetSecondaryColor();
+            tenantName = ThemeService.GetTenantName();
+        }
+        catch
+        {
+            // Si falla, usar valores por defecto
+        }
+    }
+
+    private class UserSession
+    {
+        public int UserId { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public int TenantId { get; set; }
     }
 
     private void ToggleProfileMenu()

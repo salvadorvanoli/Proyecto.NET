@@ -5,6 +5,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Application\Application.csproj" />
     <PackageReference Include="AspNetCore.HealthChecks.Uris" Version="8.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.0" />
   </ItemGroup>
 
   <ItemGroup>

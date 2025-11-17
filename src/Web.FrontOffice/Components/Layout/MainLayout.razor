@@ -1,5 +1,10 @@
 ﻿@inherits LayoutComponentBase
 @using Web.FrontOffice.Components.Shared
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Web.FrontOffice.Services
+@using System.Text.Json
+@inject ProtectedLocalStorage ProtectedLocalStore
+@inject TenantThemeService ThemeService
 
 <div class="page">
     <div class="sidebar">
@@ -13,7 +18,7 @@
             @Body
         </article>
 
-        <footer class="footer">
+        <footer class="footer" style="background-color: @primaryColor">
             <div class="footer-content">
                 <div class="footer-section">
                     <h5>Portal de Acceso</h5>
@@ -48,3 +53,47 @@
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+@code {
+    private string primaryColor = "#0A3D62";
+    private string secondaryColor = "#1976D2";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadTenantTheme();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadTenantTheme()
+    {
+        try
+        {
+            var result = await ProtectedLocalStore.GetAsync<string>("userSession");
+            if (result.Success && !string.IsNullOrEmpty(result.Value))
+            {
+                var userSession = JsonSerializer.Deserialize<UserSession>(result.Value);
+                if (userSession != null)
+                {
+                    await ThemeService.LoadThemeAsync(userSession.TenantId);
+                    primaryColor = ThemeService.GetPrimaryColor();
+                    secondaryColor = ThemeService.GetSecondaryColor();
+                }
+            }
+        }
+        catch
+        {
+            // Usar colores por defecto
+        }
+    }
+
+    private class UserSession
+    {
+        public int UserId { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public int TenantId { get; set; }
+    }
+}

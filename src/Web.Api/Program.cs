@@ -1,12 +1,16 @@
 using Application;
+using Application.Common.Interfaces;
 using Infrastructure;
 using Infrastructure.Data;
 using Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Web.Api.HealthChecks;
 using Web.Api.Configuration;
 using Web.Api.Middleware;
 using Web.Api.Filters;
+using Web.Api.Hubs;
+using Web.Api.Services;
 using Serilog;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -54,6 +58,7 @@ try
     });
 
     builder.Services.AddControllers();
+    builder.Services.AddSignalR();
     
     // Registrar TenantAuthorizationFilter como servicio para uso con atributos
     builder.Services.AddScoped<TenantAuthorizationFilter>();
@@ -204,6 +209,11 @@ try
 
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
+
+    // Override the default NotificationHubService with SignalR implementation
+    // Usar Singleton para que sea compatible con IHubContext que es Singleton
+    builder.Services.AddSingleton<INotificationHubService, SignalRNotificationHubService>();
+
     builder.Services.AddApiHealthChecks(builder.Configuration);
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
@@ -241,6 +251,10 @@ try
             // Crear las tablas si no existen (para cuando no hay migraciones)
             var context = services.GetRequiredService<ApplicationDbContext>();
             await context.Database.EnsureCreatedAsync();
+            
+            // Alternativamente, se puede usar MigrateAsync() en lugar de EnsureCreatedAsync()
+            // await context.Database.MigrateAsync();
+            
             logger.LogInformation("Database schema ensured.");
 
             // Ejecutar el seed si está habilitado
@@ -333,6 +347,8 @@ try
     });
 
     app.UseHttpsRedirection();
+    
+    // IMPORTANTE: CORS debe ir ANTES de MapHub para SignalR
     app.UseCors("AllowWebApps");
     
     // ========================================
@@ -343,6 +359,9 @@ try
     
     app.MapApiHealthChecks();
     app.MapControllers();
+    
+    // Mapear SignalR Hub
+    app.MapHub<NotificationHub>("/notificationHub");
 
     Log.Information("✅ API iniciado correctamente en {Environment}", app.Environment.EnvironmentName);
 
