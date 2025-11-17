@@ -91,7 +91,8 @@
             if (response != null)
             {
                 // Guardar sesión en localStorage
-                await ProtectedLocalStore.SetAsync("userSession", System.Text.Json.JsonSerializer.Serialize(response));
+                var sessionData = System.Text.Json.JsonSerializer.Serialize(response);
+                await ProtectedLocalStore.SetAsync("userSession", sessionData);
                 
                 // Login exitoso - redirigir al home
                 Navigation.NavigateTo("/", forceLoad: true);
@@ -99,14 +100,12 @@
             else
             {
                 errorMessage = "Credenciales incorrectas. Verifica tu email y contraseña.";
+                isLoading = false;
             }
         }
         catch (Exception ex)
         {
             errorMessage = "Error al iniciar sesión. Intenta nuevamente.";
-        }
-        finally
-        {
             isLoading = false;
         }
     }

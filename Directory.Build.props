@@ -58,7 +58,7 @@
 
   <!-- Paquetes Comunes para Todos los Proyectos -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
   </ItemGroup>
 
   <!-- Paquetes para Proyectos de Test -->

@@ -1,13 +1,17 @@
 using Application;
+using Application.Common.Interfaces;
 using Infrastructure;
 using Infrastructure.Data;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Web.Api.HealthChecks;
+using Web.Api.Hubs;
+using Web.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 
 builder.Services.AddCors(options =>
 {
@@ -45,6 +49,10 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Override the default NotificationHubService with SignalR implementation
+builder.Services.AddScoped<INotificationHubService, SignalRNotificationHubService>();
+
 builder.Services.AddApiHealthChecks(builder.Configuration);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -82,5 +90,6 @@ app.UseHttpsRedirection();
 app.UseCors("AllowWebApps");
 app.MapApiHealthChecks();
 app.MapControllers();
+app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();

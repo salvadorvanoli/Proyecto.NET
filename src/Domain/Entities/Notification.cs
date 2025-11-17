@@ -32,6 +32,11 @@ public class Notification : BaseEntity
     /// </summary>
     public int UserId { get; protected set; }
 
+    /// <summary>
+    /// Navigation property to the user.
+    /// </summary>
+    public virtual User? User { get; protected set; }
+
     protected Notification() : base()
     {
         Title = string.Empty;

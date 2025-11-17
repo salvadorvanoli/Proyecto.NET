@@ -13,13 +13,16 @@ public class NewsService : INewsService
 {
     private readonly IApplicationDbContext _context;
     private readonly ITenantProvider _tenantProvider;
+    private readonly INotificationHubService _notificationHubService;
 
     public NewsService(
         IApplicationDbContext context,
-        ITenantProvider tenantProvider)
+        ITenantProvider tenantProvider,
+        INotificationHubService notificationHubService)
     {
         _context = context;
         _tenantProvider = tenantProvider;
+        _notificationHubService = notificationHubService;
     }
 
     public async Task<NewsResponseDto> CreateNewsAsync(CreateNewsRequest request, CancellationToken cancellationToken = default)
@@ -65,6 +68,25 @@ public class NewsService : INewsService
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Send real-time notifications via SignalR
+        foreach (var user in users)
+        {
+            var userNotification = await _context.Notifications
+                .Where(n => n.UserId == user.Id && n.TenantId == tenantId)
+                .OrderByDescending(n => n.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (userNotification != null)
+            {
+                await _notificationHubService.SendNotificationToUserAsync(
+                    user.Id,
+                    userNotification.Title,
+                    userNotification.Message,
+                    userNotification.Id
+                );
+            }
+        }
 
         return MapToResponse(news);
     }

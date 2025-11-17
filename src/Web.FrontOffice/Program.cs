@@ -44,6 +44,13 @@ builder.Services.AddHttpClient<INewsApiService, NewsApiService>(client =>
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 
+// Configure HttpClient for Notification API
+builder.Services.AddHttpClient<INotificationApiService, NotificationApiService>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
 // Configure HttpClient for User API
 // TODO: Agregar HttpMessageHandler para incluir X-Tenant-Id automáticamente desde las claims del usuario
 builder.Services.AddHttpClient<IUserApiService, UserApiService>(client =>
@@ -67,6 +74,7 @@ builder.Services.AddHttpClient<IAccessEventApiService, AccessEventApiService>(cl
     client.BaseAddress = new Uri(apiBaseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
+
 builder.Services.AddFrontOfficeHealthChecks(builder.Configuration);
 
 var app = builder.Build();

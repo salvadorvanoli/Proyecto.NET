@@ -1,7 +1,12 @@
 @* Campana de notificaciones con dropdown *@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Application.Notifications.DTOs
+@using Web.FrontOffice.Services.Interfaces
+@using System.Text.Json
 @inject ProtectedLocalStorage ProtectedLocalStore
+@inject INotificationApiService NotificationApiService
+@implements IAsyncDisposable
 
 @if (isLoggedIn)
 {
@@ -23,18 +28,27 @@
                     }
                 </div>
                 <div class="notification-list">
-                    @if (notifications.Any())
+                    @if (isLoadingNotifications)
+                    {
+                        <div class="dropdown-item-text text-center py-4">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (notifications.Any())
                     {
                         @foreach (var notification in notifications)
                         {
-                            <div class="dropdown-item notification-item @(notification.IsRead ? "read" : "unread")" @onclick="() => MarkAsRead(notification.Id)">
+                            <div class="dropdown-item notification-item @(notification.IsRead ? "read" : "unread")" 
+                                 @onclick="() => MarkAsRead(notification.Id)">
                                 <div class="notification-icon">
-                                    <i class="bi @GetNotificationIcon(notification.Type)"></i>
+                                    <i class="bi bi-bell-fill"></i>
                                 </div>
                                 <div class="notification-content">
                                     <div class="notification-title">@notification.Title</div>
                                     <div class="notification-message">@notification.Message</div>
-                                    <div class="notification-time">@notification.TimeAgo</div>
+                                    <div class="notification-time">@GetTimeAgo(notification.SentDateTime)</div>
                                 </div>
                             </div>
                         }
@@ -46,11 +60,6 @@
                         </div>
                     }
                 </div>
-                @if (notifications.Any())
-                {
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item text-center text-primary" href="/notifications">Ver todas las notificaciones</a>
-                }
             </div>
         </div>
     </div>
@@ -58,17 +67,19 @@
 
 @code {
     private bool isLoggedIn = false;
+    private bool isLoadingNotifications = false;
+    private int userId = 0;
     private int unreadCount => notifications.Count(n => !n.IsRead);
-    private List<NotificationItem> notifications = new();
+    private List<NotificationResponseDto> notifications = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             await CheckAuthenticationState();
-            if (isLoggedIn)
+            if (isLoggedIn && userId > 0)
             {
-                LoadNotifications();
+                await LoadNotifications();
             }
             StateHasChanged();
         }
@@ -79,90 +90,104 @@
         try
         {
             var result = await ProtectedLocalStore.GetAsync<string>("userSession");
-            isLoggedIn = result.Success && !string.IsNullOrEmpty(result.Value);
+            if (result.Success && !string.IsNullOrEmpty(result.Value))
+            {
+                isLoggedIn = true;
+                
+                // Deserializar la sesión para obtener el userId
+                var userSession = JsonSerializer.Deserialize<UserSession>(result.Value);
+                if (userSession != null)
+                {
+                    userId = userSession.UserId;
+                }
+            }
+            else
+            {
+                isLoggedIn = false;
+            }
         }
-        catch
+        catch (Exception ex)
         {
             isLoggedIn = false;
         }
     }
 
-    private void LoadNotifications()
+    private async Task LoadNotifications()
     {
-        notifications = new List<NotificationItem>
+        if (userId <= 0) return;
+        
+        isLoadingNotifications = true;
+        try
         {
-            new NotificationItem
-            {
-                Id = 1,
-                Title = "Nuevo beneficio disponible",
-                Message = "Tienes un 20% de descuento en la cafetería",
-                Type = NotificationType.Benefit,
-                TimeAgo = "Hace 5 min",
-                IsRead = false
-            },
-            new NotificationItem
-            {
-                Id = 2,
-                Title = "Acceso registrado",
-                Message = "Entrada registrada en Edificio Principal",
-                Type = NotificationType.Access,
-                TimeAgo = "Hace 1 hora",
-                IsRead = false
-            },
-            new NotificationItem
-            {
-                Id = 3,
-                Title = "Actualización de sistema",
-                Message = "Nueva funcionalidad disponible en tu perfil",
-                Type = NotificationType.System,
-                TimeAgo = "Hace 2 días",
-                IsRead = true
-            }
-        };
+            var notificationsList = await NotificationApiService.GetUserNotificationsAsync(userId);
+            notifications = notificationsList?.ToList() ?? new List<NotificationResponseDto>();
+        }
+        catch (Exception ex)
+        {
+            notifications = new List<NotificationResponseDto>();
+        }
+        finally
+        {
+            isLoadingNotifications = false;
+        }
     }
 
-    private void MarkAsRead(int notificationId)
+    private async Task MarkAsRead(int notificationId)
     {
         var notification = notifications.FirstOrDefault(n => n.Id == notificationId);
-        if (notification != null)
+        if (notification != null && !notification.IsRead)
         {
-            notification.IsRead = true;
+            var result = await NotificationApiService.MarkAsReadAsync(notificationId);
+            if (result != null)
+            {
+                notification.IsRead = true;
+                StateHasChanged();
+            }
         }
     }
 
-    private void MarkAllAsRead()
+    private async Task MarkAllAsRead()
     {
-        foreach (var notification in notifications)
+        if (userId <= 0) return;
+        
+        var count = await NotificationApiService.MarkAllAsReadAsync(userId);
+        if (count > 0)
         {
-            notification.IsRead = true;
+            foreach (var notification in notifications)
+            {
+                notification.IsRead = true;
+            }
+            StateHasChanged();
         }
     }
 
-    private string GetNotificationIcon(NotificationType type)
+    private string GetTimeAgo(DateTime sentDateTime)
     {
-        return type switch
-        {
-            NotificationType.Benefit => "bi-gift",
-            NotificationType.Access => "bi-door-open",
-            NotificationType.System => "bi-info-circle",
-            _ => "bi-bell"
-        };
+        var timeSpan = DateTime.UtcNow - sentDateTime;
+
+        if (timeSpan.TotalMinutes < 1)
+            return "Justo ahora";
+        if (timeSpan.TotalMinutes < 60)
+            return $"Hace {(int)timeSpan.TotalMinutes} min";
+        if (timeSpan.TotalHours < 24)
+            return $"Hace {(int)timeSpan.TotalHours} hora{((int)timeSpan.TotalHours != 1 ? "s" : "")}";
+        if (timeSpan.TotalDays < 30)
+            return $"Hace {(int)timeSpan.TotalDays} día{((int)timeSpan.TotalDays != 1 ? "s" : "")}";
+        
+        return sentDateTime.ToString("dd/MM/yyyy");
     }
 
-    private class NotificationItem
+    private class UserSession
     {
-        public int Id { get; set; }
-        public string Title { get; set; } = string.Empty;
-        public string Message { get; set; } = string.Empty;
-        public NotificationType Type { get; set; }
-        public string TimeAgo { get; set; } = string.Empty;
-        public bool IsRead { get; set; }
+        public int UserId { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public int TenantId { get; set; }
     }
 
-    private enum NotificationType
+    public async ValueTask DisposeAsync()
     {
-        Benefit,
-        Access,
-        System
+        // Cleanup if needed in the future
+        await Task.CompletedTask;
     }
 }
