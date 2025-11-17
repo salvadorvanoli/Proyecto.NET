@@ -1,6 +1,7 @@
 using Web.FrontOffice.Components;
 using Web.FrontOffice.Services.Api;
 using Web.FrontOffice.Services.Interfaces;
+using Web.FrontOffice.Services;
 using Web.FrontOffice.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -74,6 +75,9 @@ builder.Services.AddHttpClient<IAccessEventApiService, AccessEventApiService>(cl
     client.BaseAddress = new Uri(apiBaseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
+
+// Agregar servicio de SignalR como Singleton para mantener la conexión persistente
+builder.Services.AddSingleton<SignalRService>();
 
 builder.Services.AddFrontOfficeHealthChecks(builder.Configuration);
 

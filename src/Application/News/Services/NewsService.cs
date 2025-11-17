@@ -55,37 +55,42 @@ public class NewsService : INewsService
             .Where(u => u.TenantId == tenantId)
             .ToListAsync(cancellationToken);
 
+        var notificationTitle = $"Nueva noticia: {news.Title}";
+        var notificationMessage = $"Se ha publicado una nueva noticia. {news.Content.Substring(0, Math.Min(100, news.Content.Length))}...";
+        
+        var notifications = new List<Notification>();
         foreach (var user in users)
         {
             var notification = Notification.CreateNow(
                 tenantId,
-                $"Nueva noticia: {news.Title}",
-                $"Se ha publicado una nueva noticia. {news.Content.Substring(0, Math.Min(100, news.Content.Length))}...",
+                notificationTitle,
+                notificationMessage,
                 user.Id
             );
 
             _context.Notifications.Add(notification);
+            notifications.Add(notification);
         }
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Send real-time notifications via SignalR
-        foreach (var user in users)
+        // Send real-time notifications via SignalR (best effort - no bloquea si falla)
+        try
         {
-            var userNotification = await _context.Notifications
-                .Where(n => n.UserId == user.Id && n.TenantId == tenantId)
-                .OrderByDescending(n => n.CreatedAt)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (userNotification != null)
+            foreach (var notification in notifications)
             {
                 await _notificationHubService.SendNotificationToUserAsync(
-                    user.Id,
-                    userNotification.Title,
-                    userNotification.Message,
-                    userNotification.Id
+                    notification.UserId,
+                    notification.Title,
+                    notification.Message,
+                    notification.Id
                 );
             }
+        }
+        catch (Exception)
+        {
+            // Log silently - SignalR notifications are best effort
+            // La notificación ya está guardada en la BD, el usuario la verá eventualmente
         }
 
         return MapToResponse(news);

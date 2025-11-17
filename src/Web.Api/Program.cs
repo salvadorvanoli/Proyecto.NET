@@ -51,7 +51,8 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // Override the default NotificationHubService with SignalR implementation
-builder.Services.AddScoped<INotificationHubService, SignalRNotificationHubService>();
+// Usar Singleton para que sea compatible con IHubContext que es Singleton
+builder.Services.AddSingleton<INotificationHubService, SignalRNotificationHubService>();
 
 builder.Services.AddApiHealthChecks(builder.Configuration);
 builder.Services.AddEndpointsApiExplorer();
@@ -87,9 +88,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// IMPORTANTE: CORS debe ir ANTES de MapHub
 app.UseCors("AllowWebApps");
+
 app.MapApiHealthChecks();
 app.MapControllers();
+
+// Mapear SignalR Hub
 app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();
