@@ -17,7 +17,7 @@
 
 .top-row {
     height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
+    /* Background color set via inline style in NavMenu.razor */
 }
 
 .navbar-brand {

@@ -39,6 +39,7 @@ public static class DependencyInjection
 
         // Register infrastructure services
         services.AddScoped<ITenantProvider, TenantProvider>();
+        services.AddScoped<ITenantService, TenantService>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddScoped<Application.Benefits.Services.IBenefitService, Services.Benefits.BenefitService>();
         services.AddScoped<Application.AccessEvents.Services.IAccessEventService, Services.AccessEvents.AccessEventService>();

@@ -76,6 +76,16 @@ builder.Services.AddHttpClient<IAccessEventApiService, AccessEventApiService>(cl
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 
+// Configure HttpClient for Tenant API
+builder.Services.AddHttpClient<ITenantApiService, TenantApiService>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
+// Agregar servicio de tema del tenant
+builder.Services.AddScoped<TenantThemeService>();
+
 // Agregar servicio de SignalR como Singleton para mantener la conexión persistente
 builder.Services.AddSingleton<SignalRService>();
 
