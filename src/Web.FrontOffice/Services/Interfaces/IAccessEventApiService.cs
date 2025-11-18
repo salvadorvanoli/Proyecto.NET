@@ -15,6 +15,18 @@ public interface IAccessEventApiService
     Task<List<AccessEventResponse>> GetUserAccessEventsAsync(int userId);
 
     /// <summary>
+    /// Gets paginated access events for a specific user.
+    /// </summary>
+    /// <param name="userId">The ID of the user.</param>
+    /// <param name="skip">Number of records to skip.</param>
+    /// <param name="take">Number of records to take.</param>
+    /// <returns>A tuple containing the list of access events and the total count.</returns>
+    Task<(List<AccessEventResponse> Events, int TotalCount)> GetUserAccessEventsPagedAsync(
+        int userId, 
+        int skip = 0, 
+        int take = 20);
+
+    /// <summary>
     /// Gets all access events for the current tenant.
     /// </summary>
     /// <returns>A list of all access events.</returns>

@@ -1,9 +1,9 @@
 @page "/perfil"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @using Web.FrontOffice.Components.Shared
+@using Web.FrontOffice.Services
 @using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.AspNetCore.WebUtilities
-@rendermode InteractiveServer
 
 @inject IUserApiService UserApiService
 @inject NavigationManager Navigation
@@ -157,49 +157,30 @@
 
         try
         {
-            Logger.LogInformation("CargarUsuario iniciado. URI: {Uri}", Navigation.Uri);
-            
-            int userId = 0;
-            
-            // TESTING: Modo rápido con query parameter ?devUserId=X (solo para desarrollo)
-            var uri = new Uri(Navigation.Uri);
-            var query = QueryHelpers.ParseQuery(uri.Query);
-            
-            if (query.TryGetValue("devUserId", out var devIdValues) && int.TryParse(devIdValues.FirstOrDefault(), out var devUserId))
+            // Obtener CustomAuthenticationStateProvider
+            var customAuthProvider = AuthenticationStateProvider as CustomAuthenticationStateProvider;
+            if (customAuthProvider == null)
             {
-                Logger.LogInformation("Modo dev: cargando usuario {UserId}", devUserId);
-                userId = devUserId;
+                errorMessage = "Error al obtener el proveedor de autenticación.";
+                Logger.LogError("AuthenticationStateProvider is not CustomAuthenticationStateProvider");
+                isLoading = false;
+                return;
             }
-            else
+
+            // Obtener userId desde el CustomAuthenticationStateProvider
+            var userId = await customAuthProvider.GetUserIdAsync();
+            if (userId == null)
             {
-                // Obtener el estado de autenticación
-                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-                var user = authState.User;
-
-                // Verificar si el usuario está autenticado
-                if (!user.Identity?.IsAuthenticated ?? true)
-                {
-                    Logger.LogWarning("Usuario no autenticado");
-                    errorMessage = "Debes iniciar sesión para ver tu perfil.";
-                    isLoading = false;
-                    return;
-                }
-
-                // Obtener userId desde las claims del usuario autenticado
-                var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out userId))
-                {
-                    errorMessage = "No se pudo obtener el ID del usuario de la sesión.";
-                    Logger.LogWarning("No se encontró claim NameIdentifier");
-                    isLoading = false;
-                    return;
-                }
-
-                Logger.LogInformation("Usuario autenticado con ID: {UserId}", userId);
+                errorMessage = "Debes iniciar sesión para ver tu perfil.";
+                Logger.LogWarning("Usuario no autenticado");
+                isLoading = false;
+                return;
             }
+
+            Logger.LogInformation("Usuario autenticado con ID: {UserId}", userId);
 
             // Obtener usuario desde el backend
-            usuario = await UserApiService.GetUserByIdAsync(userId);
+            usuario = await UserApiService.GetUserByIdAsync(userId.Value);
 
             if (usuario != null)
             {

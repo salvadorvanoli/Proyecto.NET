@@ -23,13 +23,7 @@ public class UserApiService : IUserApiService
     {
         try
         {
-            // TODO: El header X-Tenant-Id debería venir de la autenticación del usuario al hacer login
-            // Por ahora se debe configurar un HttpMessageHandler que lo agregue automáticamente
-            var request = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/{id}");
-            // TESTING: Agregar header X-Tenant-Id hardcodeado
-            request.Headers.Add("X-Tenant-Id", "1"); // ⚠️ CAMBIAR: Usar TenantId del usuario que quieres probar
-            
-            var response = await _httpClient.SendAsync(request);
+            var response = await _httpClient.GetAsync($"{BaseUrl}/{id}");
             
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -74,16 +68,7 @@ public class UserApiService : IUserApiService
     {
         try
         {
-            // TODO: El header X-Tenant-Id debería venir de la autenticación del usuario
-            // Por ahora se debe configurar un HttpMessageHandler que lo agregue automáticamente
-            var request = new HttpRequestMessage(HttpMethod.Put, $"{BaseUrl}/{id}")
-            {
-                Content = JsonContent.Create(updateUserRequest)
-            };
-            // TESTING: Agregar header X-Tenant-Id hardcodeado
-            request.Headers.Add("X-Tenant-Id", "1"); // ⚠️ CAMBIAR: Usar TenantId del usuario que quieres probar
-            
-            var response = await _httpClient.SendAsync(request);
+            var response = await _httpClient.PutAsJsonAsync($"{BaseUrl}/{id}", updateUserRequest);
             response.EnsureSuccessStatusCode();
 
             var user = await response.Content.ReadFromJsonAsync<UserResponse>();

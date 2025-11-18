@@ -20,21 +20,47 @@ public class AccessEventApiService : IAccessEventApiService
 
     public async Task<List<AccessEventResponse>> GetUserAccessEventsAsync(int userId)
     {
-        // TODO: El header X-Tenant-Id debería venir de la autenticación del usuario
-        var request = new HttpRequestMessage(HttpMethod.Get, $"api/access-events/user/{userId}");
-        // TESTING: Agregar header X-Tenant-Id hardcodeado
-        request.Headers.Add("X-Tenant-Id", "1"); // ⚠️ CAMBIAR: Usar TenantId del usuario que quieres probar
-        
-        var response = await _httpClient.SendAsync(request);
+        var response = await _httpClient.GetAsync($"api/access-events/user/{userId}");
         response.EnsureSuccessStatusCode();
 
         var events = await response.Content.ReadFromJsonAsync<List<AccessEventResponse>>();
         return events ?? new List<AccessEventResponse>();
     }
 
+    public async Task<(List<AccessEventResponse> Events, int TotalCount)> GetUserAccessEventsPagedAsync(
+        int userId, 
+        int skip = 0, 
+        int take = 20)
+    {
+        try
+        {
+            // Use the my-events endpoint which supports pagination
+            var response = await _httpClient.GetAsync($"api/access-events/my-events?skip={skip}&take={take}");
+            response.EnsureSuccessStatusCode();
+
+            var events = await response.Content.ReadFromJsonAsync<List<AccessEventResponse>>();
+            var eventsList = events ?? new List<AccessEventResponse>();
+
+            // Get total count
+            var countResponse = await _httpClient.GetAsync("api/access-events/my-events/count");
+            countResponse.EnsureSuccessStatusCode();
+            var totalCount = await countResponse.Content.ReadFromJsonAsync<int>();
+
+            _logger.LogInformation(
+                "Retrieved {Count} access events (total: {Total}, skip: {Skip}, take: {Take})", 
+                eventsList.Count, totalCount, skip, take);
+
+            return (eventsList, totalCount);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving paginated access events for user {UserId}", userId);
+            throw;
+        }
+    }
+
     public async Task<List<AccessEventResponse>> GetAllAccessEventsAsync()
     {
-        // TODO: El header X-Tenant-Id debería venir de la autenticación del usuario
         var response = await _httpClient.GetAsync("api/access-events");
         response.EnsureSuccessStatusCode();
 
@@ -44,7 +70,6 @@ public class AccessEventApiService : IAccessEventApiService
 
     public async Task<AccessEventResponse?> GetAccessEventByIdAsync(int eventId)
     {
-        // TODO: El header X-Tenant-Id debería venir de la autenticación del usuario
         var response = await _httpClient.GetAsync($"api/access-events/{eventId}");
         
         if (!response.IsSuccessStatusCode)
@@ -55,15 +80,7 @@ public class AccessEventApiService : IAccessEventApiService
 
     public async Task<AccessEventResponse> CreateAccessEventAsync(CreateAccessEventRequest request)
     {
-        // TODO: El header X-Tenant-Id debería venir de la autenticación del usuario
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "api/access-events")
-        {
-            Content = JsonContent.Create(request)
-        };
-        // TESTING: Agregar header X-Tenant-Id hardcodeado
-        httpRequest.Headers.Add("X-Tenant-Id", "1"); // ⚠️ CAMBIAR: Usar TenantId del usuario que quieres probar
-        
-        var response = await _httpClient.SendAsync(httpRequest);
+        var response = await _httpClient.PostAsJsonAsync("api/access-events", request);
         response.EnsureSuccessStatusCode();
 
         var accessEvent = await response.Content.ReadFromJsonAsync<AccessEventResponse>();

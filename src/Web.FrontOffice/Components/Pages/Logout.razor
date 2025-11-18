@@ -1,10 +1,10 @@
 @page "/logout"
 @rendermode InteractiveServer
-@using Microsoft.AspNetCore.Components.Authorization
 @using Web.FrontOffice.Services
-@inject CustomAuthenticationStateProvider AuthStateProvider
 @inject NavigationManager Navigation
+@inject HttpClient HttpClient
 @inject ILogger<Logout> Logger
+@inject CustomAuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Cerrando Sesión...</PageTitle>
 
@@ -26,19 +26,22 @@
         try
         {
             Logger.LogInformation("Logging out user");
-            await AuthStateProvider.MarkUserAsLoggedOutAsync();
             
-            // Esperar un momento para que se complete el proceso
-            await Task.Delay(500);
+            // Llamar al AuthController para hacer logout (limpia la cookie)
+            var logoutUrl = Navigation.ToAbsoluteUri("/api/auth/logout").ToString();
+            await HttpClient.PostAsync(logoutUrl, null);
             
-            // Redirigir al login
-            Navigation.NavigateTo("/login", forceLoad: true);
+            // Actualizar el estado de autenticación
+            AuthStateProvider.MarkUserAsLoggedOut();
+            
+            // Redirigir sin forceLoad
+            Navigation.NavigateTo("/login", forceLoad: false);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error during logout");
-            // Redirigir al login de todos modos
-            Navigation.NavigateTo("/login", forceLoad: true);
+            AuthStateProvider.MarkUserAsLoggedOut();
+            Navigation.NavigateTo("/login", forceLoad: false);
         }
     }
 }

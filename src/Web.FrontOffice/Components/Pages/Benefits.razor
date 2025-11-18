@@ -1,24 +1,48 @@
 @page "/mis-beneficios"
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @using Web.FrontOffice.Components.Shared
+@using Web.FrontOffice.Services
 @using Web.FrontOffice.Services.Interfaces
 @using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.AspNetCore.WebUtilities
 @inject IBenefitApiService BenefitApiService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
 @inject ILogger<Benefits> Logger
-@rendermode InteractiveServer
 
 <Microsoft.AspNetCore.Components.Web.PageTitle>Mis Beneficios</Microsoft.AspNetCore.Components.Web.PageTitle>
 
 <div class="benefits-container">
     <PageHeader Title="Mis Beneficios" Subtitle="Beneficios disponibles y consumidos" />
 
+    <!-- Barra de búsqueda -->
+    <div class="search-container mb-3">
+        <div class="input-group">
+            <input type="text" 
+                   class="form-control" 
+                   placeholder="Buscar beneficios..." 
+                   @bind="searchTerm" 
+                   @bind:event="oninput"
+                   @onkeyup="OnSearchKeyUp" />
+            <button class="btn btn-primary" @onclick="BuscarBeneficios">
+                <span class="oi oi-magnifying-glass"></span> Buscar
+            </button>
+            @if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                <button class="btn btn-secondary" @onclick="LimpiarBusqueda">
+                    <span class="oi oi-x"></span>
+                </button>
+            }
+        </div>
+    </div>
+
     @if (isLoading)
     {
         <div class="loading">
-            <p>Cargando beneficios...</p>
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Cargando beneficios...</span>
+            </div>
+            <p class="mt-2">Cargando beneficios...</p>
         </div>
     }
     else if (error != null)
@@ -34,12 +58,29 @@
     }
     else if (!benefits.Any())
     {
-        <div class="no-data">
-            <p>No hay beneficios disponibles en este momento.</p>
+        <div class="no-data alert alert-info">
+            @if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                <p>No se encontraron beneficios que coincidan con "<strong>@searchTerm</strong>".</p>
+            }
+            else
+            {
+                <p>No hay beneficios disponibles en este momento.</p>
+            }
         </div>
     }
     else
     {
+        <!-- Info de resultados -->
+        <div class="results-info mb-3">
+            <p>Mostrando @benefits.Count de @totalCount beneficios
+                @if (!string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    <span> - Búsqueda: "<strong>@searchTerm</strong>"</span>
+                }
+            </p>
+        </div>
+
         <div class="benefits-grid">
             @foreach (var benefit in benefits)
             {
@@ -107,6 +148,49 @@
                 </Card>
             }
         </div>
+
+        <!-- Controles de paginación -->
+        @if (totalCount > pageSize)
+        {
+            <div class="pagination-controls mt-4">
+                <nav aria-label="Paginación de beneficios">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                            <button class="page-link" @onclick="PrimeraPagina" disabled="@(currentPage == 1)">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </button>
+                        </li>
+                        <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                            <button class="page-link" @onclick="PaginaAnterior" disabled="@(currentPage == 1)">
+                                <span aria-hidden="true">&laquo;</span>
+                            </button>
+                        </li>
+                        
+                        @for (int i = Math.Max(1, currentPage - 2); i <= Math.Min(totalPages, currentPage + 2); i++)
+                        {
+                            var pageNum = i; // Captura local para el closure
+                            <li class="page-item @(currentPage == pageNum ? "active" : "")">
+                                <button class="page-link" @onclick="() => IrAPagina(pageNum)">@pageNum</button>
+                            </li>
+                        }
+
+                        <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                            <button class="page-link" @onclick="PaginaSiguiente" disabled="@(currentPage == totalPages)">
+                                <span aria-hidden="true">&raquo;</span>
+                            </button>
+                        </li>
+                        <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                            <button class="page-link" @onclick="UltimaPagina" disabled="@(currentPage == totalPages)">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
+                <div class="text-center mt-2">
+                    <small class="text-muted">Página @currentPage de @totalPages</small>
+                </div>
+            </div>
+        }
     }
 
     <div class="back-action">
@@ -120,6 +204,15 @@
     private List<BenefitResponse> benefits = new();
     private bool isLoading = true;
     private string? error = null;
+    
+    // Paginación
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalCount = 0;
+    private int totalPages => (int)Math.Ceiling((double)totalCount / pageSize);
+    
+    // Búsqueda
+    private string searchTerm = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -133,48 +226,41 @@
             isLoading = true;
             error = null;
 
-            Logger.LogInformation("CargarBeneficios iniciado. URI: {Uri}", Navigation.Uri);
-            
-            int userId = 0;
-            
-            // TESTING: Modo rápido con query parameter ?devUserId=X (solo para desarrollo)
-            var uri = new Uri(Navigation.Uri);
-            var query = QueryHelpers.ParseQuery(uri.Query);
-            
-            if (query.TryGetValue("devUserId", out var devIdValues) && int.TryParse(devIdValues.FirstOrDefault(), out var devUserId))
+            // Obtener CustomAuthenticationStateProvider
+            var customAuthProvider = AuthenticationStateProvider as CustomAuthenticationStateProvider;
+            if (customAuthProvider == null)
             {
-                Logger.LogInformation("Modo dev: cargando beneficios del usuario {UserId}", devUserId);
-                userId = devUserId;
-            }
-            else
-            {
-                // Obtener el userId desde el AuthenticationState
-                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-                var user = authState.User;
-
-                if (user.Identity?.IsAuthenticated == true)
-                {
-                    var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-                    if (userIdClaim != null && int.TryParse(userIdClaim.Value, out userId))
-                    {
-                        Logger.LogInformation("Usuario autenticado con ID: {UserId}", userId);
-                    }
-                    else
-                    {
-                        error = "No se pudo obtener el ID del usuario.";
-                        return;
-                    }
-                }
-                else
-                {
-                    error = "Debe iniciar sesión para ver sus beneficios.";
-                    return;
-                }
+                error = "Error al obtener el proveedor de autenticación.";
+                Logger.LogError("AuthenticationStateProvider is not CustomAuthenticationStateProvider");
+                return;
             }
 
-            // Cargar beneficios del usuario
-            benefits = await BenefitApiService.GetUserBenefitsAsync(userId);
-            Logger.LogInformation("Beneficios cargados: {Count}", benefits.Count);
+            // Obtener userId desde el CustomAuthenticationStateProvider
+            var userId = await customAuthProvider.GetUserIdAsync();
+            if (userId == null)
+            {
+                error = "Debe iniciar sesión para ver sus beneficios.";
+                Logger.LogWarning("Usuario no autenticado");
+                return;
+            }
+
+            Logger.LogInformation("Cargando beneficios del usuario {UserId}, página {Page}, búsqueda: '{Search}'", 
+                userId, currentPage, searchTerm);
+
+            // Calcular skip
+            var skip = (currentPage - 1) * pageSize;
+
+            // Cargar beneficios paginados
+            var result = await BenefitApiService.GetUserBenefitsPagedAsync(
+                userId.Value, 
+                skip, 
+                pageSize, 
+                string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm);
+
+            benefits = result.Benefits;
+            totalCount = result.TotalCount;
+
+            Logger.LogInformation("Beneficios cargados: {Count} de {Total}", benefits.Count, totalCount);
         }
         catch (Exception ex)
         {
@@ -186,4 +272,39 @@
             isLoading = false;
         }
     }
+
+    private async Task BuscarBeneficios()
+    {
+        currentPage = 1; // Reset a primera página al buscar
+        await CargarBeneficios();
+    }
+
+    private async Task LimpiarBusqueda()
+    {
+        searchTerm = string.Empty;
+        currentPage = 1;
+        await CargarBeneficios();
+    }
+
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await BuscarBeneficios();
+        }
+    }
+
+    private async Task IrAPagina(int page)
+    {
+        if (page < 1 || page > totalPages || page == currentPage)
+            return;
+
+        currentPage = page;
+        await CargarBeneficios();
+    }
+
+    private Task PaginaAnterior() => IrAPagina(currentPage - 1);
+    private Task PaginaSiguiente() => IrAPagina(currentPage + 1);
+    private Task PrimeraPagina() => IrAPagina(1);
+    private Task UltimaPagina() => IrAPagina(totalPages);
 }

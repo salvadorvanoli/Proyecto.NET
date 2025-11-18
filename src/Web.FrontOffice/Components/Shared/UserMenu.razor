@@ -1,80 +1,93 @@
 @* Menú de usuario con dropdown para login/logout *@
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components.Authorization
+@implements IDisposable
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILogger<UserMenu> Logger
 
-<AuthorizeView>
-    <Authorized>
-        <div class="user-menu">
-            <span class="user-name me-2">@context.User.Identity?.Name</span>
-            <button class="btn btn-danger" @onclick="ShowLogoutConfirmation">
-                <i class="bi bi-box-arrow-right"></i>
-                <span class="d-none d-md-inline ms-1">Cerrar Sesión</span>
-            </button>
-        </div>
-    </Authorized>
-    <NotAuthorized>
-        <div class="user-menu">
-            <button class="btn btn-primary" @onclick="NavigateToLogin">
-                <i class="bi bi-box-arrow-in-right"></i>
-                <span class="d-none d-md-inline ms-1">Iniciar Sesión</span>
-            </button>
-        </div>
-    </NotAuthorized>
-</AuthorizeView>
-
-@* Modal de confirmación *@
-@if (showModal)
+@if (isLoggedIn)
 {
-    <div class="modal fade show" style="display: block;" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="bi bi-exclamation-circle text-warning"></i>
-                        Confirmar cierre de sesión
-                    </h5>
-                    <button type="button" class="btn-close" @onclick="HideModal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>¿Estás seguro que deseas cerrar sesión?</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="HideModal">
-                        <i class="bi bi-x-circle"></i> Cancelar
-                    </button>
-                    <button type="button" class="btn btn-danger" @onclick="ConfirmLogout">
-                        <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
-                    </button>
-                </div>
-            </div>
-        </div>
+    <div class="user-menu">
+        <span class="user-name me-2">@userName</span>
+        <button class="btn btn-danger" @onclick="NavigateToLogout">
+            <i class="bi bi-box-arrow-right"></i>
+            <span class="d-none d-md-inline ms-1">Cerrar Sesión</span>
+        </button>
     </div>
-    <div class="modal-backdrop fade show"></div>
+}
+else
+{
+    <div class="user-menu">
+        <button class="btn btn-primary" @onclick="NavigateToLogin">
+            <i class="bi bi-box-arrow-in-right"></i>
+            <span class="d-none d-md-inline ms-1">Iniciar Sesión</span>
+        </button>
+    </div>
 }
 
 @code {
-    private bool showModal = false;
+    private bool isLoggedIn = false;
+    private string userName = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Suscribirse a cambios de autenticación
+        AuthenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        await CheckAuthenticationState();
+    }
+
+    private async void OnAuthenticationStateChanged(Task<Microsoft.AspNetCore.Components.Authorization.AuthenticationState> task)
+    {
+        await CheckAuthenticationState();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        Logger.LogInformation("UserMenu OnAfterRenderAsync - firstRender: {FirstRender}", firstRender);
+        if (firstRender)
+        {
+            await CheckAuthenticationState();
+            Logger.LogInformation("UserMenu after CheckAuthenticationState - isLoggedIn: {IsLoggedIn}, userName: {UserName}", isLoggedIn, userName);
+            StateHasChanged();
+        }
+    }
+
+    private async Task CheckAuthenticationState()
+    {
+        try
+        {
+            Logger.LogInformation("UserMenu CheckAuthenticationState - START");
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            isLoggedIn = user?.Identity?.IsAuthenticated ?? false;
+            userName = user?.Identity?.Name ?? string.Empty;
+            Logger.LogInformation("UserMenu CheckAuthenticationState - User: {User}, IsAuthenticated: {IsAuth}", 
+                userName, isLoggedIn);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "UserMenu CheckAuthenticationState - ERROR");
+            isLoggedIn = false;
+            userName = string.Empty;
+        }
+    }
 
     private void NavigateToLogin()
     {
         Navigation.NavigateTo("/login");
     }
 
-    private void ShowLogoutConfirmation()
+    private void NavigateToLogout()
     {
-        showModal = true;
-    }
-
-    private void HideModal()
-    {
-        showModal = false;
-    }
-
-    private void ConfirmLogout()
-    {
-        showModal = false;
         Navigation.NavigateTo("/logout");
     }
 }
+

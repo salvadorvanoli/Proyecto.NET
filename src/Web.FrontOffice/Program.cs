@@ -4,17 +4,80 @@ using Web.FrontOffice.Services.Interfaces;
 using Web.FrontOffice.Services;
 using Web.FrontOffice.HealthChecks;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using AspNetCoreRateLimit;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.AddControllers(); // Agregar soporte para API controllers
+
 // ========================================
 // SEGURIDAD: Configurar Authentication & Authorization
 // ========================================
+// Configurar autenticación basada en cookies para Blazor Server
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/login";
+        options.LogoutPath = "/logout";
+        options.AccessDeniedPath = "/access-denied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.Name = ".ProyectoNet.FrontOffice.Auth";
+        options.Cookie.SameSite = SameSiteMode.Lax;
+    });
+
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
+
+// ========================================
+// SEGURIDAD: Rate Limiting
+// ========================================
+builder.Services.AddMemoryCache();
+builder.Services.Configure<IpRateLimitOptions>(options =>
+{
+    options.EnableEndpointRateLimiting = true;
+    options.StackBlockedRequests = false;
+    options.HttpStatusCode = 429;
+    options.RealIpHeader = "X-Real-IP";
+    options.ClientIdHeader = "X-ClientId";
+    options.GeneralRules = new List<RateLimitRule>
+    {
+        new RateLimitRule
+        {
+            Endpoint = "POST:/api/auth/login",
+            Period = "1m",
+            Limit = 5 // Max 5 login attempts per minute per IP
+        },
+        new RateLimitRule
+        {
+            Endpoint = "POST:/api/auth/*",
+            Period = "1m",
+            Limit = 10
+        },
+        new RateLimitRule
+        {
+            Endpoint = "*",
+            Period = "10s",
+            Limit = 50 // Max 50 requests per 10 seconds (Blazor SignalR needs more)
+        },
+        new RateLimitRule
+        {
+            Endpoint = "*",
+            Period = "1m",
+            Limit = 200
+        }
+    };
+});
+builder.Services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
+builder.Services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
+builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+builder.Services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
 
 // Registrar CustomAuthenticationStateProvider como Scoped
 builder.Services.AddScoped<CustomAuthenticationStateProvider>();
@@ -144,9 +207,19 @@ app.Use(async (context, next) =>
     await next();
 });
 
+// ========================================
+// SEGURIDAD: Rate Limiting Middleware
+// ========================================
+app.UseIpRateLimiting();
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers(); // Mapear API controllers
 app.MapFrontOfficeHealthChecks();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

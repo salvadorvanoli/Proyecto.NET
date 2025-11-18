@@ -3,8 +3,10 @@
 @using Web.FrontOffice.Services.Interfaces
 @using Web.FrontOffice.Services
 @using System.Security.Claims
+@implements IDisposable
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject TenantThemeService ThemeService
+@inject ILogger<NavMenu> Logger
 
 <div class="top-row ps-3 navbar navbar-dark" style="background-color: @secondaryColor">
     <div class="container-fluid">
@@ -25,30 +27,26 @@
         @if (isLoggedIn)
         {
             <div class="nav-item px-3">
-                <div class="nav-link nav-dropdown" @onclick="ToggleProfileMenu">
-                    <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> 
-                    <span class="dropdown-label">Mi Perfil</span>
-                    <span class="dropdown-arrow @(perfilMenuExpanded ? "expanded" : "")">▼</span>
-                </div>
-                @if (perfilMenuExpanded)
-                {
-                    <div class="nav-submenu">
-                        <NavLink class="nav-link nav-sublink" href="perfil">
-                            Ver Perfil
-                        </NavLink>
-                        <NavLink class="nav-link nav-sublink" href="mis-beneficios">
-                            Mis Beneficios
-                        </NavLink>
-                        <NavLink class="nav-link nav-sublink" href="historial-accesos">
-                            Historial de Accesos
-                        </NavLink>
-                    </div>
-                }
+                <NavLink class="nav-link" href="perfil">
+                    <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> Mi Perfil
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="mis-beneficios">
+                    <span class="bi bi-ticket-fill-nav-menu" aria-hidden="true"></span> Mis Beneficios
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="historial-accesos">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Historial de Accesos
+                </NavLink>
             </div>
 
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="canjear-beneficio">
-                    <span class="bi bi-ticket-fill-nav-menu" aria-hidden="true"></span> Canjear Beneficio
+                    <span class="bi bi-gift-fill-nav-menu" aria-hidden="true"></span> Canjear Beneficio
                 </NavLink>
             </div>
 
@@ -74,18 +72,37 @@
 </div>
 
 @code {
-    private bool perfilMenuExpanded = false;
     private bool isLoggedIn = false;
     private string primaryColor = "#0A3D62";
     private string secondaryColor = "#1976D2";
     private string tenantName = "Universidad";
     private int tenantId = 1;
 
+    protected override async Task OnInitializedAsync()
+    {
+        // Suscribirse a cambios de autenticación
+        AuthenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        await CheckAuthenticationState();
+    }
+
+    private async void OnAuthenticationStateChanged(Task<Microsoft.AspNetCore.Components.Authorization.AuthenticationState> task)
+    {
+        await CheckAuthenticationState();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        Logger.LogInformation("NavMenu OnAfterRenderAsync - firstRender: {FirstRender}", firstRender);
         if (firstRender)
         {
             await CheckAuthenticationState();
+            Logger.LogInformation("NavMenu after CheckAuthenticationState - isLoggedIn: {IsLoggedIn}", isLoggedIn);
             await LoadTenantTheme();
             StateHasChanged();
         }
@@ -95,22 +112,27 @@
     {
         try
         {
+            Logger.LogInformation("NavMenu CheckAuthenticationState - START");
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
             
             isLoggedIn = user?.Identity?.IsAuthenticated ?? false;
+            Logger.LogInformation("NavMenu CheckAuthenticationState - User: {User}, IsAuthenticated: {IsAuth}", 
+                user?.Identity?.Name ?? "NULL", isLoggedIn);
             
-            if (isLoggedIn)
+            if (isLoggedIn && user != null)
             {
                 var tenantIdClaim = user.FindFirst("TenantId");
                 if (tenantIdClaim != null && int.TryParse(tenantIdClaim.Value, out var id))
                 {
                     tenantId = id;
+                    Logger.LogInformation("NavMenu - TenantId found: {TenantId}", tenantId);
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "NavMenu CheckAuthenticationState - ERROR");
             isLoggedIn = false;
         }
     }
@@ -128,10 +150,5 @@
         {
             // Si falla, usar valores por defecto
         }
-    }
-
-    private void ToggleProfileMenu()
-    {
-        perfilMenuExpanded = !perfilMenuExpanded;
     }
 }

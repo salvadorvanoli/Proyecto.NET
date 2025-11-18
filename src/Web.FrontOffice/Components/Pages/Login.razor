@@ -1,14 +1,14 @@
 @page "/login"
 @rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
+@using System.Net.Http.Json
+@using System.Text.Json
 @using global::Shared.DTOs.Auth
-@using Microsoft.AspNetCore.Components.Authorization
-@using Web.FrontOffice.Services.Interfaces
 @using Web.FrontOffice.Services
 @inject NavigationManager Navigation
-@inject IAuthApiService AuthApiService
-@inject CustomAuthenticationStateProvider AuthStateProvider
+@inject HttpClient HttpClient
 @inject ILogger<Login> Logger
+@inject CustomAuthenticationStateProvider AuthStateProvider
 
 <PageTitle>Iniciar Sesión</PageTitle>
 
@@ -91,34 +91,41 @@
                 Password = loginModel.Password
             };
 
-            var response = await AuthApiService.LoginAsync(loginRequest);
+            // Llamar al AuthController local (mismo patrón que BackOffice)
+            var loginUrl = Navigation.ToAbsoluteUri("/api/auth/login").ToString();
+            var response = await HttpClient.PostAsJsonAsync(loginUrl, loginRequest);
 
-            if (response == null)
+            if (!response.IsSuccessStatusCode)
             {
                 errorMessage = "Credenciales incorrectas. Verifica tu email y contraseña.";
-                Logger.LogWarning("Login failed for email: {Email}", loginModel.Email);
+                Logger.LogWarning("Login failed for email: {Email}. Status: {Status}", loginModel.Email, response.StatusCode);
                 isLoading = false;
                 return;
             }
 
-            // Verificar que el token esté presente
-            if (string.IsNullOrEmpty(response.Token))
+            // Obtener el token de la respuesta
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+            var loginResponse = JsonSerializer.Deserialize<LoginResponse>(jsonResponse, new JsonSerializerOptions 
+            { 
+                PropertyNameCaseInsensitive = true 
+            });
+
+            if (loginResponse?.Token == null)
             {
-                errorMessage = "Error en la respuesta del servidor. Token no recibido.";
-                Logger.LogError("Login response missing token for user: {Email}", response.Email);
+                errorMessage = "Error al procesar la respuesta del servidor.";
+                Logger.LogError("Login response missing token");
                 isLoading = false;
                 return;
             }
 
-            // Autenticar usuario usando el CustomAuthenticationStateProvider
-            await AuthStateProvider.MarkUserAsAuthenticatedAsync(response);
+            Logger.LogInformation("User {Email} logged in successfully", loginModel.Email);
+            
+            // Actualizar el estado de autenticación con el token
+            AuthStateProvider.MarkUserAsAuthenticated(loginResponse.Token);
 
-            Logger.LogInformation("User {Email} logged in successfully. TenantId: {TenantId}", 
-                response.Email, response.TenantId);
-
-            // Redirigir al usuario
+            // Redirigir sin forceLoad (el estado ya está actualizado en el circuito)
             var redirectUrl = ReturnUrl ?? "/";
-            Navigation.NavigateTo(redirectUrl, forceLoad: true);
+            Navigation.NavigateTo(redirectUrl, forceLoad: false);
         }
         catch (HttpRequestException httpEx)
         {
@@ -145,5 +152,13 @@
         public string Password { get; set; } = string.Empty;
 
         public bool RememberMe { get; set; }
+    }
+
+    private class LoginResponse
+    {
+        public bool Success { get; set; }
+        public string? Token { get; set; }
+        public int UserId { get; set; }
+        public string? Email { get; set; }
     }
 }
