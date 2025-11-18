@@ -36,4 +36,9 @@ public interface IUserService
     /// Deletes a user by ID.
     /// </summary>
     Task<bool> DeleteUserAsync(int id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Assigns a credential to a user (creates a new credential if needed).
+    /// </summary>
+    Task AssignCredentialToUserAsync(int userId, CancellationToken cancellationToken = default);
 }

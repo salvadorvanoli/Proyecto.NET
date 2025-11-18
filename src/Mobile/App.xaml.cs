@@ -1,16 +1,21 @@
-﻿using Mobile.Data;
-using Mobile.Pages;
+﻿using Mobile.Pages;
 using Mobile.Services;
 
 namespace Mobile;
 
 public partial class App : Microsoft.Maui.Controls.Application
 {
-	public App(ILocalDatabase database, IAuthService authService)
+	private readonly ISyncService _syncService;
+	private readonly IAuthService _authService;
+	
+	public App(IAuthService authService, ISyncService syncService)
 	{
 		InitializeComponent();
 
-		// Mostrar pantalla de login por defecto (no crashea)
+		_authService = authService;
+		_syncService = syncService;
+
+		// Mostrar pantalla de login por defecto
 		MainPage = new NavigationPage(new LoginPage(new ViewModels.LoginViewModel(authService)));
 		
 		// Intentar restaurar sesión en background
@@ -18,17 +23,36 @@ public partial class App : Microsoft.Maui.Controls.Application
 		{
 			try
 			{
-				await database.InitializeDatabaseAsync();
-				
 				// Intentar restaurar sesión
 				var currentUser = await authService.GetCurrentUserAsync();
 				if (currentUser != null)
 				{
-					// Si hay sesión, navegar a AppShell en el UI thread
+					// Verificar si el usuario sigue activo cuando hay conectividad
+					var isActive = await _syncService.CheckUserStatusAsync();
+					
+					if (!isActive)
+					{
+						// Usuario desactivado - hacer logout
+						await _authService.LogoutAsync();
+						
+						MainThread.BeginInvokeOnMainThread(() =>
+						{
+							MainPage?.DisplayAlert(
+								"Sesión Cerrada", 
+								"Tu cuenta ha sido desactivada. Por favor contacta al administrador.", 
+								"OK");
+						});
+						return;
+					}
+					
+					// Si hay sesión y usuario está activo, navegar a AppShell
 					MainThread.BeginInvokeOnMainThread(() =>
 					{
 						MainPage = new AppShell();
 					});
+					
+					// Sincronizar eventos pendientes en background
+					_ = Task.Run(async () => await _syncService.SyncPendingEventsAsync());
 				}
 			}
 			catch (Exception ex)
@@ -36,5 +60,17 @@ public partial class App : Microsoft.Maui.Controls.Application
 				System.Diagnostics.Debug.WriteLine($"Init error: {ex.Message}\n{ex.StackTrace}");
 			}
 		});
+		
+		// Monitorear cambios de conectividad para auto-sincronización
+		Connectivity.Current.ConnectivityChanged += OnConnectivityChanged;
+	}
+	
+	private async void OnConnectivityChanged(object? sender, ConnectivityChangedEventArgs e)
+	{
+		if (e.NetworkAccess == NetworkAccess.Internet)
+		{
+			// Conectividad restaurada - sincronizar eventos pendientes
+			await _syncService.SyncPendingEventsAsync();
+		}
 	}
 }

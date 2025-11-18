@@ -6,7 +6,7 @@
 
   <PropertyGroup>
     <!-- Target Framework y Lenguaje (skip for MAUI projects) -->
-    <TargetFramework Condition="'$(MSBuildProjectName)' != 'Mobile'">net8.0</TargetFramework>
+    <TargetFramework Condition="'$(MSBuildProjectName)' != 'Mobile' AND '$(MSBuildProjectName)' != 'Mobile.Credential' AND '$(MSBuildProjectName)' != 'Mobile.AccessPoint'">net8.0</TargetFramework>
     <LangVersion>12.0</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -38,7 +38,7 @@
     <NoWarn>$(NoWarn);1591</NoWarn> <!-- Suppress missing XML comment warnings -->
 
     <!-- Configuraciones de Rendimiento .NET 8 -->
-    <PublishReadyToRun Condition="'$(MSBuildProjectName)' != 'Mobile'">true</PublishReadyToRun>
+    <PublishReadyToRun Condition="'$(MSBuildProjectName)' != 'Mobile' AND '$(MSBuildProjectName)' != 'Mobile.Credential' AND '$(MSBuildProjectName)' != 'Mobile.AccessPoint'">true</PublishReadyToRun>
     <PublishSingleFile>false</PublishSingleFile>
     <PublishTrimmed>false</PublishTrimmed>
   </PropertyGroup>
@@ -57,7 +57,7 @@
   </PropertyGroup>
 
   <!-- Paquetes Comunes para Todos los Proyectos (excepto Mobile) -->
-  <ItemGroup Condition="'$(MSBuildProjectName)' != 'Mobile'">
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'Mobile' AND '$(MSBuildProjectName)' != 'Mobile.Credential' AND '$(MSBuildProjectName)' != 'Mobile.AccessPoint'">
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.10" />
   </ItemGroup>
 

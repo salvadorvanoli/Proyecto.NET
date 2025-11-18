@@ -21,7 +21,7 @@ public class AccessEventApiService : IAccessEventApiService
     public async Task<List<AccessEventResponse>> GetUserAccessEventsAsync(int userId)
     {
         // TODO: El header X-Tenant-Id debería venir de la autenticación del usuario
-        var request = new HttpRequestMessage(HttpMethod.Get, $"api/accessevents/user/{userId}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/access-events/user/{userId}");
         // TESTING: Agregar header X-Tenant-Id hardcodeado
         request.Headers.Add("X-Tenant-Id", "1"); // ⚠️ CAMBIAR: Usar TenantId del usuario que quieres probar
         
@@ -35,7 +35,7 @@ public class AccessEventApiService : IAccessEventApiService
     public async Task<List<AccessEventResponse>> GetAllAccessEventsAsync()
     {
         // TODO: El header X-Tenant-Id debería venir de la autenticación del usuario
-        var response = await _httpClient.GetAsync("api/accessevents");
+        var response = await _httpClient.GetAsync("api/access-events");
         response.EnsureSuccessStatusCode();
 
         var events = await response.Content.ReadFromJsonAsync<List<AccessEventResponse>>();
@@ -45,7 +45,7 @@ public class AccessEventApiService : IAccessEventApiService
     public async Task<AccessEventResponse?> GetAccessEventByIdAsync(int eventId)
     {
         // TODO: El header X-Tenant-Id debería venir de la autenticación del usuario
-        var response = await _httpClient.GetAsync($"api/accessevents/{eventId}");
+        var response = await _httpClient.GetAsync($"api/access-events/{eventId}");
         
         if (!response.IsSuccessStatusCode)
             return null;
@@ -56,7 +56,7 @@ public class AccessEventApiService : IAccessEventApiService
     public async Task<AccessEventResponse> CreateAccessEventAsync(CreateAccessEventRequest request)
     {
         // TODO: El header X-Tenant-Id debería venir de la autenticación del usuario
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "api/accessevents")
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "api/access-events")
         {
             Content = JsonContent.Create(request)
         };

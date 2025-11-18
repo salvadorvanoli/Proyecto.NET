@@ -1,157 +1,108 @@
-using Application.AccessEvents.DTOs;
-using Microsoft.Extensions.Logging;
 using Mobile.Data;
+using Mobile.Models;
+using System.Net.Http.Json;
 
 namespace Mobile.Services;
 
-/// <summary>
-/// Service for synchronizing offline data with backend.
-/// </summary>
 public class SyncService : ISyncService
 {
     private readonly ILocalDatabase _localDatabase;
-    private readonly IAccessEventApiService _accessEventService;
-    private readonly ILogger<SyncService> _logger;
-
-    public event EventHandler<SyncStatusChangedEventArgs>? SyncStatusChanged;
-    public event EventHandler<ConnectivityChangedEventArgs>? ConnectivityChanged;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IAuthService _authService;
+    private readonly IUserService _userService;
 
     public SyncService(
         ILocalDatabase localDatabase,
-        IAccessEventApiService accessEventService,
-        ILogger<SyncService> logger)
+        IHttpClientFactory httpClientFactory,
+        IAuthService authService,
+        IUserService userService)
     {
         _localDatabase = localDatabase;
-        _accessEventService = accessEventService;
-        _logger = logger;
-
-        // Subscribe to connectivity changes
-        Connectivity.ConnectivityChanged += OnConnectivityChangedHandler;
+        _httpClientFactory = httpClientFactory;
+        _authService = authService;
+        _userService = userService;
     }
 
-    public bool IsConnected => Connectivity.Current.NetworkAccess == NetworkAccess.Internet;
-
-    public async Task<int> GetPendingSyncCountAsync()
+    public async Task SyncPendingEventsAsync()
     {
-        return await _localDatabase.GetUnsyncedCountAsync();
-    }
+        var currentUser = await _authService.GetCurrentUserAsync();
+        if (currentUser == null)
+            return;
 
-    public async Task<int> SyncPendingEventsAsync()
-    {
-        if (!IsConnected)
+        try
         {
-            _logger.LogWarning("Cannot sync: No internet connection");
-            return 0;
+            var unsyncedEvents = await _localDatabase.GetUnsyncedEventsAsync(currentUser.UserId);
+            
+            if (unsyncedEvents.Count == 0)
+            {
+                System.Diagnostics.Debug.WriteLine("No pending events to sync");
+                return;
+            }
+
+            var httpClient = _httpClientFactory.CreateClient("AccessEventClient");
+            
+            // Agregar token de autorización
+            if (!string.IsNullOrEmpty(currentUser.Token))
+            {
+                httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", currentUser.Token);
+            }
+            
+            var syncedCount = 0;
+
+            foreach (var localEvent in unsyncedEvents)
+            {
+                try
+                {
+                    var dto = new AccessEventDto
+                    {
+                        UserId = localEvent.UserId,
+                        ControlPointId = localEvent.ControlPointId,
+                        ControlPointName = localEvent.ControlPointName,
+                        SpaceName = localEvent.SpaceName,
+                        Timestamp = localEvent.Timestamp,
+                        WasGranted = localEvent.WasGranted,
+                        DenialReason = localEvent.DenialReason
+                    };
+
+                    var response = await httpClient.PostAsJsonAsync("/api/access-events", dto);
+                    
+                    if (response.IsSuccessStatusCode)
+                    {
+                        await _localDatabase.MarkEventAsSyncedAsync(localEvent.Id);
+                        syncedCount++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to sync event {localEvent.Id}: {ex.Message}");
+                }
+            }
+
+            System.Diagnostics.Debug.WriteLine($"✅ Synced {syncedCount} of {unsyncedEvents.Count} pending events");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Sync error: {ex.Message}");
+        }
+    }
+
+    public async Task<bool> CheckUserStatusAsync()
+    {
+        // Solo validar si hay conectividad
+        if (Connectivity.NetworkAccess != NetworkAccess.Internet)
+        {
+            return true; // No validar offline, mantener sesión
         }
 
         try
         {
-            var unsyncedEvents = await _localDatabase.GetUnsyncedAccessEventsAsync();
-            
-            if (unsyncedEvents.Count == 0)
-            {
-                _logger.LogInformation("No events to sync");
-                return 0;
-            }
-
-            _logger.LogInformation("Starting sync of {Count} events", unsyncedEvents.Count);
-
-            int successCount = 0;
-            int failCount = 0;
-
-            for (int i = 0; i < unsyncedEvents.Count; i++)
-            {
-                var localEvent = unsyncedEvents[i];
-
-                try
-                {
-                    // Notify progress
-                    SyncStatusChanged?.Invoke(this, new SyncStatusChangedEventArgs
-                    {
-                        TotalPending = unsyncedEvents.Count,
-                        CurrentSync = i + 1,
-                        SuccessfulSync = successCount,
-                        FailedSync = failCount,
-                        IsCompleted = false
-                    });
-
-                    // Create request from local event
-                    var request = new CreateAccessEventRequest
-                    {
-                        UserId = localEvent.UserId,
-                        ControlPointId = localEvent.ControlPointId,
-                        EventDateTime = localEvent.EventDateTime,
-                        Result = localEvent.Result
-                    };
-
-                    // Send to backend
-                    var response = await _accessEventService.CreateAccessEventAsync(request);
-
-                    // Mark as synced
-                    await _localDatabase.MarkAccessEventAsSyncedAsync(localEvent.Id, response.Id);
-
-                    successCount++;
-                    _logger.LogInformation("Synced event {LocalId} -> {RemoteId}", localEvent.Id, response.Id);
-                }
-                catch (Exception ex)
-                {
-                    failCount++;
-                    var errorMessage = $"Sync failed: {ex.Message}";
-                    await _localDatabase.UpdateAccessEventSyncErrorAsync(localEvent.Id, errorMessage);
-                    _logger.LogError(ex, "Failed to sync event {LocalId}", localEvent.Id);
-                }
-            }
-
-            // Notify completion
-            SyncStatusChanged?.Invoke(this, new SyncStatusChangedEventArgs
-            {
-                TotalPending = unsyncedEvents.Count,
-                CurrentSync = unsyncedEvents.Count,
-                SuccessfulSync = successCount,
-                FailedSync = failCount,
-                IsCompleted = true
-            });
-
-            _logger.LogInformation("Sync completed: {Success} successful, {Failed} failed", successCount, failCount);
-
-            // Clean up old synced events
-            await _localDatabase.DeleteOldSyncedEventsAsync(30);
-
-            return successCount;
+            return await _userService.IsUserActiveAsync();
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Error during sync");
-            throw;
-        }
-    }
-
-    private async void OnConnectivityChangedHandler(object? sender, Microsoft.Maui.Networking.ConnectivityChangedEventArgs e)
-    {
-        var isConnected = Connectivity.NetworkAccess == NetworkAccess.Internet;
-        
-        _logger.LogInformation("Connectivity changed: {Status}", isConnected ? "Connected" : "Disconnected");
-
-        ConnectivityChanged?.Invoke(this, new Services.ConnectivityChangedEventArgs
-        {
-            IsConnected = isConnected
-        });
-
-        // Auto-sync when connectivity is restored
-        if (isConnected)
-        {
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(2000); // Wait 2 seconds before syncing
-                try
-                {
-                    await SyncPendingEventsAsync();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Auto-sync failed");
-                }
-            });
+            // Si hay error al validar, mantener sesión (beneficio de la duda)
+            return true;
         }
     }
 }

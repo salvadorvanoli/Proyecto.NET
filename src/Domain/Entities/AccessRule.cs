@@ -118,7 +118,8 @@ public class AccessRule : BaseEntity
         if (userRoles == null)
             return false;
 
-        return Roles.Any(role => userRoles.Contains(role));
+        var userRoleIds = userRoles.Select(r => r.Id).ToList();
+        return Roles.Any(role => userRoleIds.Contains(role.Id));
     }
 }
 

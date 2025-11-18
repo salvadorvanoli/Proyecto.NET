@@ -62,7 +62,29 @@ public class Tenant
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public Tenant(string name, string primaryColor, string secondaryColor, string accentColor, string? logo = null) : this()
+    public Tenant(string name) : this()
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Nombre"),
+                nameof(name));
+
+        var trimmedName = name.Trim();
+
+        if (trimmedName.Length < DomainConstants.StringLengths.NameMinLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MinLengthRequired, "Nombre", DomainConstants.StringLengths.NameMinLength),
+                nameof(name));
+
+        if (trimmedName.Length > DomainConstants.StringLengths.NameMaxLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MaxLengthExceeded, "Nombre", DomainConstants.StringLengths.NameMaxLength),
+                nameof(name));
+
+        Name = trimmedName;
+    }
+
+    public Tenant(string name, string primaryColor, string secondaryColor, string accentColor, string? logo = null) : this(name)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException(

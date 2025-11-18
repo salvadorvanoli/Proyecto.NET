@@ -6,27 +6,27 @@
     xmlns:local="clr-namespace:Mobile"
     xmlns:pages="clr-namespace:Mobile.Pages"
     Shell.FlyoutBehavior="Flyout"
-    Title="Control de Accesos">
+    Title="Credencial Digital">
 
-    <FlyoutItem Title="⚙️ Configuración">
+    <FlyoutItem Title="🪪 Mi Credencial">
         <ShellContent
-            Title="Modo de Operación"
-            ContentTemplate="{DataTemplate pages:SettingsPage}"
-            Route="SettingsPage" />
-    </FlyoutItem>
-
-    <FlyoutItem Title="🪪 Credencial Digital">
-        <ShellContent
-            Title="Mi Credencial"
+            Title="Credencial"
             ContentTemplate="{DataTemplate pages:CredentialPage}"
             Route="CredentialPage" />
     </FlyoutItem>
 
-    <FlyoutItem Title="📱 Punto de Control">
+    <FlyoutItem Title="👤 Mi Perfil">
         <ShellContent
-            Title="Escanear NFC"
-            ContentTemplate="{DataTemplate pages:AccessNfcPage}"
-            Route="AccessNfcPage" />
+            Title="Perfil"
+            ContentTemplate="{DataTemplate pages:ProfilePage}"
+            Route="ProfilePage" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="📋 Historial">
+        <ShellContent
+            Title="Historial de Accesos"
+            ContentTemplate="{DataTemplate pages:AccessHistoryPage}"
+            Route="AccessHistoryPage" />
     </FlyoutItem>
 
 </Shell>

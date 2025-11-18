@@ -12,7 +12,7 @@ namespace Web.Api.Controllers;
 /// Controller for managing access events.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/access-events")]
 public class AccessEventsController : ControllerBase
 {
     private readonly IAccessEventService _accessEventService;
@@ -48,6 +48,62 @@ public class AccessEventsController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, new { message = "Error retrieving user access events", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Gets access events for the current authenticated user with pagination.
+    /// </summary>
+    /// <param name="skip">Number of events to skip.</param>
+    /// <param name="take">Number of events to take.</param>
+    /// <returns>A list of access events for the current user.</returns>
+    [HttpGet("my-events")]
+    public async Task<ActionResult<List<AccessEventResponse>>> GetMyAccessEvents([FromQuery] int skip = 0, [FromQuery] int take = 20)
+    {
+        try
+        {
+            // TODO: Obtener userId del token JWT cuando se implemente autenticación
+            // Por ahora, usaremos un userId de prueba
+            var userId = 1; // Este debería venir del JWT token
+            
+            var allEvents = await _accessEventService.GetUserAccessEventsAsync(userId);
+            var paginatedEvents = allEvents.Skip(skip).Take(take).ToList();
+            
+            _logger.LogInformation("Retrieved {Count} events for user {UserId} (skip: {Skip}, take: {Take})", 
+                paginatedEvents.Count, userId, skip, take);
+            
+            return Ok(paginatedEvents);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving my access events");
+            return StatusCode(500, new { message = "Error retrieving access events", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Gets the total count of access events for the current authenticated user.
+    /// </summary>
+    /// <returns>The total count of access events.</returns>
+    [HttpGet("my-events/count")]
+    public async Task<ActionResult<int>> GetMyAccessEventsCount()
+    {
+        try
+        {
+            // TODO: Obtener userId del token JWT
+            var userId = 1;
+            
+            var events = await _accessEventService.GetUserAccessEventsAsync(userId);
+            var count = events.Count;
+            
+            _logger.LogInformation("User {UserId} has {Count} total access events", userId, count);
+            
+            return Ok(count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving my access events count");
+            return StatusCode(500, new { message = "Error retrieving count", error = ex.Message });
         }
     }
 

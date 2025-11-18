@@ -93,6 +93,24 @@ public static class DatabaseSeeder
 
                 Console.WriteLine($"   Usuario creado: {adminEmail}");
 
+                // Create and assign credential to admin user
+                var credential = new Credential(
+                    tenantId: tenant.Id,
+                    userId: adminUser.Id,
+                    issueDate: DateTime.UtcNow,
+                    isActive: true
+                );
+                
+                context.Credentials.Add(credential);
+                await context.SaveChangesAsync();
+
+                // Reload user and assign credential
+                var savedUser = await context.Users.FirstAsync(u => u.Id == adminUser.Id);
+                savedUser.AssignCredential(credential.Id);
+                await context.SaveChangesAsync();
+
+                Console.WriteLine($"   Credencial creada y asignada: ID={credential.Id}");
+
                 // Seed Role for BackOffice
                 var adminRole = new Role(tenant.Id, "AdministradorBackoffice");
                 context.Roles.Add(adminRole);

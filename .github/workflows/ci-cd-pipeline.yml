@@ -54,6 +54,65 @@ on:
           - "false"
 
 jobs:
+  build-maui:
+    name: Build & Test MAUI Apps
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install MAUI workload
+        run: |
+          dotnet workload install maui --skip-manifest-update
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'microsoft'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses || true
+
+      - name: Install Android SDK components
+        run: |
+          sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;25.1.8937393"
+
+      - name: Restore dependencies
+        run: dotnet restore Proyecto.NET.sln
+        working-directory: Proyecto.NET
+
+      - name: Build Mobile.Credential
+        run: |
+          dotnet build src/Mobile.Credential/Mobile.Credential.csproj \
+            -f net8.0-android \
+            -c Release \
+            -p:AndroidSdkDirectory=$ANDROID_HOME \
+            -p:JavaSdkDirectory=$JAVA_HOME
+        working-directory: Proyecto.NET
+
+      - name: Build Mobile.AccessPoint
+        run: |
+          dotnet build src/Mobile.AccessPoint/Mobile.AccessPoint.csproj \
+            -f net8.0-android \
+            -c Release \
+            -p:AndroidSdkDirectory=$ANDROID_HOME \
+            -p:JavaSdkDirectory=$JAVA_HOME
+        working-directory: Proyecto.NET
+
+      - name: Run unit tests
+        run: dotnet test --no-build --verbosity normal
+        working-directory: Proyecto.NET
+        continue-on-error: true
+
   infra:
     name: Provision infra (Terraform)
     if: ${{ github.event.inputs.run_infra != 'false' }}
