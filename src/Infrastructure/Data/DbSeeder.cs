@@ -40,7 +40,12 @@ public class DbSeeder
             _logger.LogInformation("Starting database seeding...");
 
             // Crear Tenant por defecto
-            var tenant = new Tenant("Tenant Principal");
+            var tenant = new Tenant(
+                name: "Tenant Principal",
+                primaryColor: "#0A3D62",
+                secondaryColor: "#1976D2",
+                accentColor: "#FF6B6B"
+            );
             _context.Tenants.Add(tenant);
             await _context.SaveChangesAsync();
 

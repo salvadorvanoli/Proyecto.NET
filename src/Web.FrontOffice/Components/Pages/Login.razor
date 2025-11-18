@@ -1,12 +1,14 @@
 @page "/login"
 @rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
-@using Application.Auth.DTOs
-@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using global::Shared.DTOs.Auth
+@using Microsoft.AspNetCore.Components.Authorization
 @using Web.FrontOffice.Services.Interfaces
+@using Web.FrontOffice.Services
 @inject NavigationManager Navigation
 @inject IAuthApiService AuthApiService
-@inject ProtectedLocalStorage ProtectedLocalStore
+@inject CustomAuthenticationStateProvider AuthStateProvider
+@inject ILogger<Login> Logger
 
 <PageTitle>Iniciar Sesión</PageTitle>
 
@@ -73,6 +75,9 @@
     private string errorMessage = string.Empty;
     private bool isLoading = false;
 
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
     private async Task HandleLogin()
     {
         isLoading = true;
@@ -88,24 +93,43 @@
 
             var response = await AuthApiService.LoginAsync(loginRequest);
 
-            if (response != null)
-            {
-                // Guardar sesión en localStorage
-                var sessionData = System.Text.Json.JsonSerializer.Serialize(response);
-                await ProtectedLocalStore.SetAsync("userSession", sessionData);
-                
-                // Login exitoso - redirigir al home
-                Navigation.NavigateTo("/", forceLoad: true);
-            }
-            else
+            if (response == null)
             {
                 errorMessage = "Credenciales incorrectas. Verifica tu email y contraseña.";
+                Logger.LogWarning("Login failed for email: {Email}", loginModel.Email);
                 isLoading = false;
+                return;
             }
+
+            // Verificar que el token esté presente
+            if (string.IsNullOrEmpty(response.Token))
+            {
+                errorMessage = "Error en la respuesta del servidor. Token no recibido.";
+                Logger.LogError("Login response missing token for user: {Email}", response.Email);
+                isLoading = false;
+                return;
+            }
+
+            // Autenticar usuario usando el CustomAuthenticationStateProvider
+            await AuthStateProvider.MarkUserAsAuthenticatedAsync(response);
+
+            Logger.LogInformation("User {Email} logged in successfully. TenantId: {TenantId}", 
+                response.Email, response.TenantId);
+
+            // Redirigir al usuario
+            var redirectUrl = ReturnUrl ?? "/";
+            Navigation.NavigateTo(redirectUrl, forceLoad: true);
+        }
+        catch (HttpRequestException httpEx)
+        {
+            errorMessage = "No se pudo conectar con el servidor. Verifica tu conexión.";
+            Logger.LogError(httpEx, "HTTP error during login");
+            isLoading = false;
         }
         catch (Exception ex)
         {
-            errorMessage = "Error al iniciar sesión. Intenta nuevamente.";
+            errorMessage = "Ocurrió un error inesperado. Intenta nuevamente.";
+            Logger.LogError(ex, "Unexpected error during login");
             isLoading = false;
         }
     }

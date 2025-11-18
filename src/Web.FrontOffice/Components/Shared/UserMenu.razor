@@ -1,25 +1,28 @@
 @* Menú de usuario con dropdown para login/logout *@
 @rendermode InteractiveServer
-@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Navigation
-@inject ProtectedLocalStorage ProtectedLocalStore
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
-<div class="user-menu">
-    @if (isLoggedIn)
-    {
-        <button class="btn btn-danger" @onclick="ShowLogoutConfirmation">
-            <i class="bi bi-box-arrow-right"></i>
-            <span class="d-none d-md-inline ms-1">Cerrar Sesión</span>
-        </button>
-    }
-    else
-    {
-        <button class="btn btn-primary" @onclick="NavigateToLogin">
-            <i class="bi bi-box-arrow-in-right"></i>
-            <span class="d-none d-md-inline ms-1">Iniciar Sesión</span>
-        </button>
-    }
-</div>
+<AuthorizeView>
+    <Authorized>
+        <div class="user-menu">
+            <span class="user-name me-2">@context.User.Identity?.Name</span>
+            <button class="btn btn-danger" @onclick="ShowLogoutConfirmation">
+                <i class="bi bi-box-arrow-right"></i>
+                <span class="d-none d-md-inline ms-1">Cerrar Sesión</span>
+            </button>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="user-menu">
+            <button class="btn btn-primary" @onclick="NavigateToLogin">
+                <i class="bi bi-box-arrow-in-right"></i>
+                <span class="d-none d-md-inline ms-1">Iniciar Sesión</span>
+            </button>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
 
 @* Modal de confirmación *@
 @if (showModal)
@@ -52,36 +55,7 @@
 }
 
 @code {
-    private bool isLoggedIn = false;
-    private string userName = "Usuario";
     private bool showModal = false;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await CheckAuthenticationState();
-            StateHasChanged();
-        }
-    }
-
-    private async Task CheckAuthenticationState()
-    {
-        try
-        {
-            var result = await ProtectedLocalStore.GetAsync<string>("userSession");
-            isLoggedIn = result.Success && !string.IsNullOrEmpty(result.Value);
-            if (isLoggedIn)
-            {
-                // Aquí podrías deserializar el objeto completo si necesitas más datos
-                userName = "Usuario";
-            }
-        }
-        catch
-        {
-            isLoggedIn = false;
-        }
-    }
 
     private void NavigateToLogin()
     {
@@ -98,12 +72,9 @@
         showModal = false;
     }
 
-    private async Task ConfirmLogout()
+    private void ConfirmLogout()
     {
-        await ProtectedLocalStore.DeleteAsync("userSession");
-        isLoggedIn = false;
-        userName = "Usuario";
         showModal = false;
-        Navigation.NavigateTo("/", forceLoad: true);
+        Navigation.NavigateTo("/logout");
     }
 }

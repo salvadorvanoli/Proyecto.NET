@@ -1,5 +1,5 @@
 using System.Net.Http.Json;
-using Application.Users.DTOs;
+using Shared.DTOs.Users;
 using Web.FrontOffice.Services.Interfaces;
 
 namespace Web.FrontOffice.Services.Api;

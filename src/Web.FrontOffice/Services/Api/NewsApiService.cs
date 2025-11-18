@@ -1,5 +1,5 @@
 using System.Net.Http.Json;
-using Application.News.DTOs;
+using Shared.DTOs.News;
 using Web.FrontOffice.Services.Interfaces;
 
 namespace Web.FrontOffice.Services.Api;
@@ -18,7 +18,7 @@ public class NewsApiService : INewsApiService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<NewsResponseDto>> GetAllNewsAsync()
+    public async Task<IEnumerable<NewsResponse>> GetAllNewsAsync()
     {
         try
         {
@@ -31,16 +31,16 @@ public class NewsApiService : INewsApiService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogWarning("Failed to fetch news with status code: {StatusCode}", response.StatusCode);
-                return Enumerable.Empty<NewsResponseDto>();
+                return Enumerable.Empty<NewsResponse>();
             }
 
-            var news = await response.Content.ReadFromJsonAsync<IEnumerable<NewsResponseDto>>();
-            return news ?? Enumerable.Empty<NewsResponseDto>();
+            var news = await response.Content.ReadFromJsonAsync<IEnumerable<NewsResponse>>();
+            return news ?? Enumerable.Empty<NewsResponse>();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching news from API");
-            return Enumerable.Empty<NewsResponseDto>();
+            return Enumerable.Empty<NewsResponse>();
         }
     }
 }

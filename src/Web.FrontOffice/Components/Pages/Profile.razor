@@ -1,4 +1,5 @@
 @page "/perfil"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @using Web.FrontOffice.Components.Shared
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.WebUtilities
@@ -24,13 +25,16 @@
             @if (!string.IsNullOrEmpty(errorMessage))
             {
                 <p>@errorMessage</p>
+                @if (errorMessage.Contains("iniciar sesión"))
+                {
+                    <hr />
+                    <a href="/login" class="btn btn-primary">Iniciar Sesión</a>
+                }
             }
             else
             {
                 <p>No se pudo cargar la información del usuario.</p>
             }
-            <hr />
-            <p><strong>💡 Para testing:</strong> Accede a <code>/perfil?devUserId=1</code> para cargar el usuario con ID 1.</p>
         </div>
     }
     else
@@ -155,65 +159,44 @@
         {
             Logger.LogInformation("CargarUsuario iniciado. URI: {Uri}", Navigation.Uri);
             
-            // TESTING: Modo rápido con query parameter ?devUserId=X
+            int userId = 0;
+            
+            // TESTING: Modo rápido con query parameter ?devUserId=X (solo para desarrollo)
             var uri = new Uri(Navigation.Uri);
             var query = QueryHelpers.ParseQuery(uri.Query);
-
-            Logger.LogInformation("Query params: {QueryCount}", query.Count);
             
             if (query.TryGetValue("devUserId", out var devIdValues) && int.TryParse(devIdValues.FirstOrDefault(), out var devUserId))
             {
                 Logger.LogInformation("Modo dev: cargando usuario {UserId}", devUserId);
-                usuario = await UserApiService.GetUserByIdAsync(devUserId);
+                userId = devUserId;
+            }
+            else
+            {
+                // Obtener el estado de autenticación
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var user = authState.User;
 
-                if (usuario != null)
+                // Verificar si el usuario está autenticado
+                if (!user.Identity?.IsAuthenticated ?? true)
                 {
-                    Logger.LogInformation("Usuario cargado: {Email}", usuario.Email);
-                    editModel = new UpdateUserRequest
-                    {
-                        Email = usuario.Email,
-                        FirstName = usuario.FirstName,
-                        LastName = usuario.LastName,
-                        DateOfBirth = usuario.DateOfBirth
-                    };
-                }
-                else
-                {
-                    Logger.LogWarning("GetUserByIdAsync retornó null para userId {UserId}", devUserId);
-                    errorMessage = $"No se encontró el usuario con id {devUserId}.";
+                    Logger.LogWarning("Usuario no autenticado");
+                    errorMessage = "Debes iniciar sesión para ver tu perfil.";
+                    isLoading = false;
+                    return;
                 }
 
-                isLoading = false;
-                return;
+                // Obtener userId desde las claims del usuario autenticado
+                var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out userId))
+                {
+                    errorMessage = "No se pudo obtener el ID del usuario de la sesión.";
+                    Logger.LogWarning("No se encontró claim NameIdentifier");
+                    isLoading = false;
+                    return;
+                }
+
+                Logger.LogInformation("Usuario autenticado con ID: {UserId}", userId);
             }
-
-            Logger.LogWarning("No se encontró parámetro devUserId en la URL");
-            errorMessage = "⚠️ Para testing, accede a /perfil?devUserId=1";
-            
-            // Código original de autenticación (comentado para testing)
-            /*
-            // Obtener el estado de autenticación
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-
-            // Verificar si el usuario está autenticado
-            if (!user.Identity?.IsAuthenticated ?? true)
-            {
-                Logger.LogWarning("Usuario no autenticado");
-                errorMessage = "Debes iniciar sesión para ver tu perfil.";
-                return;
-            }
-
-            // Obtener userId desde las claims del usuario autenticado
-            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
-            {
-                errorMessage = "No se pudo obtener el ID del usuario de la sesión.";
-                Logger.LogWarning("No se encontró claim NameIdentifier");
-                return;
-            }
-
-            Logger.LogInformation("Cargando usuario con ID: {UserId}", userId);
 
             // Obtener usuario desde el backend
             usuario = await UserApiService.GetUserByIdAsync(userId);
@@ -234,7 +217,6 @@
                 Logger.LogWarning("GetUserByIdAsync retornó null para userId {UserId}", userId);
                 errorMessage = "No se encontró el usuario.";
             }
-            */
         }
         catch (HttpRequestException ex)
         {

@@ -1,4 +1,5 @@
 @page "/mis-beneficios"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @using Web.FrontOffice.Components.Shared
 @using Web.FrontOffice.Services.Interfaces
 @using Microsoft.AspNetCore.Components.Authorization
@@ -24,8 +25,11 @@
     {
         <div class="alert alert-danger">
             <p>@error</p>
-            <hr />
-            <p><strong>💡 Para testing:</strong> Accede a <code>/mis-beneficios?devUserId=1</code> para cargar los beneficios del usuario con ID 1.</p>
+            @if (error.Contains("iniciar sesión"))
+            {
+                <hr />
+                <a href="/login" class="btn btn-primary">Iniciar Sesión</a>
+            }
         </div>
     }
     else if (!benefits.Any())
@@ -131,46 +135,46 @@
 
             Logger.LogInformation("CargarBeneficios iniciado. URI: {Uri}", Navigation.Uri);
             
-            // TESTING: Modo rápido con query parameter ?devUserId=X
+            int userId = 0;
+            
+            // TESTING: Modo rápido con query parameter ?devUserId=X (solo para desarrollo)
             var uri = new Uri(Navigation.Uri);
             var query = QueryHelpers.ParseQuery(uri.Query);
-
-            Logger.LogInformation("Query params: {QueryCount}", query.Count);
             
             if (query.TryGetValue("devUserId", out var devIdValues) && int.TryParse(devIdValues.FirstOrDefault(), out var devUserId))
             {
                 Logger.LogInformation("Modo dev: cargando beneficios del usuario {UserId}", devUserId);
-                benefits = await BenefitApiService.GetUserBenefitsAsync(devUserId);
-                Logger.LogInformation("Beneficios cargados: {Count}", benefits.Count);
-                return;
-            }
-
-            Logger.LogWarning("No se encontró parámetro devUserId en la URL");
-            error = "⚠️ Para testing, accede a /mis-beneficios?devUserId=1";
-
-            // Código original de autenticación (comentado para testing)
-            /*
-            // TODO: Obtener el userId desde el AuthenticationState cuando se implemente el login
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-
-            if (user.Identity?.IsAuthenticated == true)
-            {
-                var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-                if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
-                {
-                    benefits = await BenefitApiService.GetUserBenefitsAsync(userId);
-                }
-                else
-                {
-                    error = "No se pudo obtener el ID del usuario.";
-                }
+                userId = devUserId;
             }
             else
             {
-                error = "Debe iniciar sesión para ver sus beneficios.";
+                // Obtener el userId desde el AuthenticationState
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var user = authState.User;
+
+                if (user.Identity?.IsAuthenticated == true)
+                {
+                    var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                    if (userIdClaim != null && int.TryParse(userIdClaim.Value, out userId))
+                    {
+                        Logger.LogInformation("Usuario autenticado con ID: {UserId}", userId);
+                    }
+                    else
+                    {
+                        error = "No se pudo obtener el ID del usuario.";
+                        return;
+                    }
+                }
+                else
+                {
+                    error = "Debe iniciar sesión para ver sus beneficios.";
+                    return;
+                }
             }
-            */
+
+            // Cargar beneficios del usuario
+            benefits = await BenefitApiService.GetUserBenefitsAsync(userId);
+            Logger.LogInformation("Beneficios cargados: {Count}", benefits.Count);
         }
         catch (Exception ex)
         {

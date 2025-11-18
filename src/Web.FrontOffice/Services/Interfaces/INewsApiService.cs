@@ -1,4 +1,4 @@
-using Application.News.DTOs;
+using Shared.DTOs.News;
 
 namespace Web.FrontOffice.Services.Interfaces;
 
@@ -7,5 +7,5 @@ namespace Web.FrontOffice.Services.Interfaces;
 /// </summary>
 public interface INewsApiService
 {
-    Task<IEnumerable<NewsResponseDto>> GetAllNewsAsync();
+    Task<IEnumerable<NewsResponse>> GetAllNewsAsync();
 }

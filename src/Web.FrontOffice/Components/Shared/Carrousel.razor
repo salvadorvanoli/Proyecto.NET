@@ -1,6 +1,6 @@
 @* Carrusel de noticias con Bootstrap *@
 @rendermode InteractiveServer
-@using Application.News.DTOs
+@using global::Shared.DTOs.News
 @using Web.FrontOffice.Services.Interfaces
 @inject INewsApiService NewsApiService
 
@@ -64,7 +64,7 @@ else
 }
 
 @code {
-    private List<NewsResponseDto> newsList = new();
+    private List<NewsResponse> newsList = new();
     private bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
@@ -83,7 +83,7 @@ else
         catch (Exception ex)
         {
             // Log error pero no mostrar al usuario
-            newsList = new List<NewsResponseDto>();
+            newsList = new List<NewsResponse>();
         }
         finally
         {

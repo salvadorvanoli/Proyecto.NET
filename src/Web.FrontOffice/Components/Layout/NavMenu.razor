@@ -1,9 +1,9 @@
 ﻿@rendermode InteractiveServer
-@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Microsoft.AspNetCore.Components.Authorization
 @using Web.FrontOffice.Services.Interfaces
 @using Web.FrontOffice.Services
-@using System.Text.Json
-@inject ProtectedLocalStorage ProtectedLocalStore
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject TenantThemeService ThemeService
 
 <div class="top-row ps-3 navbar navbar-dark" style="background-color: @secondaryColor">
@@ -95,21 +95,18 @@
     {
         try
         {
-            var result = await ProtectedLocalStore.GetAsync<string>("userSession");
-            if (result.Success && !string.IsNullOrEmpty(result.Value))
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            isLoggedIn = user?.Identity?.IsAuthenticated ?? false;
+            
+            if (isLoggedIn)
             {
-                isLoggedIn = true;
-                
-                // Obtener tenantId de la sesión
-                var userSession = JsonSerializer.Deserialize<UserSession>(result.Value);
-                if (userSession != null)
+                var tenantIdClaim = user.FindFirst("TenantId");
+                if (tenantIdClaim != null && int.TryParse(tenantIdClaim.Value, out var id))
                 {
-                    tenantId = userSession.TenantId;
+                    tenantId = id;
                 }
-            }
-            else
-            {
-                isLoggedIn = false;
             }
         }
         catch
@@ -131,14 +128,6 @@
         {
             // Si falla, usar valores por defecto
         }
-    }
-
-    private class UserSession
-    {
-        public int UserId { get; set; }
-        public string Email { get; set; } = string.Empty;
-        public string FullName { get; set; } = string.Empty;
-        public int TenantId { get; set; }
     }
 
     private void ToggleProfileMenu()

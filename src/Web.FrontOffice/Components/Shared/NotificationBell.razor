@@ -1,11 +1,11 @@
 @* Campana de notificaciones con dropdown *@
 @rendermode InteractiveServer
-@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+@using Microsoft.AspNetCore.Components.Authorization
 @using Application.Notifications.DTOs
 @using Web.FrontOffice.Services.Interfaces
 @using Web.FrontOffice.Services
-@using System.Text.Json
-@inject ProtectedLocalStorage ProtectedLocalStore
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject INotificationApiService NotificationApiService
 @inject SignalRService SignalRService
 @implements IAsyncDisposable
@@ -121,21 +121,18 @@
     {
         try
         {
-            var result = await ProtectedLocalStore.GetAsync<string>("userSession");
-            if (result.Success && !string.IsNullOrEmpty(result.Value))
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            isLoggedIn = user?.Identity?.IsAuthenticated ?? false;
+            
+            if (isLoggedIn)
             {
-                isLoggedIn = true;
-                
-                // Deserializar la sesión para obtener el userId
-                var userSession = JsonSerializer.Deserialize<UserSession>(result.Value);
-                if (userSession != null)
+                var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim != null && int.TryParse(userIdClaim.Value, out var id))
                 {
-                    userId = userSession.UserId;
+                    userId = id;
                 }
-            }
-            else
-            {
-                isLoggedIn = false;
             }
         }
         catch (Exception ex)
@@ -207,14 +204,6 @@
             return $"Hace {(int)timeSpan.TotalDays} día{((int)timeSpan.TotalDays != 1 ? "s" : "")}";
         
         return sentDateTime.ToString("dd/MM/yyyy");
-    }
-
-    private class UserSession
-    {
-        public int UserId { get; set; }
-        public string Email { get; set; } = string.Empty;
-        public string FullName { get; set; } = string.Empty;
-        public int TenantId { get; set; }
     }
 
     public async ValueTask DisposeAsync()
