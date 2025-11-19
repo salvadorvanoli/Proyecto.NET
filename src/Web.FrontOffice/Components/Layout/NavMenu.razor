@@ -27,21 +27,25 @@
         @if (isLoggedIn)
         {
             <div class="nav-item px-3">
-                <NavLink class="nav-link" href="perfil">
-                    <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> Mi Perfil
-                </NavLink>
-            </div>
-
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="mis-beneficios">
-                    <span class="bi bi-ticket-fill-nav-menu" aria-hidden="true"></span> Mis Beneficios
-                </NavLink>
-            </div>
-
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="historial-accesos">
-                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Historial de Accesos
-                </NavLink>
+                <div class="nav-link nav-dropdown" @onclick="ToggleProfileMenu">
+                    <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> 
+                    <span class="dropdown-label">Mi Perfil</span>
+                    <span class="dropdown-arrow @(profileMenuExpanded ? "expanded" : "")">▼</span>
+                </div>
+                @if (profileMenuExpanded)
+                {
+                    <div class="nav-submenu">
+                        <NavLink class="nav-link nav-sublink" href="perfil">
+                            Ver Perfil
+                        </NavLink>
+                        <NavLink class="nav-link nav-sublink" href="mis-beneficios">
+                            Mis Beneficios
+                        </NavLink>
+                        <NavLink class="nav-link nav-sublink" href="historial-accesos">
+                            Historial de Accesos
+                        </NavLink>
+                    </div>
+                }
             </div>
 
             <div class="nav-item px-3">
@@ -73,10 +77,16 @@
 
 @code {
     private bool isLoggedIn = false;
+    private bool profileMenuExpanded = false;
     private string primaryColor = "#0A3D62";
     private string secondaryColor = "#1976D2";
     private string tenantName = "Universidad";
     private int tenantId = 1;
+
+    private void ToggleProfileMenu()
+    {
+        profileMenuExpanded = !profileMenuExpanded;
+    }
 
     protected override async Task OnInitializedAsync()
     {

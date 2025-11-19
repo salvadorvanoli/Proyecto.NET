@@ -9,7 +9,7 @@
 @if (isLoggedIn)
 {
     <div class="user-menu">
-        <span class="user-name me-2">@userName</span>
+        <span class="user-name me-3 d-none d-md-inline">@userName</span>
         <button class="btn btn-danger" @onclick="NavigateToLogout">
             <i class="bi bi-box-arrow-right"></i>
             <span class="d-none d-md-inline ms-1">Cerrar Sesión</span>
