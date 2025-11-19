@@ -214,6 +214,66 @@ public class BenefitService : IBenefitService
     }
 
     /// <summary>
+    /// Consumes a benefit for a user, creating Usage and Consumption records.
+    /// </summary>
+    public async Task<ConsumeBenefitResponse> ConsumeBenefitAsync(int userId, ConsumeBenefitRequest request, CancellationToken cancellationToken = default)
+    {
+        var tenantId = _tenantProvider.GetCurrentTenantId();
+
+        // Validate user exists in the tenant
+        var userExists = await _context.Users
+            .AnyAsync(u => u.Id == userId && u.TenantId == tenantId, cancellationToken);
+
+        if (!userExists)
+            throw new InvalidOperationException("Usuario no encontrado.");
+
+        // Get the benefit with its type
+        var benefit = await _context.Benefits
+            .Include(b => b.BenefitType)
+            .FirstOrDefaultAsync(b => b.Id == request.BenefitId && b.TenantId == tenantId, cancellationToken);
+
+        if (benefit == null)
+            throw new InvalidOperationException("Beneficio no encontrado.");
+
+        // Validate the benefit can be consumed
+        if (!benefit.IsValid)
+            throw new InvalidOperationException("El beneficio no está vigente.");
+
+        if (!benefit.HasAvailableQuotas)
+            throw new InvalidOperationException("El beneficio no tiene cuotas disponibles.");
+
+        if (request.Quantity > benefit.Quotas)
+            throw new InvalidOperationException($"No hay suficientes cuotas disponibles. Cuotas disponibles: {benefit.Quotas}");
+
+        // Create Usage record
+        var usage = new Usage(tenantId, benefit.Id, userId, request.Quantity);
+        _context.Usages.Add(usage);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // Create Consumption record
+        var consumptionDateTime = DateTime.UtcNow;
+        var consumption = new Consumption(tenantId, request.Quantity, consumptionDateTime, usage.Id);
+        _context.Consumptions.Add(consumption);
+
+        // Consume quotas from the benefit
+        benefit.ConsumeQuotas(request.Quantity);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new ConsumeBenefitResponse
+        {
+            UsageId = usage.Id,
+            ConsumptionId = consumption.Id,
+            BenefitId = benefit.Id,
+            BenefitTypeName = benefit.BenefitType.Name,
+            QuantityConsumed = request.Quantity,
+            RemainingQuotas = benefit.Quotas,
+            ConsumptionDateTime = consumptionDateTime,
+            Message = $"Beneficio '{benefit.BenefitType.Name}' consumido exitosamente."
+        };
+    }
+
+    /// <summary>
     /// Maps a Benefit entity to a BenefitResponse DTO.
     /// </summary>
     private static BenefitResponse MapToResponse(Benefit benefit)

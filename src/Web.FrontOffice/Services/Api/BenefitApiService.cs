@@ -1,4 +1,5 @@
-using Application.Benefits.DTOs;
+using AppBenefitResponse = Application.Benefits.DTOs.BenefitResponse;
+using Shared.DTOs.Benefits;
 using Web.FrontOffice.Services.Interfaces;
 
 namespace Web.FrontOffice.Services.Api;
@@ -17,16 +18,16 @@ public class BenefitApiService : IBenefitApiService
         _logger = logger;
     }
 
-    public async Task<List<BenefitResponse>> GetUserBenefitsAsync(int userId)
+    public async Task<List<AppBenefitResponse>> GetUserBenefitsAsync(int userId)
     {
         var response = await _httpClient.GetAsync($"api/benefits/user/{userId}");
         response.EnsureSuccessStatusCode();
 
-        var benefits = await response.Content.ReadFromJsonAsync<List<BenefitResponse>>();
-        return benefits ?? new List<BenefitResponse>();
+        var benefits = await response.Content.ReadFromJsonAsync<List<AppBenefitResponse>>();
+        return benefits ?? new List<AppBenefitResponse>();
     }
 
-    public async Task<(List<BenefitResponse> Benefits, int TotalCount)> GetUserBenefitsPagedAsync(
+    public async Task<(List<AppBenefitResponse> Benefits, int TotalCount)> GetUserBenefitsPagedAsync(
         int userId, 
         int skip = 0, 
         int take = 10, 
@@ -68,22 +69,90 @@ public class BenefitApiService : IBenefitApiService
         }
     }
 
-    public async Task<List<BenefitResponse>> GetAllBenefitsAsync()
+    public async Task<List<AppBenefitResponse>> GetAllBenefitsAsync()
     {
         var response = await _httpClient.GetAsync("api/benefits");
         response.EnsureSuccessStatusCode();
 
-        var benefits = await response.Content.ReadFromJsonAsync<List<BenefitResponse>>();
-        return benefits ?? new List<BenefitResponse>();
+        var benefits = await response.Content.ReadFromJsonAsync<List<AppBenefitResponse>>();
+        return benefits ?? new List<AppBenefitResponse>();
     }
 
-    public async Task<BenefitResponse?> GetBenefitByIdAsync(int benefitId)
+    public async Task<AppBenefitResponse?> GetBenefitByIdAsync(int benefitId)
     {
         var response = await _httpClient.GetAsync($"api/benefits/{benefitId}");
         
         if (!response.IsSuccessStatusCode)
             return null;
 
-        return await response.Content.ReadFromJsonAsync<BenefitResponse>();
+        return await response.Content.ReadFromJsonAsync<AppBenefitResponse>();
+    }
+
+    public async Task<List<AppBenefitResponse>> GetActiveBenefitsAsync()
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync("api/benefits/by-tenant");
+            response.EnsureSuccessStatusCode();
+
+            var benefits = await response.Content.ReadFromJsonAsync<List<AppBenefitResponse>>();
+            return benefits ?? new List<AppBenefitResponse>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting active benefits");
+            throw;
+        }
+    }
+
+    public async Task<ConsumeBenefitResponse> ConsumeBenefitAsync(ConsumeBenefitRequest request)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/benefits/consume", request);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error consuming benefit: {StatusCode} - {Error}", 
+                    response.StatusCode, errorContent);
+                
+                // Intentar extraer el mensaje de error del JSON
+                string errorMessage = "Error al consumir el beneficio.";
+                try
+                {
+                    var errorObject = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(errorContent);
+                    if (errorObject != null && errorObject.ContainsKey("error"))
+                    {
+                        errorMessage = errorObject["error"].ToString() ?? errorMessage;
+                    }
+                }
+                catch
+                {
+                    // Si falla el parseo, usar el mensaje por defecto
+                }
+                
+                throw new HttpRequestException(errorMessage);
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<ConsumeBenefitResponse>();
+            
+            if (result == null)
+                throw new InvalidOperationException("La respuesta del servidor no contiene datos válidos.");
+
+            _logger.LogInformation("Benefit {BenefitId} consumed successfully. Usage ID: {UsageId}", 
+                request.BenefitId, result.UsageId);
+
+            return result;
+        }
+        catch (HttpRequestException)
+        {
+            throw; // Re-lanzar HttpRequestException con el mensaje personalizado
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error consuming benefit {BenefitId}", request.BenefitId);
+            throw;
+        }
     }
 }

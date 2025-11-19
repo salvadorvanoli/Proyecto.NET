@@ -1,5 +1,7 @@
 @page "/canjear-beneficio"
-@using Web.FrontOffice.Components.Shared
+@using Web.FrontOffice.Services.Interfaces
+@inject IBenefitApiService BenefitApiService
+@inject ILogger<RedeemBenefit> Logger
 @rendermode InteractiveServer
 
 <Microsoft.AspNetCore.Components.Web.PageTitle>Canjear Beneficio</Microsoft.AspNetCore.Components.Web.PageTitle>
@@ -11,7 +13,26 @@
     {
         <!-- Selección de beneficio -->
         <Card Title="Selecciona el Beneficio a Canjear">
-            @if (beneficiosDisponibles.Any())
+            @if (cargandoBeneficios)
+            {
+                <div class="loading-container">
+                    <div class="spinner"></div>
+                    <p>Cargando beneficios disponibles...</p>
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(errorCarga))
+            {
+                <div class="error-container">
+                    <p class="error-message">@errorCarga</p>
+                    <div class="form-actions">
+                        <PrimaryButton Text="Reintentar" OnClick="CargarBeneficiosAsync" />
+                        <a href="/mis-beneficios" class="action-link">
+                            <SecondaryButton Text="Volver" />
+                        </a>
+                    </div>
+                </div>
+            }
+            else if (beneficiosDisponibles.Any())
             {
                 <div class="benefits-selection-grid">
                     @foreach (var beneficio in beneficiosDisponibles)
@@ -55,78 +76,91 @@
             }
         </Card>
     }
-    else if (!confirmacionBiometrica)
+    else if (!mostrarModalConfirmacion)
     {
-        <!-- Confirmación biométrica -->
-        <Card Title="Confirmación Biométrica">
-            <div class="biometric-container">
+        <!-- Detalles del beneficio -->
+        <Card Title="Detalles del Beneficio">
+            <div class="benefit-details-container">
                 <div class="benefit-summary">
                     <h4>Beneficio Seleccionado</h4>
                     <div class="summary-content">
                         <InfoField Label="Nombre" Value="@beneficioSeleccionado.Nombre" />
                         <InfoField Label="Descripción" Value="@beneficioSeleccionado.Descripcion" />
-                        <InfoField Label="Cantidad a Canjear" Value="@cantidadCanjear.ToString()" />
+                        <InfoField Label="Cupos Disponibles" Value="@beneficioSeleccionado.CuposDisponibles.ToString()" />
                     </div>
                 </div>
 
-                <div class="biometric-section">
-                    @if (!procesandoBiometria)
+                <div class="quantity-selector">
+                    <label class="form-label">Cantidad a Canjear:</label>
+                    <div class="quantity-control">
+                        <button class="quantity-btn" @onclick="DecrementarCantidad" disabled="@(cantidadCanjear <= 1)">-</button>
+                        <input type="number" class="quantity-input" @bind="cantidadCanjear" min="1" max="@beneficioSeleccionado.CuposDisponibles" />
+                        <button class="quantity-btn" @onclick="IncrementarCantidad" disabled="@(cantidadCanjear >= beneficioSeleccionado.CuposDisponibles)">+</button>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <PrimaryButton Text="Canjear Beneficio" OnClick="MostrarConfirmacion" />
+                    <SecondaryButton Text="Volver" OnClick="VolverSeleccion" />
+                </div>
+            </div>
+        </Card>
+    }
+
+    <!-- Modal de confirmación -->
+    @if (mostrarModalConfirmacion && beneficioSeleccionado != null)
+    {
+        <div class="modal-overlay" @onclick="CerrarModal">
+            <div class="modal-content" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h3>Confirmar Canje de Beneficio</h3>
+                    <button class="close-btn" @onclick="CerrarModal" disabled="@procesandoCanje">&times;</button>
+                </div>
+                <div class="modal-body">
+                    @if (procesandoCanje)
                     {
-                        <div class="biometric-prompt">
-                            <div class="fingerprint-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"></path>
-                                </svg>
-                            </div>
-                            <h3>Confirma tu Identidad</h3>
-                            <p>Coloca tu dedo en el sensor biométrico para confirmar el canje del beneficio.</p>
-                            
-                            <div class="quantity-selector">
-                                <label class="form-label">Cantidad a Canjear:</label>
-                                <div class="quantity-control">
-                                    <button class="quantity-btn" @onclick="DecrementarCantidad" disabled="@(cantidadCanjear <= 1)">-</button>
-                                    <input type="number" class="quantity-input" @bind="cantidadCanjear" min="1" max="@beneficioSeleccionado.CuposDisponibles" />
-                                    <button class="quantity-btn" @onclick="IncrementarCantidad" disabled="@(cantidadCanjear >= beneficioSeleccionado.CuposDisponibles)">+</button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <PrimaryButton Text="Iniciar Validación Biométrica" OnClick="IniciarValidacionBiometrica" />
-                            <SecondaryButton Text="Volver" OnClick="VolverSeleccion" />
+                        <div class="processing-message">
+                            <div class="spinner"></div>
+                            <p>Procesando canje...</p>
                         </div>
                     }
                     else
                     {
-                        <div class="processing-biometric">
-                            <div class="spinner"></div>
-                            <h3>Procesando Validación Biométrica...</h3>
-                            <p>Por favor, mantén tu dedo en el sensor.</p>
+                        <p>¿Estás seguro que deseas canjear este beneficio?</p>
+                        <div class="confirmation-details">
+                            <InfoField Label="Beneficio" Value="@beneficioSeleccionado.Nombre" />
+                            <InfoField Label="Cantidad" Value="@cantidadCanjear.ToString()" />
+                            <InfoField Label="Cupos que quedarán" Value="@((beneficioSeleccionado.CuposDisponibles - cantidadCanjear).ToString())" />
                         </div>
                     }
                 </div>
+                <div class="modal-footer">
+                    <PrimaryButton Text="Confirmar Canje" OnClick="ConfirmarCanje" AdditionalClass="@(procesandoCanje ? "disabled" : "")" />
+                    <SecondaryButton Text="Cancelar" OnClick="CerrarModal" AdditionalClass="@(procesandoCanje ? "disabled" : "")" />
+                </div>
             </div>
-        </Card>
+        </div>
     }
     else if (canjeExitoso.HasValue)
     {
         <!-- Resultado del canje -->
         <Card>
             <div class="result-container">
-                @if (canjeExitoso.Value)
+                @if (canjeExitoso.Value && resultadoCanje != null)
                 {
                     <div class="success-result">
                         <div class="result-icon success">
                             <span>✓</span>
                         </div>
                         <h2>¡Canje Exitoso!</h2>
-                        <p>Tu beneficio ha sido canjeado correctamente.</p>
+                        <p>@resultadoCanje.Message</p>
                         
                         <div class="result-details">
-                            <InfoField Label="Beneficio" Value="@beneficioSeleccionado.Nombre" />
-                            <InfoField Label="Cantidad Canjeada" Value="@cantidadCanjear.ToString()" />
-                            <InfoField Label="Fecha y Hora" Value="@DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")" />
-                            <InfoField Label="Cupos Restantes" Value="@((beneficioSeleccionado.CuposDisponibles - cantidadCanjear).ToString())" />
+                            <InfoField Label="Beneficio" Value="@resultadoCanje.BenefitTypeName" />
+                            <InfoField Label="Cantidad Canjeada" Value="@resultadoCanje.QuantityConsumed.ToString()" />
+                            <InfoField Label="Fecha y Hora" Value="@resultadoCanje.ConsumptionDateTime.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")" />
+                            <InfoField Label="Cupos Restantes" Value="@resultadoCanje.RemainingQuotas.ToString()" />
+                            <InfoField Label="ID de Consumo" Value="@resultadoCanje.ConsumptionId.ToString()" />
                         </div>
                     </div>
                 }
@@ -153,49 +187,58 @@
 </div>
 
 @code {
-    private List<BeneficioDisponible> beneficiosDisponibles = new List<BeneficioDisponible>
-    {
-        new BeneficioDisponible
-        {
-            Id = 1,
-            Nombre = "Descuento Gimnasio",
-            Descripcion = "20% de descuento en membresías mensuales",
-            CuposDisponibles = 8,
-            VigenciaHasta = new DateTime(2025, 12, 31)
-        },
-        new BeneficioDisponible
-        {
-            Id = 2,
-            Nombre = "Estacionamiento Gratuito",
-            Descripcion = "Acceso gratuito al estacionamiento durante horarios laborales",
-            CuposDisponibles = 15,
-            VigenciaHasta = new DateTime(2025, 12, 31)
-        },
-        new BeneficioDisponible
-        {
-            Id = 3,
-            Nombre = "Cafetería VIP",
-            Descripcion = "Bebida gratis por día en la cafetería del edificio",
-            CuposDisponibles = 22,
-            VigenciaHasta = new DateTime(2025, 10, 31)
-        },
-        new BeneficioDisponible
-        {
-            Id = 4,
-            Nombre = "Almuerzo Corporativo",
-            Descripcion = "Almuerzo gratuito en el comedor ejecutivo",
-            CuposDisponibles = 5,
-            VigenciaHasta = new DateTime(2025, 11, 30)
-        }
-    };
+    private List<BeneficioDisponible> beneficiosDisponibles = new List<BeneficioDisponible>();
+    private bool cargandoBeneficios = true;
+    private string errorCarga = string.Empty;
 
     private BeneficioDisponible? beneficioTemporal;
     private BeneficioDisponible? beneficioSeleccionado;
-    private bool confirmacionBiometrica = false;
-    private bool procesandoBiometria = false;
+    private bool mostrarModalConfirmacion = false;
+    private bool procesandoCanje = false;
     private bool? canjeExitoso;
     private string mensajeError = string.Empty;
     private int cantidadCanjear = 1;
+    private Shared.DTOs.Benefits.ConsumeBenefitResponse? resultadoCanje;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarBeneficiosAsync();
+    }
+
+    private async Task CargarBeneficiosAsync()
+    {
+        try
+        {
+            cargandoBeneficios = true;
+            errorCarga = string.Empty;
+
+            // Obtener beneficios activos desde la API
+            var beneficios = await BenefitApiService.GetActiveBenefitsAsync();
+            
+            beneficiosDisponibles = beneficios
+                .Where(b => b.CanBeConsumed && b.BenefitType != null) // Solo beneficios que se pueden consumir y tienen tipo definido
+                .Select(b => new BeneficioDisponible
+                {
+                    Id = b.Id,
+                    Nombre = b.BenefitType.Name,
+                    Descripcion = b.BenefitType.Description,
+                    CuposDisponibles = b.Quotas,
+                    VigenciaHasta = b.ValidityPeriod?.EndDate.ToDateTime(TimeOnly.MinValue) ?? DateTime.MaxValue
+                })
+                .ToList();
+
+            Logger.LogInformation("Cargados {Count} beneficios disponibles", beneficiosDisponibles.Count);
+        }
+        catch (Exception ex)
+        {
+            errorCarga = "Error al cargar los beneficios disponibles. Por favor, intenta nuevamente.";
+            Logger.LogError(ex, "Error al cargar beneficios");
+        }
+        finally
+        {
+            cargandoBeneficios = false;
+        }
+    }
 
     private void SeleccionarBeneficio(BeneficioDisponible beneficio)
     {
@@ -215,10 +258,70 @@
     private void VolverSeleccion()
     {
         beneficioSeleccionado = null;
-        confirmacionBiometrica = false;
-        procesandoBiometria = false;
+        mostrarModalConfirmacion = false;
         canjeExitoso = null;
         cantidadCanjear = 1;
+    }
+
+    private void MostrarConfirmacion()
+    {
+        mostrarModalConfirmacion = true;
+    }
+
+    private void CerrarModal()
+    {
+        if (!procesandoCanje)
+        {
+            mostrarModalConfirmacion = false;
+        }
+    }
+
+    private async Task ConfirmarCanje()
+    {
+        if (beneficioSeleccionado == null || procesandoCanje)
+            return;
+
+        procesandoCanje = true;
+        StateHasChanged();
+
+        try
+        {
+            var request = new Shared.DTOs.Benefits.ConsumeBenefitRequest
+            {
+                BenefitId = beneficioSeleccionado.Id,
+                Quantity = cantidadCanjear
+            };
+
+            resultadoCanje = await BenefitApiService.ConsumeBenefitAsync(request);
+            
+            // Actualizar los cupos disponibles del beneficio seleccionado
+            beneficioSeleccionado.CuposDisponibles -= cantidadCanjear;
+            
+            mostrarModalConfirmacion = false;
+            canjeExitoso = true;
+            
+            Logger.LogInformation("Beneficio {BenefitId} canjeado exitosamente. Cantidad: {Quantity}", 
+                beneficioSeleccionado.Id, cantidadCanjear);
+        }
+        catch (HttpRequestException ex)
+        {
+            mostrarModalConfirmacion = false;
+            canjeExitoso = false;
+            mensajeError = "Error al comunicarse con el servidor. Por favor, intenta nuevamente.";
+            Logger.LogError(ex, "Error HTTP al canjear beneficio {BenefitId}", beneficioSeleccionado.Id);
+        }
+        catch (Exception ex)
+        {
+            mostrarModalConfirmacion = false;
+            canjeExitoso = false;
+            mensajeError = "Ocurrió un error inesperado al canjear el beneficio. Por favor, intenta nuevamente.";
+            Logger.LogError(ex, "Error inesperado al canjear beneficio {BenefitId}", beneficioSeleccionado.Id);
+        }
+        finally
+        {
+            procesandoCanje = false;
+            StateHasChanged();
+        }
     }
 
     private void IncrementarCantidad()
@@ -237,44 +340,16 @@
         }
     }
 
-    private async Task IniciarValidacionBiometrica()
-    {
-        procesandoBiometria = true;
-        StateHasChanged();
-
-        // Simular proceso de validación biométrica
-        await Task.Delay(3000);
-
-        // Simular validación exitosa (90% de éxito)
-        var random = new Random();
-        var exitoso = random.Next(100) < 90;
-
-        procesandoBiometria = false;
-        confirmacionBiometrica = true;
-
-        if (exitoso)
-        {
-            canjeExitoso = true;
-            // Aquí se implementaría la lógica de backend para registrar el canje
-        }
-        else
-        {
-            canjeExitoso = false;
-            mensajeError = "No se pudo verificar tu identidad biométrica. Por favor, intenta nuevamente.";
-        }
-
-        StateHasChanged();
-    }
-
     private void ReiniciarCanje()
     {
         beneficioSeleccionado = null;
         beneficioTemporal = null;
-        confirmacionBiometrica = false;
-        procesandoBiometria = false;
+        mostrarModalConfirmacion = false;
+        procesandoCanje = false;
         canjeExitoso = null;
         mensajeError = string.Empty;
         cantidadCanjear = 1;
+        resultadoCanje = null;
     }
 
     public class BeneficioDisponible

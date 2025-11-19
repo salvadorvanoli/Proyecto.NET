@@ -91,13 +91,44 @@
     font-size: 1.1rem;
 }
 
-/* Confirmación biométrica */
-.biometric-container {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
+/* Loading y Error containers */
+.loading-container,
+.error-container {
+    text-align: center;
+    padding: 3rem 2rem;
 }
 
+.loading-container .spinner {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 1.5rem auto;
+    border: 4px solid #e5e7eb;
+    border-top-color: #2c3e50;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-container p {
+    color: #6b7280;
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.error-container {
+    background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
+    border: 2px solid #fecaca;
+    border-radius: 16px;
+    padding: 2rem;
+}
+
+.error-message {
+    color: #dc2626;
+    font-size: 1.1rem;
+    margin: 0 0 2rem 0;
+    font-weight: 500;
+}
+
+/* Resumen del beneficio */
 .benefit-summary {
     background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
     padding: 1.5rem;
@@ -118,57 +149,7 @@
     gap: 0.75rem;
 }
 
-.biometric-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 2rem 1rem;
-}
-
-.biometric-prompt {
-    text-align: center;
-    max-width: 500px;
-    width: 100%;
-}
-
-.fingerprint-icon {
-    width: 120px;
-    height: 120px;
-    margin: 0 auto 2rem auto;
-    color: #2c3e50;
-    animation: pulse 2s infinite;
-}
-
-.fingerprint-icon svg {
-    width: 100%;
-    height: 100%;
-}
-
-@keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.7;
-        transform: scale(1.05);
-    }
-}
-
-.biometric-prompt h3 {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: #1f2937;
-    margin: 0 0 1rem 0;
-}
-
-.biometric-prompt p {
-    color: #6b7280;
-    font-size: 1.05rem;
-    line-height: 1.6;
-    margin: 0 0 2rem 0;
-}
-
+/* Selector de cantidad */
 .quantity-selector {
     margin: 2rem 0;
     text-align: center;
@@ -246,39 +227,7 @@
 
 .quantity-input[type=number] {
     -moz-appearance: textfield;
-}
-
-.processing-biometric {
-    text-align: center;
-    padding: 3rem 1rem;
-}
-
-.spinner {
-    width: 80px;
-    height: 80px;
-    margin: 0 auto 2rem auto;
-    border: 6px solid #e5e7eb;
-    border-top-color: #2c3e50;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.processing-biometric h3 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #1f2937;
-    margin: 0 0 1rem 0;
-}
-
-.processing-biometric p {
-    color: #6b7280;
-    font-size: 1.05rem;
+    appearance: textfield;
 }
 
 /* Resultado del canje */
@@ -380,6 +329,152 @@
     cursor: not-allowed;
 }
 
+/* Detalles del beneficio */
+.benefit-details-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* Modal de confirmación */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-content {
+    background: white;
+    border-radius: 16px;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    padding: 1.5rem 1.5rem 1rem;
+    border-bottom: 2px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: #6b7280;
+    cursor: pointer;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    line-height: 1;
+    padding: 0;
+}
+
+.close-btn:hover {
+    background: #f3f4f6;
+    color: #1f2937;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-body > p {
+    font-size: 1.1rem;
+    color: #4b5563;
+    margin: 0 0 1.5rem 0;
+    line-height: 1.6;
+}
+
+.confirmation-details {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.modal-footer {
+    padding: 1rem 1.5rem 1.5rem;
+    border-top: 2px solid #e5e7eb;
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.processing-message {
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.processing-message .spinner {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 1.5rem auto;
+    border: 4px solid #e5e7eb;
+    border-top-color: #2c3e50;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.processing-message p {
+    font-size: 1.1rem;
+    color: #4b5563;
+    font-weight: 500;
+    margin: 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .benefits-selection-grid {
@@ -391,13 +486,12 @@
         width: 100%;
     }
 
-    .fingerprint-icon {
-        width: 100px;
-        height: 100px;
+    .modal-content {
+        margin: 1rem;
     }
 
-    .biometric-prompt h3 {
-        font-size: 1.5rem;
+    .modal-footer {
+        flex-direction: column;
     }
 
     .result-icon {

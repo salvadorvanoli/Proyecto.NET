@@ -2,6 +2,7 @@ using Shared.DTOs.Benefits;
 using Application.Benefits;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using BenefitQueryService = Application.Benefits.Services.IBenefitService;
 
 namespace Web.Api.Controllers;
@@ -223,6 +224,51 @@ public class BenefitsController : ControllerBase
         {
             _logger.LogError(ex, "Error deleting benefit with ID {Id}", id);
             return StatusCode(500, "An error occurred while deleting the benefit");
+        }
+    }
+
+    /// <summary>
+    /// Consumes a benefit for the authenticated user.
+    /// </summary>
+    [HttpPost("consume")]
+    [ProducesResponseType(typeof(ConsumeBenefitResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ConsumeBenefitResponse>> ConsumeBenefit([FromBody] ConsumeBenefitRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Get the authenticated user's ID from the JWT token
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+            {
+                _logger.LogWarning("Failed to extract user ID from token");
+                return Unauthorized(new { error = "Usuario no autenticado." });
+            }
+
+            var result = await _benefitService.ConsumeBenefitAsync(userId, request, cancellationToken);
+            
+            _logger.LogInformation("User {UserId} consumed benefit {BenefitId}, quantity: {Quantity}", 
+                userId, request.BenefitId, request.Quantity);
+            
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation while consuming benefit");
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid argument while consuming benefit");
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error consuming benefit");
+            return StatusCode(500, new { error = "Ocurrió un error al consumir el beneficio." });
         }
     }
 }
