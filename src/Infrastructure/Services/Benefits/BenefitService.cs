@@ -19,9 +19,20 @@ public class BenefitService : IBenefitService
 
     public async Task<List<BenefitResponse>> GetUserBenefitsAsync(int userId)
     {
-        // Get all benefits for the tenant with their usages and consumptions
+        // Get the user's tenant ID
+        var user = await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+            return new List<BenefitResponse>();
+
+        var tenantId = user.TenantId;
+
+        // Get all benefits for the user's tenant
         var benefits = await _context.Benefits
             .Include(b => b.BenefitType)
+            .Where(b => b.TenantId == tenantId)
             .OrderBy(b => b.BenefitType.Name)
             .ToListAsync();
 

@@ -157,22 +157,15 @@
 
         try
         {
-            // Obtener CustomAuthenticationStateProvider
-            var customAuthProvider = AuthenticationStateProvider as CustomAuthenticationStateProvider;
-            if (customAuthProvider == null)
+            // Obtener userId desde los claims del usuario autenticado
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
             {
-                errorMessage = "Error al obtener el proveedor de autenticación.";
-                Logger.LogError("AuthenticationStateProvider is not CustomAuthenticationStateProvider");
-                isLoading = false;
-                return;
-            }
-
-            // Obtener userId desde el CustomAuthenticationStateProvider
-            var userId = await customAuthProvider.GetUserIdAsync();
-            if (userId == null)
-            {
-                errorMessage = "Debes iniciar sesión para ver tu perfil.";
-                Logger.LogWarning("Usuario no autenticado");
+                errorMessage = "Error al obtener el ID del usuario.";
+                Logger.LogError("NameIdentifier claim not found or invalid");
                 isLoading = false;
                 return;
             }
@@ -180,7 +173,7 @@
             Logger.LogInformation("Usuario autenticado con ID: {UserId}", userId);
 
             // Obtener usuario desde el backend
-            usuario = await UserApiService.GetUserByIdAsync(userId.Value);
+            usuario = await UserApiService.GetUserByIdAsync(userId);
 
             if (usuario != null)
             {

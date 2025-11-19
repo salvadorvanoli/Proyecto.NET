@@ -9,6 +9,7 @@ using AspNetCoreRateLimit;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddRazorPages(); // Soporte para Razor Pages (Login/Logout)
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -80,9 +81,7 @@ builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>()
 builder.Services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
 
 // Registrar CustomAuthenticationStateProvider como Scoped
-builder.Services.AddScoped<CustomAuthenticationStateProvider>();
-builder.Services.AddScoped<AuthenticationStateProvider>(provider => 
-    provider.GetRequiredService<CustomAuthenticationStateProvider>());
+builder.Services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<Microsoft.AspNetCore.Identity.IdentityUser>>();
 
 // Add HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
@@ -219,6 +218,7 @@ app.UseAntiforgery();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapRazorPages(); // Mapear Razor Pages (Login/Logout)
 app.MapControllers(); // Mapear API controllers
 app.MapFrontOfficeHealthChecks();
 app.MapRazorComponents<App>()

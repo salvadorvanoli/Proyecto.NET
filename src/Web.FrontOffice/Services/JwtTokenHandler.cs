@@ -1,20 +1,21 @@
+using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
 
 namespace Web.FrontOffice.Services;
 
 /// <summary>
-/// DelegatingHandler que agrega el JWT token desde CustomAuthenticationStateProvider
+/// DelegatingHandler que agrega el JWT token desde cookies HTTP (AuthenticationProperties)
 /// </summary>
 public class JwtTokenHandler : DelegatingHandler
 {
-    private readonly CustomAuthenticationStateProvider _authStateProvider;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<JwtTokenHandler> _logger;
 
     public JwtTokenHandler(
-        CustomAuthenticationStateProvider authStateProvider,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<JwtTokenHandler> logger)
     {
-        _authStateProvider = authStateProvider;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -24,18 +25,23 @@ public class JwtTokenHandler : DelegatingHandler
     {
         try
         {
-            var token = _authStateProvider.GetJwtToken();
-
-            if (!string.IsNullOrEmpty(token))
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext?.User?.Identity?.IsAuthenticated == true)
             {
-                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-                _logger.LogInformation("Added JWT token to request {Uri}", request.RequestUri);
-                
-                // Agregar TenantId header
-                var tenantId = await _authStateProvider.GetTenantIdAsync();
-                if (tenantId.HasValue)
+                // Obtener el token JWT almacenado en las propiedades de autenticación
+                var token = await httpContext.GetTokenAsync("access_token");
+
+                if (!string.IsNullOrEmpty(token))
                 {
-                    request.Headers.Add("X-Tenant-Id", tenantId.Value.ToString());
+                    request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                    _logger.LogDebug("Added JWT token to request {Uri}", request.RequestUri);
+                }
+
+                // Agregar TenantId header
+                var tenantIdClaim = httpContext.User.FindFirst("TenantId");
+                if (tenantIdClaim != null)
+                {
+                    request.Headers.Add("X-Tenant-Id", tenantIdClaim.Value);
                 }
             }
         }

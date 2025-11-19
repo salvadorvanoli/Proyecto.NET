@@ -226,21 +226,15 @@
             isLoading = true;
             error = null;
 
-            // Obtener CustomAuthenticationStateProvider
-            var customAuthProvider = AuthenticationStateProvider as CustomAuthenticationStateProvider;
-            if (customAuthProvider == null)
+            // Obtener userId desde los claims del usuario autenticado
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
             {
-                error = "Error al obtener el proveedor de autenticación.";
-                Logger.LogError("AuthenticationStateProvider is not CustomAuthenticationStateProvider");
-                return;
-            }
-
-            // Obtener userId desde el CustomAuthenticationStateProvider
-            var userId = await customAuthProvider.GetUserIdAsync();
-            if (userId == null)
-            {
-                error = "Debe iniciar sesión para ver sus beneficios.";
-                Logger.LogWarning("Usuario no autenticado");
+                error = "Error al obtener el ID del usuario.";
+                Logger.LogError("NameIdentifier claim not found or invalid");
                 return;
             }
 
@@ -252,7 +246,7 @@
 
             // Cargar beneficios paginados
             var result = await BenefitApiService.GetUserBenefitsPagedAsync(
-                userId.Value, 
+                userId, 
                 skip, 
                 pageSize, 
                 string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm);

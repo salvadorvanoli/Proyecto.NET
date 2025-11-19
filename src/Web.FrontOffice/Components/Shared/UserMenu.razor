@@ -82,12 +82,12 @@ else
 
     private void NavigateToLogin()
     {
-        Navigation.NavigateTo("/login");
+        Navigation.NavigateTo("/Auth/Login", forceLoad: true);
     }
 
     private void NavigateToLogout()
     {
-        Navigation.NavigateTo("/logout");
+        Navigation.NavigateTo("/Auth/Logout", forceLoad: true);
     }
 }
 

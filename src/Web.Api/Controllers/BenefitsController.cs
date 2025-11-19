@@ -2,6 +2,7 @@ using Shared.DTOs.Benefits;
 using Application.Benefits;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using BenefitQueryService = Application.Benefits.Services.IBenefitService;
 
 namespace Web.Api.Controllers;
 
@@ -14,11 +15,16 @@ namespace Web.Api.Controllers;
 public class BenefitsController : ControllerBase
 {
     private readonly IBenefitService _benefitService;
+    private readonly BenefitQueryService _benefitQueryService;
     private readonly ILogger<BenefitsController> _logger;
 
-    public BenefitsController(IBenefitService benefitService, ILogger<BenefitsController> logger)
+    public BenefitsController(
+        IBenefitService benefitService,
+        BenefitQueryService benefitQueryService,
+        ILogger<BenefitsController> logger)
     {
         _benefitService = benefitService;
+        _benefitQueryService = benefitQueryService;
         _logger = logger;
     }
 
@@ -38,6 +44,26 @@ public class BenefitsController : ControllerBase
         }
 
         return Ok(benefit);
+    }
+
+    /// <summary>
+    /// Gets all benefits for a specific user.
+    /// </summary>
+    [HttpGet("user/{userId}")]
+    [ProducesResponseType(typeof(IEnumerable<BenefitResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<BenefitResponse>>> GetUserBenefits(int userId)
+    {
+        try
+        {
+            var benefits = await _benefitQueryService.GetUserBenefitsAsync(userId);
+            _logger.LogInformation("Retrieved {Count} benefits for user {UserId}", benefits.Count, userId);
+            return Ok(benefits);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving benefits for user {UserId}", userId);
+            return StatusCode(500, "An error occurred while retrieving user benefits");
+        }
     }
 
     /// <summary>
