@@ -47,7 +47,6 @@
                                 <h4 class="benefit-name">@beneficio.BenefitTypeName</h4>
                                 <div class="benefit-info">
                                     <InfoField Label="Consumiciones Disponibles" Value="@beneficio.Quantity.ToString()" />
-                                    <InfoField Label="Cupos Globales" Value="@beneficio.Quotas.ToString()" />
                                     @if (!beneficio.IsPermanent)
                                     {
                                         <InfoField Label="Vigente Hasta" Value="@beneficio.EndDate" />
@@ -144,13 +143,8 @@
                         
                         <div class="result-details">
                             <InfoField Label="Beneficio" Value="@beneficioSeleccionado.BenefitTypeName" />
-                            <InfoField Label="Consumiciones Restantes (Usage)" Value="@consumicionesRestantesUsage.ToString()" />
-                            <InfoField Label="Cupos Globales Restantes" Value="@cuposRestantesBenefit.ToString()" />
+                            <InfoField Label="Consumiciones Restantes" Value="@consumicionesRestantesUsage.ToString()" />
                             <InfoField Label="Fecha y Hora" Value="@fechaCanje?.ToString("dd/MM/yyyy HH:mm:ss")" />
-                            @if (esNuevoUsage)
-                            {
-                                <InfoField Label="Estado" Value="Nuevo ciclo de uso creado" />
-                            }
                         </div>
                     </div>
                 }
@@ -217,21 +211,34 @@
                 return;
             }
 
-            Logger.LogInformation("Cargando beneficios disponibles para canjear del usuario {UserId}", currentUserId);
+            Logger.LogInformation("Cargando beneficios canjeables del usuario {UserId}", currentUserId);
 
-            // Cargar todos los beneficios del usuario
-            var allBenefits = await BenefitApiService.GetUserBenefitsAsync(currentUserId);
+            // Cargar beneficios canjeables (con Quantity del Usage)
+            var redeemableBenefits = await BenefitApiService.GetRedeemableBenefitsAsync(currentUserId);
             
-            // Filtrar solo los beneficios que se pueden canjear
-            beneficiosDisponibles = allBenefits
-                .Where(b => b.CanBeConsumed)
-                .ToList();
+            // Convertir a BenefitResponse para mantener compatibilidad con el código existente
+            beneficiosDisponibles = redeemableBenefits.Select(rb => new BenefitResponse
+            {
+                Id = rb.BenefitId,
+                TenantId = rb.TenantId,
+                BenefitTypeId = rb.BenefitTypeId,
+                BenefitTypeName = rb.BenefitTypeName,
+                Quantity = rb.Quantity,
+                Quotas = 0, // No mostramos quotas en canjeables
+                StartDate = rb.StartDate,
+                EndDate = rb.EndDate,
+                IsValid = rb.IsValid,
+                CanBeConsumed = rb.CanBeConsumed,
+                IsPermanent = rb.IsPermanent,
+                CreatedAt = rb.CreatedAt,
+                UpdatedAt = rb.UpdatedAt
+            }).ToList();
 
-            Logger.LogInformation("Beneficios disponibles para canjear: {Count}", beneficiosDisponibles.Count);
+            Logger.LogInformation("Beneficios canjeables: {Count}", beneficiosDisponibles.Count);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error al cargar beneficios disponibles");
+            Logger.LogError(ex, "Error al cargar beneficios canjeables");
             error = $"Error al cargar los beneficios: {ex.Message}";
         }
         finally

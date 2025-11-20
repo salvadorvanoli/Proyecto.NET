@@ -62,7 +62,7 @@ public class Usage : BaseEntity
 
         BenefitId = benefit.Id;
         UserId = userId;
-        Quantity = benefit.Quotas;
+        Quantity = benefit.Quantity;
         Benefit = benefit;
     }
 

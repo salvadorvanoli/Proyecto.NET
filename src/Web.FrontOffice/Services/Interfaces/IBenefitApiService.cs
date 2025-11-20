@@ -16,6 +16,27 @@ public interface IBenefitApiService
     Task<List<BenefitDto>> GetUserBenefitsAsync(int userId);
 
     /// <summary>
+    /// Gets available benefits for a user to claim (shows Quotas).
+    /// </summary>
+    /// <param name="userId">The ID of the user.</param>
+    /// <returns>A list of available benefits.</returns>
+    Task<List<AvailableBenefitResponse>> GetAvailableBenefitsAsync(int userId);
+
+    /// <summary>
+    /// Gets redeemable benefits for a user (shows Quantity from Usage).
+    /// </summary>
+    /// <param name="userId">The ID of the user.</param>
+    /// <returns>A list of redeemable benefits.</returns>
+    Task<List<RedeemableBenefitResponse>> GetRedeemableBenefitsAsync(int userId);
+
+    /// <summary>
+    /// Claims a benefit for a user.
+    /// </summary>
+    /// <param name="request">The claim benefit request.</param>
+    /// <returns>The claim benefit response.</returns>
+    Task<ClaimBenefitResponse> ClaimBenefitAsync(ClaimBenefitRequest request);
+
+    /// <summary>
     /// Gets paginated benefits for a specific user with optional search.
     /// </summary>
     /// <param name="userId">The ID of the user.</param>

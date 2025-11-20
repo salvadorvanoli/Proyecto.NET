@@ -121,4 +121,85 @@ public class BenefitApiService : IBenefitApiService
             throw;
         }
     }
+
+    public async Task<List<AvailableBenefitResponse>> GetAvailableBenefitsAsync(int userId)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching available benefits for user {UserId}", userId);
+            
+            var response = await _httpClient.GetAsync($"api/benefits/available/{userId}");
+            response.EnsureSuccessStatusCode();
+
+            var benefits = await response.Content.ReadFromJsonAsync<List<AvailableBenefitResponse>>();
+            
+            _logger.LogInformation("Retrieved {Count} available benefits for user {UserId}", 
+                benefits?.Count ?? 0, userId);
+            
+            return benefits ?? new List<AvailableBenefitResponse>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching available benefits for user {UserId}", userId);
+            throw;
+        }
+    }
+
+    public async Task<List<RedeemableBenefitResponse>> GetRedeemableBenefitsAsync(int userId)
+    {
+        try
+        {
+            _logger.LogInformation("Fetching redeemable benefits for user {UserId}", userId);
+            
+            var response = await _httpClient.GetAsync($"api/benefits/redeemable/{userId}");
+            response.EnsureSuccessStatusCode();
+
+            var benefits = await response.Content.ReadFromJsonAsync<List<RedeemableBenefitResponse>>();
+            
+            _logger.LogInformation("Retrieved {Count} redeemable benefits for user {UserId}", 
+                benefits?.Count ?? 0, userId);
+            
+            return benefits ?? new List<RedeemableBenefitResponse>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching redeemable benefits for user {UserId}", userId);
+            throw;
+        }
+    }
+
+    public async Task<ClaimBenefitResponse> ClaimBenefitAsync(ClaimBenefitRequest request)
+    {
+        try
+        {
+            _logger.LogInformation("Claiming benefit {BenefitId} for user {UserId}",
+                request.BenefitId, request.UserId);
+
+            var response = await _httpClient.PostAsJsonAsync("api/benefits/claim", request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Failed to claim benefit. Status: {StatusCode}, Error: {Error}",
+                    response.StatusCode, errorContent);
+                throw new HttpRequestException($"Error al reclamar el beneficio: {errorContent}");
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<ClaimBenefitResponse>();
+            
+            if (result == null)
+                throw new InvalidOperationException("La respuesta del servidor fue nula.");
+
+            _logger.LogInformation("Successfully claimed benefit {BenefitId} for user {UserId}",
+                request.BenefitId, request.UserId);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error claiming benefit {BenefitId} for user {UserId}",
+                request.BenefitId, request.UserId);
+            throw;
+        }
+    }
 }

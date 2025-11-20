@@ -2,28 +2,338 @@
 @rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @using Web.FrontOffice.Components.Shared
+@using Web.FrontOffice.Services.Interfaces
+@using Microsoft.AspNetCore.Components.Authorization
+@using AvailableBenefitResponse = global::Shared.DTOs.Benefits.AvailableBenefitResponse
+@using ClaimBenefitRequest = global::Shared.DTOs.Benefits.ClaimBenefitRequest
+@inject IBenefitApiService BenefitApiService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
+@inject ILogger<ClaimBenefit> Logger
 
 <Microsoft.AspNetCore.Components.Web.PageTitle>Reclamar Beneficio</Microsoft.AspNetCore.Components.Web.PageTitle>
 
 <div class="claim-container">
-    <PageHeader Title="Reclamar Beneficio" Subtitle="Página en construcción" />
+    <PageHeader Title="Reclamar Beneficio" Subtitle="@(beneficioSeleccionado == null ? "Selecciona un beneficio para reclamar" : "Confirma la reclamación")" />
 
-    <Card Title="Información">
-        <div class="claim-content">
-            <p>Esta es la página para reclamar beneficios.</p>
-            <p>Beneficio ID: @BenefitId</p>
-            
-            <div class="form-actions">
-                <a href="/beneficios-disponibles" class="action-link">
-                    <button class="btn btn-secondary">Volver</button>
-                </a>
+    @if (beneficioSeleccionado == null)
+    {
+        <!-- Selección de beneficio -->
+        <Card Title="Beneficios Disponibles para Reclamar">
+            @if (isLoading)
+            {
+                <div class="loading">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Cargando beneficios...</span>
+                    </div>
+                    <p class="mt-2">Cargando beneficios disponibles...</p>
+                </div>
+            }
+            else if (error != null)
+            {
+                <div class="alert alert-danger">
+                    <p>@error</p>
+                </div>
+            }
+            else if (beneficiosDisponibles.Any())
+            {
+                <div class="benefits-grid">
+                    @foreach (var beneficio in beneficiosDisponibles)
+                    {
+                        <div class="benefit-card @(beneficio.Id == beneficioTemporal?.Id ? "selected" : "")"
+                             @onclick="() => SeleccionarBeneficio(beneficio)">
+                            <div class="benefit-card-content">
+                                <h4 class="benefit-name">@beneficio.BenefitTypeName</h4>
+                                <div class="benefit-info">
+                                    <InfoField Label="Cupos Disponibles" Value="@beneficio.Quotas.ToString()" />
+                                    @if (!beneficio.IsPermanent)
+                                    {
+                                        <InfoField Label="Válido Desde" Value="@beneficio.StartDate" />
+                                        <InfoField Label="Válido Hasta" Value="@beneficio.EndDate" />
+                                    }
+                                    else
+                                    {
+                                        <InfoField Label="Vigencia" Value="Permanente" />
+                                    }
+                                </div>
+                            </div>
+                            @if (beneficio.Id == beneficioTemporal?.Id)
+                            {
+                                <div class="selected-indicator">
+                                    <span>✓</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="form-actions">
+                    <PrimaryButton Text="Continuar" OnClick="ConfirmarSeleccion" AdditionalClass="@(beneficioTemporal == null ? "disabled" : "")" />
+                    <a href="/beneficios-disponibles" class="action-link">
+                        <SecondaryButton Text="Cancelar" />
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="no-benefits">
+                    <p class="no-data">No hay beneficios disponibles para reclamar en este momento.</p>
+                    <div class="back-action">
+                        <a href="/beneficios-disponibles" class="action-link">
+                            <PrimaryButton Text="Volver" />
+                        </a>
+                    </div>
+                </div>
+            }
+        </Card>
+    }
+    else if (!confirmacionReclamacion)
+    {
+        <!-- Modal de Confirmación -->
+        <Card Title="Confirmar Reclamación">
+            <div class="password-container">
+                <div class="benefit-summary">
+                    <h4>Beneficio Seleccionado</h4>
+                    <div class="summary-content">
+                        <InfoField Label="Nombre" Value="@beneficioSeleccionado.BenefitTypeName" />
+                        <InfoField Label="Cupos Disponibles" Value="@beneficioSeleccionado.Quotas.ToString()" />
+                        @if (!beneficioSeleccionado.IsPermanent)
+                        {
+                            <InfoField Label="Vigencia" Value="@($"{beneficioSeleccionado.StartDate} - {beneficioSeleccionado.EndDate}")" />
+                        }
+                        else
+                        {
+                            <InfoField Label="Vigencia" Value="Permanente" />
+                        }
+                    </div>
+                </div>
+
+                <div class="password-section">
+                    @if (!procesandoReclamacion)
+                    {
+                        <div class="password-prompt">
+                            <h3>Confirmar Reclamación</h3>
+                            <p>¿Estás seguro de que deseas reclamar este beneficio?</p>
+                            <p class="text-muted">Al reclamar, recibirás @beneficioSeleccionado.Quotas consumiciones disponibles.</p>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <PrimaryButton Text="Confirmar Reclamación" OnClick="ProcesarReclamacion" />
+                            <SecondaryButton Text="Volver" OnClick="VolverSeleccion" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="processing-validation">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Procesando reclamación...</span>
+                            </div>
+                            <h3>Procesando Reclamación...</h3>
+                            <p>Por favor, espera un momento.</p>
+                        </div>
+                    }
+                </div>
             </div>
-        </div>
-    </Card>
+        </Card>
+    }
+    else if (reclamacionExitosa.HasValue)
+    {
+        <!-- Resultado de la reclamación -->
+        <Card>
+            <div class="result-container">
+                @if (reclamacionExitosa.Value)
+                {
+                    <div class="success-result">
+                        <div class="result-icon success">
+                            <span>✓</span>
+                        </div>
+                        <h2>¡Reclamación Exitosa!</h2>
+                        <p>@mensajeExito</p>
+                        
+                        <div class="result-details">
+                            <InfoField Label="Beneficio" Value="@beneficioSeleccionado.BenefitTypeName" />
+                            <InfoField Label="Consumiciones Recibidas" Value="@usageQuantity.ToString()" />
+                            <InfoField Label="Cupos Restantes del Beneficio" Value="@remainingQuotas.ToString()" />
+                            <InfoField Label="Fecha y Hora" Value="@fechaReclamacion?.ToString("dd/MM/yyyy HH:mm:ss")" />
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="error-result">
+                        <div class="result-icon error">
+                            <span>✗</span>
+                        </div>
+                        <h2>Reclamación Fallida</h2>
+                        <p>@mensajeError</p>
+                    </div>
+                }
+
+                <div class="form-actions">
+                    <PrimaryButton Text="Reclamar Otro Beneficio" OnClick="ReiniciarReclamacion" />
+                    <a href="/beneficios-disponibles" class="action-link">
+                        <SecondaryButton Text="Ver Beneficios Disponibles" />
+                    </a>
+                </div>
+            </div>
+        </Card>
+    }
 </div>
 
 @code {
     [SupplyParameterFromQuery]
     public int? BenefitId { get; set; }
+
+    private List<AvailableBenefitResponse> beneficiosDisponibles = new();
+    private AvailableBenefitResponse? beneficioTemporal;
+    private AvailableBenefitResponse? beneficioSeleccionado;
+    private bool isLoading = true;
+    private string? error = null;
+    private bool confirmacionReclamacion = false;
+    private bool procesandoReclamacion = false;
+    private bool? reclamacionExitosa;
+    private string mensajeError = string.Empty;
+    private string mensajeExito = string.Empty;
+    private int usageQuantity = 0;
+    private int remainingQuotas = 0;
+    private DateTime? fechaReclamacion;
+    private int currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarBeneficiosDisponibles();
+    }
+
+    private async Task CargarBeneficiosDisponibles()
+    {
+        try
+        {
+            isLoading = true;
+            error = null;
+
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out currentUserId))
+            {
+                error = "Error al obtener el ID del usuario.";
+                Logger.LogError("NameIdentifier claim not found or invalid");
+                return;
+            }
+
+            Logger.LogInformation("🔍 [CLAIM] Cargando beneficios disponibles para reclamar del usuario {UserId}", currentUserId);
+
+            beneficiosDisponibles = await BenefitApiService.GetAvailableBenefitsAsync(currentUserId);
+
+            Logger.LogInformation("📋 [CLAIM] Beneficios disponibles cargados: {Count}. IDs: [{BenefitIds}]", 
+                beneficiosDisponibles.Count,
+                string.Join(", ", beneficiosDisponibles.Select(b => $"{b.Id}:{b.BenefitTypeName}")));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al cargar beneficios disponibles para reclamar");
+            error = $"Error al cargar los beneficios: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SeleccionarBeneficio(AvailableBenefitResponse beneficio)
+    {
+        beneficioTemporal = beneficio;
+    }
+
+    private void ConfirmarSeleccion()
+    {
+        if (beneficioTemporal != null)
+        {
+            beneficioSeleccionado = beneficioTemporal;
+            beneficioTemporal = null;
+            StateHasChanged();
+        }
+    }
+
+    private void VolverSeleccion()
+    {
+        beneficioSeleccionado = null;
+        confirmacionReclamacion = false;
+        procesandoReclamacion = false;
+        reclamacionExitosa = null;
+    }
+
+    private async Task ProcesarReclamacion()
+    {
+        if (beneficioSeleccionado == null)
+        {
+            return;
+        }
+
+        procesandoReclamacion = true;
+        StateHasChanged();
+
+        try
+        {
+            Logger.LogInformation("Iniciando reclamación de beneficio {BenefitId} para usuario {UserId}",
+                beneficioSeleccionado.Id, currentUserId);
+
+            var request = new ClaimBenefitRequest
+            {
+                BenefitId = beneficioSeleccionado.Id,
+                UserId = currentUserId
+            };
+
+            var response = await BenefitApiService.ClaimBenefitAsync(request);
+
+            // Guardar información de la reclamación exitosa
+            mensajeExito = response.Message;
+            usageQuantity = response.UsageQuantity;
+            remainingQuotas = response.RemainingBenefitQuotas;
+            fechaReclamacion = response.ClaimedAt;
+
+            reclamacionExitosa = true;
+            confirmacionReclamacion = true;
+
+            Logger.LogInformation("Reclamación exitosa: {Message}", response.Message);
+        }
+        catch (HttpRequestException ex)
+        {
+            Logger.LogError(ex, "Error HTTP al reclamar beneficio");
+            reclamacionExitosa = false;
+            confirmacionReclamacion = true;
+            mensajeError = ex.Message.Contains("Error al reclamar") 
+                ? ex.Message 
+                : "Error de conexión con el servidor. Por favor, intenta nuevamente.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error inesperado al reclamar beneficio");
+            reclamacionExitosa = false;
+            confirmacionReclamacion = true;
+            mensajeError = "Ocurrió un error inesperado al procesar la reclamación. Por favor, intenta nuevamente.";
+        }
+        finally
+        {
+            procesandoReclamacion = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ReiniciarReclamacion()
+    {
+        beneficioSeleccionado = null;
+        beneficioTemporal = null;
+        confirmacionReclamacion = false;
+        procesandoReclamacion = false;
+        reclamacionExitosa = null;
+        mensajeError = string.Empty;
+        mensajeExito = string.Empty;
+        usageQuantity = 0;
+        remainingQuotas = 0;
+        fechaReclamacion = null;
+
+        // Recargar los beneficios para reflejar los cambios
+        await CargarBeneficiosDisponibles();
+    }
 }

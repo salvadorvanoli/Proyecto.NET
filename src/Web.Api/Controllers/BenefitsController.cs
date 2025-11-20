@@ -123,6 +123,46 @@ public class BenefitsController : ControllerBase
     }
 
     /// <summary>
+    /// Gets available benefits for a user to claim (shows Quotas).
+    /// </summary>
+    [HttpGet("available/{userId}")]
+    [ProducesResponseType(typeof(IEnumerable<AvailableBenefitResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<AvailableBenefitResponse>>> GetAvailableBenefits(int userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var benefits = await _benefitService.GetAvailableBenefitsForUserAsync(userId, cancellationToken);
+            _logger.LogInformation("Retrieved {Count} available benefits for user {UserId}", benefits.Count(), userId);
+            return Ok(benefits);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving available benefits for user {UserId}", userId);
+            return StatusCode(500, "An error occurred while retrieving available benefits");
+        }
+    }
+
+    /// <summary>
+    /// Gets redeemable benefits for a user (shows Quantity from Usage).
+    /// </summary>
+    [HttpGet("redeemable/{userId}")]
+    [ProducesResponseType(typeof(IEnumerable<RedeemableBenefitResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<RedeemableBenefitResponse>>> GetRedeemableBenefits(int userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var benefits = await _benefitService.GetRedeemableBenefitsForUserAsync(userId, cancellationToken);
+            _logger.LogInformation("Retrieved {Count} redeemable benefits for user {UserId}", benefits.Count(), userId);
+            return Ok(benefits);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving redeemable benefits for user {UserId}", userId);
+            return StatusCode(500, "An error occurred while retrieving redeemable benefits");
+        }
+    }
+
+    /// <summary>
     /// Creates a new benefit.
     /// </summary>
     [HttpPost]
@@ -219,6 +259,41 @@ public class BenefitsController : ControllerBase
         {
             _logger.LogError(ex, "Error deleting benefit with ID {Id}", id);
             return StatusCode(500, "An error occurred while deleting the benefit");
+        }
+    }
+
+    /// <summary>
+    /// Claims a benefit for a user.
+    /// </summary>
+    [HttpPost("claim")]
+    [ProducesResponseType(typeof(ClaimBenefitResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ClaimBenefit([FromBody] ClaimBenefitRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var response = await _benefitService.ClaimBenefitAsync(request, cancellationToken);
+            _logger.LogInformation("Benefit {BenefitId} claimed by user {UserId}", 
+                request.BenefitId, request.UserId);
+            return Ok(response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Cannot claim benefit {BenefitId} for user {UserId}", 
+                request.BenefitId, request.UserId);
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error claiming benefit {BenefitId} for user {UserId}", 
+                request.BenefitId, request.UserId);
+            return StatusCode(500, "An error occurred while claiming the benefit");
         }
     }
 
