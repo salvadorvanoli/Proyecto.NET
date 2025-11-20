@@ -10,6 +10,7 @@ public class BenefitResponse
     public int BenefitTypeId { get; set; }
     public string BenefitTypeName { get; set; } = string.Empty;
     public int Quotas { get; set; }
+    public int Quantity { get; set; }
     public string? StartDate { get; set; }
     public string? EndDate { get; set; }
     public bool IsValid { get; set; }

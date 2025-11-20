@@ -39,6 +39,15 @@
                             </span>
                         </dd>
 
+                        <dt class="col-sm-3">Cantidad por Uso:</dt>
+                        <dd class="col-sm-9">
+                            <span class="badge bg-secondary fs-6">
+                                @Model.Benefit.Quantity
+                            </span>
+                            <br />
+                            <small class="text-muted">Cantidad que se asigna a cada uso de este beneficio</small>
+                        </dd>
+
                         <dt class="col-sm-3">Vigencia:</dt>
                         <dd class="col-sm-9">
                             @if (Model.Benefit.IsPermanent)

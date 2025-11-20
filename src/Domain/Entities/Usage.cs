@@ -46,6 +46,26 @@ public class Usage : BaseEntity
         Quantity = quantity;
     }
 
+    /// <summary>
+    /// Creates a usage with the quantity from the benefit.
+    /// </summary>
+    public Usage(int tenantId, Benefit benefit, int userId) : base(tenantId)
+    {
+        if (benefit == null)
+            throw new ArgumentNullException(nameof(benefit));
+
+        if (benefit.Id <= DomainConstants.NumericValidation.TransientEntityId)
+            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "ID de beneficio"), nameof(benefit));
+
+        if (userId <= DomainConstants.NumericValidation.TransientEntityId)
+            throw new ArgumentException(string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "ID de usuario"), nameof(userId));
+
+        BenefitId = benefit.Id;
+        UserId = userId;
+        Quantity = benefit.Quantity;
+        Benefit = benefit;
+    }
+
     public void UpdateQuantity(int quantity)
     {
         if (quantity < DomainConstants.NumericValidation.MinQuantity)
