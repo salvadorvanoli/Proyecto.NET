@@ -8,6 +8,7 @@ namespace Application.Benefits;
 public interface IBenefitService
 {
     Task<BenefitResponse?> GetBenefitByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task<List<BenefitResponse>> GetUserBenefitsAsync(int userId, CancellationToken cancellationToken = default);
     Task<IEnumerable<BenefitResponse>> GetBenefitsByTenantAsync(CancellationToken cancellationToken = default);
     Task<IEnumerable<BenefitResponse>> GetBenefitsByTypeAsync(int benefitTypeId, CancellationToken cancellationToken = default);
     Task<IEnumerable<BenefitResponse>> GetActiveBenefitsAsync(CancellationToken cancellationToken = default);

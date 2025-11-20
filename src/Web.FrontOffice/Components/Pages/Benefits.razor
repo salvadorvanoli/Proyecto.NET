@@ -5,6 +5,7 @@
 @using Web.FrontOffice.Services
 @using Web.FrontOffice.Services.Interfaces
 @using Microsoft.AspNetCore.Components.Authorization
+@using BenefitResponse = global::Shared.DTOs.Benefits.BenefitResponse
 @inject IBenefitApiService BenefitApiService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
@@ -84,22 +85,21 @@
         <div class="benefits-grid">
             @foreach (var benefit in benefits)
             {
-                <Card Title="@benefit.BenefitType.Name">
+                <Card Title="@benefit.BenefitTypeName">
                     <div class="benefit-content">
-                        <p class="benefit-description">@benefit.BenefitType.Description</p>
 
                         <div class="benefit-details">
-                            @if (benefit.ValidityPeriod != null)
+                            @if (!benefit.IsPermanent)
                             {
-                                <InfoField Label="Vigencia Desde" Value="@benefit.ValidityPeriod.StartDate.ToString("dd/MM/yyyy")" />
-                                <InfoField Label="Vigencia Hasta" Value="@benefit.ValidityPeriod.EndDate.ToString("dd/MM/yyyy")" />
+                                <InfoField Label="Vigencia Desde" Value="@benefit.StartDate" />
+                                <InfoField Label="Vigencia Hasta" Value="@benefit.EndDate" />
                             }
                             else
                             {
                                 <InfoField Label="Vigencia" Value="Permanente" />
                             }
-                            <InfoField Label="Cupos Disponibles" Value="@benefit.Quotas.ToString()" />
-                            <InfoField Label="Total Consumido" Value="@benefit.TotalConsumed.ToString()" />
+                            <InfoField Label="Consumiciones Disponibles" Value="@benefit.Quantity.ToString()" />
+                            <InfoField Label="Cupos Globales" Value="@benefit.Quotas.ToString()" />
                         </div>
 
                         <div class="benefit-status">
@@ -116,34 +116,6 @@
                                 <span class="badge badge-danger">Sin Cupos</span>
                             }
                         </div>
-
-                        @if (benefit.Consumptions.Any())
-                        {
-                            <div class="consumptions">
-                                <h4>Mis Consumos</h4>
-                                @foreach (var consumption in benefit.Consumptions)
-                                {
-                                    <div class="consumption-item">
-                                        <span>Cantidad: @consumption.Amount</span>
-                                        <span>Fecha: @consumption.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
-                                        @if (consumption.Usages.Any())
-                                        {
-                                            <div class="usages">
-                                                <small>Usos registrados: @consumption.Usages.Count</small>
-                                                @foreach (var usage in consumption.Usages)
-                                                {
-                                                    <small>- @usage.UsageDateTime.ToString("dd/MM/yyyy HH:mm")</small>
-                                                }
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                            </div>
-                        }
-                        else
-                        {
-                            <p class="no-data">No has utilizado este beneficio aún</p>
-                        }
                     </div>
                 </Card>
             }

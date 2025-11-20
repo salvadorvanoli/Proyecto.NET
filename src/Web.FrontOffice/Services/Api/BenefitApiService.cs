@@ -1,6 +1,6 @@
 using Shared.DTOs.Benefits;
 using Web.FrontOffice.Services.Interfaces;
-using BenefitDto = Application.Benefits.DTOs.BenefitResponse;
+using BenefitDto = Shared.DTOs.Benefits.BenefitResponse;
 
 namespace Web.FrontOffice.Services.Api;
 
@@ -43,8 +43,7 @@ public class BenefitApiService : IBenefitApiService
             {
                 allBenefits = allBenefits
                     .Where(b => 
-                        b.BenefitType.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                        b.BenefitType.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+                        b.BenefitTypeName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
                     .ToList();
             }
 
@@ -92,8 +91,8 @@ public class BenefitApiService : IBenefitApiService
     {
         try
         {
-            _logger.LogInformation("Redeeming benefit {BenefitId} for user {UserId} with quantity {Quantity}",
-                request.BenefitId, request.UserId, request.Quantity);
+            _logger.LogInformation("Redeeming benefit {BenefitId} for user {UserId}",
+                request.BenefitId, request.UserId);
 
             var response = await _httpClient.PostAsJsonAsync("api/benefits/redeem", request);
             

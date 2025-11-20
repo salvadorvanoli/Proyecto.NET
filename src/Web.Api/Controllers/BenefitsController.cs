@@ -2,7 +2,6 @@ using Shared.DTOs.Benefits;
 using Application.Benefits;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using BenefitQueryService = Application.Benefits.Services.IBenefitService;
 
 namespace Web.Api.Controllers;
 
@@ -15,16 +14,13 @@ namespace Web.Api.Controllers;
 public class BenefitsController : ControllerBase
 {
     private readonly IBenefitService _benefitService;
-    private readonly BenefitQueryService _benefitQueryService;
     private readonly ILogger<BenefitsController> _logger;
 
     public BenefitsController(
         IBenefitService benefitService,
-        BenefitQueryService benefitQueryService,
         ILogger<BenefitsController> logger)
     {
         _benefitService = benefitService;
-        _benefitQueryService = benefitQueryService;
         _logger = logger;
     }
 
@@ -51,11 +47,11 @@ public class BenefitsController : ControllerBase
     /// </summary>
     [HttpGet("user/{userId}")]
     [ProducesResponseType(typeof(IEnumerable<BenefitResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<BenefitResponse>>> GetUserBenefits(int userId)
+    public async Task<ActionResult<IEnumerable<BenefitResponse>>> GetUserBenefits(int userId, CancellationToken cancellationToken)
     {
         try
         {
-            var benefits = await _benefitQueryService.GetUserBenefitsAsync(userId);
+            var benefits = await _benefitService.GetUserBenefitsAsync(userId, cancellationToken);
             _logger.LogInformation("Retrieved {Count} benefits for user {UserId}", benefits.Count, userId);
             return Ok(benefits);
         }
@@ -243,8 +239,8 @@ public class BenefitsController : ControllerBase
             }
 
             var response = await _benefitService.RedeemBenefitAsync(request, cancellationToken);
-            _logger.LogInformation("Benefit {BenefitId} redeemed by user {UserId}. Quantity: {Quantity}", 
-                request.BenefitId, request.UserId, request.Quantity);
+            _logger.LogInformation("Benefit {BenefitId} redeemed by user {UserId}", 
+                request.BenefitId, request.UserId);
             return Ok(response);
         }
         catch (InvalidOperationException ex)

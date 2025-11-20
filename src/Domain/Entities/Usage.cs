@@ -62,7 +62,7 @@ public class Usage : BaseEntity
 
         BenefitId = benefit.Id;
         UserId = userId;
-        Quantity = benefit.Quantity;
+        Quantity = benefit.Quotas;
         Benefit = benefit;
     }
 
@@ -76,5 +76,27 @@ public class Usage : BaseEntity
         Quantity = quantity;
         UpdateTimestamp();
     }
+
+    /// <summary>
+    /// Decrements the quantity by the specified amount.
+    /// </summary>
+    public void DecrementQuantity(int amount)
+    {
+        if (amount <= DomainConstants.NumericValidation.MinAmount)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Cantidad", DomainConstants.NumericValidation.MinAmount),
+                nameof(amount));
+
+        if (amount > Quantity)
+            throw new InvalidOperationException($"No se puede decrementar {amount} unidades. Cantidad disponible: {Quantity}");
+
+        Quantity -= amount;
+        UpdateTimestamp();
+    }
+
+    /// <summary>
+    /// Checks if the usage has available quantity.
+    /// </summary>
+    public bool HasAvailableQuantity => Quantity > 0;
 }
 

@@ -21,6 +21,22 @@ public class BenefitService : IBenefitService
     }
 
     /// <summary>
+    /// Gets all benefits for a specific user.
+    /// </summary>
+    public async Task<List<BenefitResponse>> GetUserBenefitsAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        var tenantId = _tenantProvider.GetCurrentTenantId();
+
+        var benefits = await _context.Benefits
+            .Include(b => b.BenefitType)
+            .Where(b => b.TenantId == tenantId)
+            .OrderByDescending(b => b.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return benefits.Select(MapToResponse).ToList();
+    }
+
+    /// <summary>
     /// Gets a benefit by ID.
     /// </summary>
     public async Task<BenefitResponse?> GetBenefitByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -245,21 +261,43 @@ public class BenefitService : IBenefitService
                 throw new InvalidOperationException("El beneficio no tiene cuotas disponibles.");
         }
 
-        // Validate there are enough quotas
-        if (benefit.Quotas < request.Quantity)
-            throw new InvalidOperationException($"No hay suficientes cuotas disponibles. Disponibles: {benefit.Quotas}, Solicitadas: {request.Quantity}");
+        // Find existing usage with available quantity for this user and benefit
+        var existingUsage = await _context.Usages
+            .Include(u => u.Consumptions)
+            .Where(u => u.UserId == request.UserId && u.BenefitId == request.BenefitId && u.TenantId == tenantId)
+            .OrderByDescending(u => u.CreatedAt)
+            .FirstOrDefaultAsync(u => u.Quantity > 0, cancellationToken);
 
-        // Create Usage record
-        var usage = new Usage(tenantId, request.BenefitId, request.UserId, request.Quantity);
-        _context.Usages.Add(usage);
-        await _context.SaveChangesAsync(cancellationToken);
+        Usage usage;
+        bool isNewUsage = false;
+
+        if (existingUsage != null)
+        {
+            // Use existing Usage - decrement quantity
+            usage = existingUsage;
+            usage.DecrementQuantity(1);
+        }
+        else
+        {
+            // Create new Usage with the current benefit's quotas
+            usage = new Usage(tenantId, benefit, request.UserId);
+            _context.Usages.Add(usage);
+            await _context.SaveChangesAsync(cancellationToken);
+            
+            // Decrement quantity immediately after creation (first consumption)
+            usage.DecrementQuantity(1);
+            isNewUsage = true;
+        }
 
         // Create Consumption record
-        var consumption = new Consumption(tenantId, request.Quantity, DateTime.UtcNow, usage.Id);
+        var consumption = new Consumption(tenantId, 1, DateTime.UtcNow, usage.Id);
         _context.Consumptions.Add(consumption);
 
-        // Consume quotas from benefit
-        benefit.ConsumeQuotas(request.Quantity);
+        // Only consume quotas from benefit if this is a new Usage
+        if (isNewUsage)
+        {
+            benefit.ConsumeQuotas(1);
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -269,10 +307,13 @@ public class BenefitService : IBenefitService
             ConsumptionId = consumption.Id,
             BenefitId = benefit.Id,
             UserId = request.UserId,
-            QuantityRedeemed = request.Quantity,
-            RemainingQuotas = benefit.Quotas,
+            RemainingUsageQuantity = usage.Quantity,
+            RemainingBenefitQuotas = benefit.Quotas,
             RedeemedAt = consumption.ConsumptionDateTime,
-            Message = $"Beneficio canjeado exitosamente. Quedan {benefit.Quotas} cuotas disponibles."
+            IsNewUsage = isNewUsage,
+            Message = isNewUsage 
+                ? $"Beneficio canjeado exitosamente (nuevo uso creado). Quedan {usage.Quantity} usos en este ciclo y {benefit.Quotas} cuotas del beneficio."
+                : $"Beneficio canjeado exitosamente. Quedan {usage.Quantity} usos en este ciclo y {benefit.Quotas} cuotas del beneficio."
         };
     }
 

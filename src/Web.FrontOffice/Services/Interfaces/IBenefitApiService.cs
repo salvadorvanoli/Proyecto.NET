@@ -1,5 +1,5 @@
 using Shared.DTOs.Benefits;
-using BenefitDto = Application.Benefits.DTOs.BenefitResponse;
+using BenefitDto = Shared.DTOs.Benefits.BenefitResponse;
 
 namespace Web.FrontOffice.Services.Interfaces;
 

@@ -191,6 +191,7 @@ public static class DatabaseSeeder
                     benefitType.TenantId,
                     benefitType.Id,
                     quotas: 50,
+                    quantity: 10,
                     validityPeriod: validityPeriod
                 );
 

@@ -17,8 +17,4 @@ public class RedeemBenefitRequest
     [Range(DomainConstants.NumericValidation.MinId, int.MaxValue, 
         ErrorMessage = "Debe seleccionar un usuario válido.")]
     public int UserId { get; set; }
-
-    [Range(DomainConstants.NumericValidation.MinQuantity, int.MaxValue, 
-        ErrorMessage = "La cantidad debe ser al menos {1}.")]
-    public int Quantity { get; set; } = 1;
 }

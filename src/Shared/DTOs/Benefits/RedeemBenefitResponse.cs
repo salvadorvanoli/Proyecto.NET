@@ -9,8 +9,9 @@ public class RedeemBenefitResponse
     public int ConsumptionId { get; set; }
     public int BenefitId { get; set; }
     public int UserId { get; set; }
-    public int QuantityRedeemed { get; set; }
-    public int RemainingQuotas { get; set; }
+    public int RemainingUsageQuantity { get; set; }
+    public int RemainingBenefitQuotas { get; set; }
     public DateTime RedeemedAt { get; set; }
+    public bool IsNewUsage { get; set; }
     public string Message { get; set; } = string.Empty;
 }

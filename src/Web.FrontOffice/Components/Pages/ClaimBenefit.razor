@@ -1,0 +1,29 @@
+@page "/reclamar-beneficio"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using Web.FrontOffice.Components.Shared
+@inject NavigationManager Navigation
+
+<Microsoft.AspNetCore.Components.Web.PageTitle>Reclamar Beneficio</Microsoft.AspNetCore.Components.Web.PageTitle>
+
+<div class="claim-container">
+    <PageHeader Title="Reclamar Beneficio" Subtitle="Página en construcción" />
+
+    <Card Title="Información">
+        <div class="claim-content">
+            <p>Esta es la página para reclamar beneficios.</p>
+            <p>Beneficio ID: @BenefitId</p>
+            
+            <div class="form-actions">
+                <a href="/beneficios-disponibles" class="action-link">
+                    <button class="btn btn-secondary">Volver</button>
+                </a>
+            </div>
+        </div>
+    </Card>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public int? BenefitId { get; set; }
+}
