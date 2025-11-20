@@ -126,8 +126,6 @@ public class Benefit : BaseEntity
         UpdateTimestamp();
     }
 
-    
-
     /// <summary>
     /// Checks if the benefit is currently valid based on the validity period.
     /// </summary>
