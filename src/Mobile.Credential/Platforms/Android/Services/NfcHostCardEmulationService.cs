@@ -4,6 +4,7 @@ using Android.Nfc;
 using Android.Nfc.CardEmulators;
 using Android.OS;
 using System.Text;
+using Mobile.Credential.Services;
 
 namespace Mobile.Credential.Platforms.Android.Services;
 
@@ -13,6 +14,9 @@ namespace Mobile.Credential.Platforms.Android.Services;
 /// </summary>
 public class NfcHostCardEmulationService : HostApduService
 {
+    // Evento estático para notificar respuestas de acceso al UI
+    public static event EventHandler<AccessResponseEventArgs>? AccessResponseReceived;
+
     // AID (Application ID) for our NFC application
     // This must match the AID in apduservice.xml
     private static readonly byte[] AID = { 0xF0, 0x39, 0x41, 0x48, 0x14, 0x81, 0x00 };
@@ -82,6 +86,53 @@ public class NfcHostCardEmulationService : HostApduService
                 System.Diagnostics.Debug.WriteLine("❌ NFC HCE: No credential configured - Failing");
                 return SELECT_FAILED_SW;
             }
+        }
+
+        // Check if it's an ACCESS CONTROL response from AccessPoint
+        // ACCESS GRANTED: 00 AC 01 00 [message]
+        // ACCESS DENIED:  00 AC 00 00 [message]
+        if (commandApdu.Length >= 4 && 
+            commandApdu[0] == 0x00 && 
+            commandApdu[1] == 0xAC)
+        {
+            bool isGranted = commandApdu[2] == 0x01;
+            string message = "Respuesta recibida";
+            
+            if (commandApdu.Length > 4)
+            {
+                try
+                {
+                    message = Encoding.UTF8.GetString(commandApdu, 4, commandApdu.Length - 4);
+                }
+                catch
+                {
+                    message = isGranted ? "Acceso concedido" : "Acceso denegado";
+                }
+            }
+            
+            System.Diagnostics.Debug.WriteLine($"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            System.Diagnostics.Debug.WriteLine($"🎯 NFC HCE: ACCESS RESPONSE RECEIVED");
+            System.Diagnostics.Debug.WriteLine($"   Type: {(isGranted ? "✅ GRANTED" : "❌ DENIED")}");
+            System.Diagnostics.Debug.WriteLine($"   Message: {message}");
+            System.Diagnostics.Debug.WriteLine($"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            
+            // Disparar evento para notificar al UI
+            try
+            {
+                AccessResponseReceived?.Invoke(null, new AccessResponseEventArgs
+                {
+                    IsGranted = isGranted,
+                    Message = message
+                });
+                
+                System.Diagnostics.Debug.WriteLine("✅ Event fired to UI");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Error firing event: {ex.Message}");
+            }
+            
+            return SELECT_OK_SW;
         }
 
         System.Diagnostics.Debug.WriteLine("❓ NFC HCE: Unknown command");

@@ -1,11 +1,25 @@
 namespace Mobile.Credential.Services;
 
 /// <summary>
+/// Argumentos del evento de respuesta de acceso
+/// </summary>
+public class AccessResponseEventArgs : EventArgs
+{
+    public bool IsGranted { get; set; }
+    public string Message { get; set; } = string.Empty;
+}
+
+/// <summary>
 /// Service interface for NFC Host Card Emulation (HCE)
 /// Allows a device to emulate an NFC card/tag
 /// </summary>
 public interface INfcCredentialService
 {
+    /// <summary>
+    /// Evento que se dispara cuando se recibe una respuesta de acceso del punto de control
+    /// </summary>
+    event EventHandler<AccessResponseEventArgs>? AccessResponseReceived;
+
     /// <summary>
     /// Checks if HCE is available on the device
     /// </summary>

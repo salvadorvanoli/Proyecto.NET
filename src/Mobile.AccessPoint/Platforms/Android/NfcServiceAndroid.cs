@@ -56,19 +56,31 @@ public partial class NfcService
 
     private partial async Task StartListeningAndroidAsync()
     {
-        await Task.Run(() =>
+        // Ejecutar en el Main Thread para asegurar que Platform.CurrentActivity esté disponible
+        await MainThread.InvokeOnMainThreadAsync(() =>
         {
             _currentActivity = Platform.CurrentActivity;
             if (_currentActivity == null)
+            {
+                _logger.LogError("Cannot get current activity");
                 throw new InvalidOperationException("Cannot get current activity");
+            }
 
             _nfcAdapter = NfcAdapter.GetDefaultAdapter(_currentActivity);
 
             if (_nfcAdapter == null)
+            {
+                _logger.LogError("NFC not supported on this device");
                 throw new NotSupportedException("NFC is not supported on this device");
+            }
 
             if (!_nfcAdapter.IsEnabled)
+            {
+                _logger.LogError("NFC is not enabled");
                 throw new InvalidOperationException("NFC is not enabled. Please enable NFC in device settings.");
+            }
+
+            _logger.LogInformation("Creating PendingIntent for NFC...");
 
             // Crear PendingIntent para capturar tags NFC
             var intent = new Intent(_currentActivity, _currentActivity.GetType())
@@ -90,6 +102,8 @@ public partial class NfcService
                 flags
             );
 
+            _logger.LogInformation("PendingIntent created: {IsNull}", _pendingIntent == null ? "NULL" : "OK");
+
             // Filtros para diferentes tipos de tags NFC
             _intentFilters = new[]
             {
@@ -98,15 +112,21 @@ public partial class NfcService
                 new IntentFilter(NfcAdapter.ActionTechDiscovered)
             };
 
-            // Tecnologías NFC que queremos detectar
+            _logger.LogInformation("Intent filters created: {Count}", _intentFilters.Length);
+
+            // Tecnologías NFC que queremos detectar - incluyendo ISO-DEP para HCE
             var techLists = new[]
             {
+                new[] { Java.Lang.Class.FromType(typeof(IsoDep)).Name },
                 new[] { Java.Lang.Class.FromType(typeof(Ndef)).Name },
                 new[] { Java.Lang.Class.FromType(typeof(NfcA)).Name },
                 new[] { Java.Lang.Class.FromType(typeof(NfcB)).Name },
                 new[] { Java.Lang.Class.FromType(typeof(NfcF)).Name },
                 new[] { Java.Lang.Class.FromType(typeof(NfcV)).Name }
             };
+
+            _logger.LogInformation("Tech lists created: {Count}", techLists.Length);
+            _logger.LogInformation("Enabling Foreground Dispatch...");
 
             // Habilitar Foreground Dispatch
             _nfcAdapter.EnableForegroundDispatch(
@@ -116,7 +136,7 @@ public partial class NfcService
                 techLists
             );
 
-            _logger.LogInformation("Android NFC listening started");
+            _logger.LogInformation("✅ Android NFC listening started successfully");
         });
     }
 

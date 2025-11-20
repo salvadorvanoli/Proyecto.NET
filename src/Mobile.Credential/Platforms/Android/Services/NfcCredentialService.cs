@@ -16,10 +16,15 @@ public class NfcCredentialService : INfcCredentialService
     private CardEmulation? _cardEmulation;
     private bool _isEmulating;
 
+    public event EventHandler<AccessResponseEventArgs>? AccessResponseReceived;
+
     public NfcCredentialService(ILogger<NfcCredentialService> logger)
     {
         _logger = logger;
         InitializeNfc();
+        
+        // Suscribirse al evento estático del HCE service
+        NfcHostCardEmulationService.AccessResponseReceived += OnAccessResponseReceived;
     }
 
     public bool IsHceAvailable
@@ -130,5 +135,14 @@ public class NfcCredentialService : INfcCredentialService
         {
             _logger.LogError(ex, "Error initializing NFC adapter");
         }
+    }
+
+    private void OnAccessResponseReceived(object? sender, AccessResponseEventArgs e)
+    {
+        _logger.LogInformation("📱 Access response received in service: {Type}", 
+            e.IsGranted ? "GRANTED" : "DENIED");
+        
+        // Reenviar el evento a través de la interfaz
+        AccessResponseReceived?.Invoke(this, e);
     }
 }
