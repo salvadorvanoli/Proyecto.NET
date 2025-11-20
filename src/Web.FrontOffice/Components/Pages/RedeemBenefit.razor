@@ -1,17 +1,40 @@
 @page "/canjear-beneficio"
-@using Web.FrontOffice.Components.Shared
 @rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using Web.FrontOffice.Components.Shared
+@using Web.FrontOffice.Services
+@using Web.FrontOffice.Services.Interfaces
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IBenefitApiService BenefitApiService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject ILogger<RedeemBenefit> Logger
 
 <Microsoft.AspNetCore.Components.Web.PageTitle>Canjear Beneficio</Microsoft.AspNetCore.Components.Web.PageTitle>
 
 <div class="redeem-container">
-    <PageHeader Title="Canjear Beneficio" Subtitle="Confirma tu identidad para canjear tu beneficio" />
+    <PageHeader Title="Canjear Beneficio" Subtitle="Selecciona y confirma el beneficio que deseas canjear" />
 
     @if (beneficioSeleccionado == null)
     {
         <!-- Selección de beneficio -->
         <Card Title="Selecciona el Beneficio a Canjear">
-            @if (beneficiosDisponibles.Any())
+            @if (isLoading)
+            {
+                <div class="loading">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Cargando beneficios...</span>
+                    </div>
+                    <p class="mt-2">Cargando beneficios...</p>
+                </div>
+            }
+            else if (error != null)
+            {
+                <div class="alert alert-danger">
+                    <p>@error</p>
+                </div>
+            }
+            else if (beneficiosDisponibles.Any())
             {
                 <div class="benefits-selection-grid">
                     @foreach (var beneficio in beneficiosDisponibles)
@@ -19,11 +42,18 @@
                         <div class="benefit-card @(beneficio.Id == beneficioTemporal?.Id ? "selected" : "")"
                              @onclick="() => SeleccionarBeneficio(beneficio)">
                             <div class="benefit-card-content">
-                                <h4 class="benefit-name">@beneficio.Nombre</h4>
-                                <p class="benefit-description">@beneficio.Descripcion</p>
+                                <h4 class="benefit-name">@beneficio.BenefitType.Name</h4>
+                                <p class="benefit-description">@beneficio.BenefitType.Description</p>
                                 <div class="benefit-info">
-                                    <InfoField Label="Cupos Disponibles" Value="@beneficio.CuposDisponibles.ToString()" />
-                                    <InfoField Label="Vigente Hasta" Value="@beneficio.VigenciaHasta.ToString("dd/MM/yyyy")" />
+                                    <InfoField Label="Cupos Disponibles" Value="@beneficio.Quotas.ToString()" />
+                                    @if (beneficio.ValidityPeriod != null)
+                                    {
+                                        <InfoField Label="Vigente Hasta" Value="@beneficio.ValidityPeriod.EndDate.ToString("dd/MM/yyyy")" />
+                                    }
+                                    else
+                                    {
+                                        <InfoField Label="Vigencia" Value="Permanente" />
+                                    }
                                 </div>
                             </div>
                             @if (beneficio.Id == beneficioTemporal?.Id)
@@ -55,53 +85,48 @@
             }
         </Card>
     }
-    else if (!confirmacionBiometrica)
+    else if (!confirmacionPassword)
     {
-        <!-- Confirmación biométrica -->
-        <Card Title="Confirmación Biométrica">
-            <div class="biometric-container">
+        <!-- Modal de Confirmación -->
+        <Card Title="Confirmar Canje">
+            <div class="password-container">
                 <div class="benefit-summary">
                     <h4>Beneficio Seleccionado</h4>
                     <div class="summary-content">
-                        <InfoField Label="Nombre" Value="@beneficioSeleccionado.Nombre" />
-                        <InfoField Label="Descripción" Value="@beneficioSeleccionado.Descripcion" />
+                        <InfoField Label="Nombre" Value="@beneficioSeleccionado.BenefitType.Name" />
+                        <InfoField Label="Descripción" Value="@beneficioSeleccionado.BenefitType.Description" />
                         <InfoField Label="Cantidad a Canjear" Value="@cantidadCanjear.ToString()" />
                     </div>
                 </div>
 
-                <div class="biometric-section">
-                    @if (!procesandoBiometria)
+                <div class="password-section">
+                    @if (!procesandoValidacion)
                     {
-                        <div class="biometric-prompt">
-                            <div class="fingerprint-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"></path>
-                                </svg>
-                            </div>
-                            <h3>Confirma tu Identidad</h3>
-                            <p>Coloca tu dedo en el sensor biométrico para confirmar el canje del beneficio.</p>
+                        <div class="password-prompt">
+                            <h3>Confirmar Canje</h3>
+                            <p>¿Estás seguro de que deseas canjear este beneficio?</p>
                             
                             <div class="quantity-selector">
                                 <label class="form-label">Cantidad a Canjear:</label>
                                 <div class="quantity-control">
                                     <button class="quantity-btn" @onclick="DecrementarCantidad" disabled="@(cantidadCanjear <= 1)">-</button>
-                                    <input type="number" class="quantity-input" @bind="cantidadCanjear" min="1" max="@beneficioSeleccionado.CuposDisponibles" />
-                                    <button class="quantity-btn" @onclick="IncrementarCantidad" disabled="@(cantidadCanjear >= beneficioSeleccionado.CuposDisponibles)">+</button>
+                                    <input type="number" class="quantity-input" @bind="cantidadCanjear" min="1" max="@beneficioSeleccionado.Quotas" />
+                                    <button class="quantity-btn" @onclick="IncrementarCantidad" disabled="@(cantidadCanjear >= beneficioSeleccionado.Quotas)">+</button>
                                 </div>
                             </div>
                         </div>
                         
                         <div class="form-actions">
-                            <PrimaryButton Text="Iniciar Validación Biométrica" OnClick="IniciarValidacionBiometrica" />
+                            <PrimaryButton Text="Confirmar Canje" OnClick="IniciarValidacionPassword" />
                             <SecondaryButton Text="Volver" OnClick="VolverSeleccion" />
                         </div>
                     }
                     else
                     {
-                        <div class="processing-biometric">
+                        <div class="processing-validation">
                             <div class="spinner"></div>
-                            <h3>Procesando Validación Biométrica...</h3>
-                            <p>Por favor, mantén tu dedo en el sensor.</p>
+                            <h3>Procesando Validación...</h3>
+                            <p>Por favor, espera un momento.</p>
                         </div>
                     }
                 </div>
@@ -123,10 +148,10 @@
                         <p>Tu beneficio ha sido canjeado correctamente.</p>
                         
                         <div class="result-details">
-                            <InfoField Label="Beneficio" Value="@beneficioSeleccionado.Nombre" />
+                            <InfoField Label="Beneficio" Value="@beneficioSeleccionado.BenefitType.Name" />
                             <InfoField Label="Cantidad Canjeada" Value="@cantidadCanjear.ToString()" />
                             <InfoField Label="Fecha y Hora" Value="@DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")" />
-                            <InfoField Label="Cupos Restantes" Value="@((beneficioSeleccionado.CuposDisponibles - cantidadCanjear).ToString())" />
+                            <InfoField Label="Cupos Restantes" Value="@((beneficioSeleccionado.Quotas - cantidadCanjear).ToString())" />
                         </div>
                     </div>
                 }
@@ -153,51 +178,66 @@
 </div>
 
 @code {
-    private List<BeneficioDisponible> beneficiosDisponibles = new List<BeneficioDisponible>
-    {
-        new BeneficioDisponible
-        {
-            Id = 1,
-            Nombre = "Descuento Gimnasio",
-            Descripcion = "20% de descuento en membresías mensuales",
-            CuposDisponibles = 8,
-            VigenciaHasta = new DateTime(2025, 12, 31)
-        },
-        new BeneficioDisponible
-        {
-            Id = 2,
-            Nombre = "Estacionamiento Gratuito",
-            Descripcion = "Acceso gratuito al estacionamiento durante horarios laborales",
-            CuposDisponibles = 15,
-            VigenciaHasta = new DateTime(2025, 12, 31)
-        },
-        new BeneficioDisponible
-        {
-            Id = 3,
-            Nombre = "Cafetería VIP",
-            Descripcion = "Bebida gratis por día en la cafetería del edificio",
-            CuposDisponibles = 22,
-            VigenciaHasta = new DateTime(2025, 10, 31)
-        },
-        new BeneficioDisponible
-        {
-            Id = 4,
-            Nombre = "Almuerzo Corporativo",
-            Descripcion = "Almuerzo gratuito en el comedor ejecutivo",
-            CuposDisponibles = 5,
-            VigenciaHasta = new DateTime(2025, 11, 30)
-        }
-    };
-
-    private BeneficioDisponible? beneficioTemporal;
-    private BeneficioDisponible? beneficioSeleccionado;
-    private bool confirmacionBiometrica = false;
-    private bool procesandoBiometria = false;
+    private List<BenefitResponse> beneficiosDisponibles = new();
+    private BenefitResponse? beneficioTemporal;
+    private BenefitResponse? beneficioSeleccionado;
+    private bool isLoading = true;
+    private string? error = null;
+    private bool confirmacionPassword = false;
+    private bool procesandoValidacion = false;
     private bool? canjeExitoso;
     private string mensajeError = string.Empty;
     private int cantidadCanjear = 1;
+    private string password = string.Empty;
 
-    private void SeleccionarBeneficio(BeneficioDisponible beneficio)
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarBeneficios();
+    }
+
+    private async Task CargarBeneficios()
+    {
+        try
+        {
+            isLoading = true;
+            error = null;
+
+            // Obtener userId desde los claims del usuario autenticado
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                error = "Error al obtener el ID del usuario.";
+                Logger.LogError("NameIdentifier claim not found or invalid");
+                return;
+            }
+
+            Logger.LogInformation("Cargando beneficios disponibles para canjear del usuario {UserId}", userId);
+
+            // Cargar todos los beneficios del usuario
+            var allBenefits = await BenefitApiService.GetUserBenefitsAsync(userId);
+            
+            // Filtrar solo los beneficios que se pueden canjear
+            beneficiosDisponibles = allBenefits
+                .Where(b => b.CanBeConsumed)
+                .ToList();
+
+            Logger.LogInformation("Beneficios disponibles para canjear: {Count}", beneficiosDisponibles.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al cargar beneficios disponibles");
+            error = $"Error al cargar los beneficios: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SeleccionarBeneficio(BenefitResponse beneficio)
     {
         beneficioTemporal = beneficio;
         cantidadCanjear = 1; // Reset cantidad al seleccionar nuevo beneficio
@@ -215,15 +255,16 @@
     private void VolverSeleccion()
     {
         beneficioSeleccionado = null;
-        confirmacionBiometrica = false;
-        procesandoBiometria = false;
+        confirmacionPassword = false;
+        procesandoValidacion = false;
         canjeExitoso = null;
         cantidadCanjear = 1;
+        password = string.Empty;
     }
 
     private void IncrementarCantidad()
     {
-        if (beneficioSeleccionado != null && cantidadCanjear < beneficioSeleccionado.CuposDisponibles)
+        if (beneficioSeleccionado != null && cantidadCanjear < beneficioSeleccionado.Quotas)
         {
             cantidadCanjear++;
         }
@@ -237,20 +278,33 @@
         }
     }
 
-    private async Task IniciarValidacionBiometrica()
+    private async Task HandleKeyPress(KeyboardEventArgs e)
     {
-        procesandoBiometria = true;
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(password))
+        {
+            await IniciarValidacionPassword();
+        }
+    }
+
+    private async Task IniciarValidacionPassword()
+    {
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            return;
+        }
+
+        procesandoValidacion = true;
         StateHasChanged();
 
-        // Simular proceso de validación biométrica
-        await Task.Delay(3000);
+        // Simular proceso de validación
+        await Task.Delay(2000);
 
         // Simular validación exitosa (90% de éxito)
         var random = new Random();
         var exitoso = random.Next(100) < 90;
 
-        procesandoBiometria = false;
-        confirmacionBiometrica = true;
+        procesandoValidacion = false;
+        confirmacionPassword = true;
 
         if (exitoso)
         {
@@ -260,7 +314,7 @@
         else
         {
             canjeExitoso = false;
-            mensajeError = "No se pudo verificar tu identidad biométrica. Por favor, intenta nuevamente.";
+            mensajeError = "Contraseña incorrecta. Por favor, intenta nuevamente.";
         }
 
         StateHasChanged();
@@ -270,19 +324,11 @@
     {
         beneficioSeleccionado = null;
         beneficioTemporal = null;
-        confirmacionBiometrica = false;
-        procesandoBiometria = false;
+        confirmacionPassword = false;
+        procesandoValidacion = false;
         canjeExitoso = null;
         mensajeError = string.Empty;
         cantidadCanjear = 1;
-    }
-
-    public class BeneficioDisponible
-    {
-        public int Id { get; set; }
-        public string Nombre { get; set; } = string.Empty;
-        public string Descripcion { get; set; } = string.Empty;
-        public int CuposDisponibles { get; set; }
-        public DateTime VigenciaHasta { get; set; }
+        password = string.Empty;
     }
 }
