@@ -5,6 +5,7 @@
 @using Web.FrontOffice.Services
 @using Web.FrontOffice.Services.Interfaces
 @using Microsoft.AspNetCore.Components.Authorization
+@using Application.Benefits.DTOs
 @inject IBenefitApiService BenefitApiService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
@@ -85,7 +86,7 @@
             }
         </Card>
     }
-    else if (!confirmacionPassword)
+    else if (!confirmacionCanje)
     {
         <!-- Modal de Confirmación -->
         <Card Title="Confirmar Canje">
@@ -100,7 +101,7 @@
                 </div>
 
                 <div class="password-section">
-                    @if (!procesandoValidacion)
+                    @if (!procesandoCanje)
                     {
                         <div class="password-prompt">
                             <h3>Confirmar Canje</h3>
@@ -117,15 +118,17 @@
                         </div>
                         
                         <div class="form-actions">
-                            <PrimaryButton Text="Confirmar Canje" OnClick="IniciarValidacionPassword" />
+                            <PrimaryButton Text="Confirmar Canje" OnClick="ProcesarCanje" />
                             <SecondaryButton Text="Volver" OnClick="VolverSeleccion" />
                         </div>
                     }
                     else
                     {
                         <div class="processing-validation">
-                            <div class="spinner"></div>
-                            <h3>Procesando Validación...</h3>
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Procesando canje...</span>
+                            </div>
+                            <h3>Procesando Canje...</h3>
                             <p>Por favor, espera un momento.</p>
                         </div>
                     }
@@ -149,9 +152,9 @@
                         
                         <div class="result-details">
                             <InfoField Label="Beneficio" Value="@beneficioSeleccionado.BenefitType.Name" />
-                            <InfoField Label="Cantidad Canjeada" Value="@cantidadCanjear.ToString()" />
-                            <InfoField Label="Fecha y Hora" Value="@DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")" />
-                            <InfoField Label="Cupos Restantes" Value="@((beneficioSeleccionado.Quotas - cantidadCanjear).ToString())" />
+                            <InfoField Label="Cantidad Canjeada" Value="@cantidadCanjeada.ToString()" />
+                            <InfoField Label="Fecha y Hora" Value="@fechaCanje?.ToString("dd/MM/yyyy HH:mm:ss")" />
+                            <InfoField Label="Cupos Restantes" Value="@cuposRestantes.ToString()" />
                         </div>
                     </div>
                 }
@@ -178,17 +181,20 @@
 </div>
 
 @code {
-    private List<BenefitResponse> beneficiosDisponibles = new();
-    private BenefitResponse? beneficioTemporal;
-    private BenefitResponse? beneficioSeleccionado;
+    private List<Application.Benefits.DTOs.BenefitResponse> beneficiosDisponibles = new();
+    private Application.Benefits.DTOs.BenefitResponse? beneficioTemporal;
+    private Application.Benefits.DTOs.BenefitResponse? beneficioSeleccionado;
     private bool isLoading = true;
     private string? error = null;
-    private bool confirmacionPassword = false;
-    private bool procesandoValidacion = false;
+    private bool confirmacionCanje = false;
+    private bool procesandoCanje = false;
     private bool? canjeExitoso;
     private string mensajeError = string.Empty;
     private int cantidadCanjear = 1;
-    private string password = string.Empty;
+    private int cantidadCanjeada = 0;
+    private int cuposRestantes = 0;
+    private DateTime? fechaCanje;
+    private int currentUserId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -207,17 +213,17 @@
             var user = authState.User;
             
             var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out currentUserId))
             {
                 error = "Error al obtener el ID del usuario.";
                 Logger.LogError("NameIdentifier claim not found or invalid");
                 return;
             }
 
-            Logger.LogInformation("Cargando beneficios disponibles para canjear del usuario {UserId}", userId);
+            Logger.LogInformation("Cargando beneficios disponibles para canjear del usuario {UserId}", currentUserId);
 
             // Cargar todos los beneficios del usuario
-            var allBenefits = await BenefitApiService.GetUserBenefitsAsync(userId);
+            var allBenefits = await BenefitApiService.GetUserBenefitsAsync(currentUserId);
             
             // Filtrar solo los beneficios que se pueden canjear
             beneficiosDisponibles = allBenefits
@@ -237,7 +243,7 @@
         }
     }
 
-    private void SeleccionarBeneficio(BenefitResponse beneficio)
+    private void SeleccionarBeneficio(Application.Benefits.DTOs.BenefitResponse beneficio)
     {
         beneficioTemporal = beneficio;
         cantidadCanjear = 1; // Reset cantidad al seleccionar nuevo beneficio
@@ -255,11 +261,10 @@
     private void VolverSeleccion()
     {
         beneficioSeleccionado = null;
-        confirmacionPassword = false;
-        procesandoValidacion = false;
+        confirmacionCanje = false;
+        procesandoCanje = false;
         canjeExitoso = null;
         cantidadCanjear = 1;
-        password = string.Empty;
     }
 
     private void IncrementarCantidad()
@@ -278,57 +283,77 @@
         }
     }
 
-    private async Task HandleKeyPress(KeyboardEventArgs e)
+    private async Task ProcesarCanje()
     {
-        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(password))
-        {
-            await IniciarValidacionPassword();
-        }
-    }
-
-    private async Task IniciarValidacionPassword()
-    {
-        if (string.IsNullOrWhiteSpace(password))
+        if (beneficioSeleccionado == null)
         {
             return;
         }
 
-        procesandoValidacion = true;
+        procesandoCanje = true;
         StateHasChanged();
 
-        // Simular proceso de validación
-        await Task.Delay(2000);
-
-        // Simular validación exitosa (90% de éxito)
-        var random = new Random();
-        var exitoso = random.Next(100) < 90;
-
-        procesandoValidacion = false;
-        confirmacionPassword = true;
-
-        if (exitoso)
+        try
         {
+            Logger.LogInformation("Iniciando canje de beneficio {BenefitId} para usuario {UserId} con cantidad {Quantity}",
+                beneficioSeleccionado.Id, currentUserId, cantidadCanjear);
+
+            var request = new global::Shared.DTOs.Benefits.RedeemBenefitRequest
+            {
+                BenefitId = beneficioSeleccionado.Id,
+                UserId = currentUserId,
+                Quantity = cantidadCanjear
+            };
+
+            var response = await BenefitApiService.RedeemBenefitAsync(request);
+
+            // Guardar información del canje exitoso
+            cantidadCanjeada = response.QuantityRedeemed;
+            cuposRestantes = response.RemainingQuotas;
+            fechaCanje = response.RedeemedAt;
+
             canjeExitoso = true;
-            // Aquí se implementaría la lógica de backend para registrar el canje
-        }
-        else
-        {
-            canjeExitoso = false;
-            mensajeError = "Contraseña incorrecta. Por favor, intenta nuevamente.";
-        }
+            confirmacionCanje = true;
 
-        StateHasChanged();
+            Logger.LogInformation("Canje exitoso: {Message}", response.Message);
+        }
+        catch (HttpRequestException ex)
+        {
+            Logger.LogError(ex, "Error HTTP al canjear beneficio");
+            canjeExitoso = false;
+            confirmacionCanje = true;
+            mensajeError = ex.Message.Contains("Error al canjear") 
+                ? ex.Message 
+                : "Error de conexión con el servidor. Por favor, intenta nuevamente.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error inesperado al canjear beneficio");
+            canjeExitoso = false;
+            confirmacionCanje = true;
+            mensajeError = "Ocurrió un error inesperado al procesar el canje. Por favor, intenta nuevamente.";
+        }
+        finally
+        {
+            procesandoCanje = false;
+            StateHasChanged();
+        }
     }
 
-    private void ReiniciarCanje()
+    private async Task ReiniciarCanje()
     {
         beneficioSeleccionado = null;
         beneficioTemporal = null;
-        confirmacionPassword = false;
-        procesandoValidacion = false;
+        confirmacionCanje = false;
+        procesandoCanje = false;
         canjeExitoso = null;
         mensajeError = string.Empty;
         cantidadCanjear = 1;
-        password = string.Empty;
+        cantidadCanjeada = 0;
+        cuposRestantes = 0;
+        fechaCanje = null;
+
+        // Recargar los beneficios para reflejar los cambios
+        await CargarBeneficios();
     }
 }

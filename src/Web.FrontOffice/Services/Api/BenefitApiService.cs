@@ -1,5 +1,6 @@
-using Application.Benefits.DTOs;
+using Shared.DTOs.Benefits;
 using Web.FrontOffice.Services.Interfaces;
+using BenefitDto = Application.Benefits.DTOs.BenefitResponse;
 
 namespace Web.FrontOffice.Services.Api;
 
@@ -17,16 +18,16 @@ public class BenefitApiService : IBenefitApiService
         _logger = logger;
     }
 
-    public async Task<List<BenefitResponse>> GetUserBenefitsAsync(int userId)
+    public async Task<List<BenefitDto>> GetUserBenefitsAsync(int userId)
     {
         var response = await _httpClient.GetAsync($"api/benefits/user/{userId}");
         response.EnsureSuccessStatusCode();
 
-        var benefits = await response.Content.ReadFromJsonAsync<List<BenefitResponse>>();
-        return benefits ?? new List<BenefitResponse>();
+        var benefits = await response.Content.ReadFromJsonAsync<List<BenefitDto>>();
+        return benefits ?? new List<BenefitDto>();
     }
 
-    public async Task<(List<BenefitResponse> Benefits, int TotalCount)> GetUserBenefitsPagedAsync(
+    public async Task<(List<BenefitDto> Benefits, int TotalCount)> GetUserBenefitsPagedAsync(
         int userId, 
         int skip = 0, 
         int take = 10, 
@@ -68,22 +69,57 @@ public class BenefitApiService : IBenefitApiService
         }
     }
 
-    public async Task<List<BenefitResponse>> GetAllBenefitsAsync()
+    public async Task<List<BenefitDto>> GetAllBenefitsAsync()
     {
         var response = await _httpClient.GetAsync("api/benefits");
         response.EnsureSuccessStatusCode();
 
-        var benefits = await response.Content.ReadFromJsonAsync<List<BenefitResponse>>();
-        return benefits ?? new List<BenefitResponse>();
+        var benefits = await response.Content.ReadFromJsonAsync<List<BenefitDto>>();
+        return benefits ?? new List<BenefitDto>();
     }
 
-    public async Task<BenefitResponse?> GetBenefitByIdAsync(int benefitId)
+    public async Task<BenefitDto?> GetBenefitByIdAsync(int benefitId)
     {
         var response = await _httpClient.GetAsync($"api/benefits/{benefitId}");
         
         if (!response.IsSuccessStatusCode)
             return null;
 
-        return await response.Content.ReadFromJsonAsync<BenefitResponse>();
+        return await response.Content.ReadFromJsonAsync<BenefitDto>();
+    }
+
+    public async Task<RedeemBenefitResponse> RedeemBenefitAsync(RedeemBenefitRequest request)
+    {
+        try
+        {
+            _logger.LogInformation("Redeeming benefit {BenefitId} for user {UserId} with quantity {Quantity}",
+                request.BenefitId, request.UserId, request.Quantity);
+
+            var response = await _httpClient.PostAsJsonAsync("api/benefits/redeem", request);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Failed to redeem benefit. Status: {StatusCode}, Error: {Error}",
+                    response.StatusCode, errorContent);
+                throw new HttpRequestException($"Error al canjear el beneficio: {errorContent}");
+            }
+
+            var result = await response.Content.ReadFromJsonAsync<RedeemBenefitResponse>();
+            
+            if (result == null)
+                throw new InvalidOperationException("La respuesta del servidor fue nula.");
+
+            _logger.LogInformation("Successfully redeemed benefit {BenefitId} for user {UserId}",
+                request.BenefitId, request.UserId);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error redeeming benefit {BenefitId} for user {UserId}",
+                request.BenefitId, request.UserId);
+            throw;
+        }
     }
 }

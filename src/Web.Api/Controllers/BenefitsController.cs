@@ -225,4 +225,44 @@ public class BenefitsController : ControllerBase
             return StatusCode(500, "An error occurred while deleting the benefit");
         }
     }
+
+    /// <summary>
+    /// Redeems a benefit for a user.
+    /// </summary>
+    [HttpPost("redeem")]
+    [ProducesResponseType(typeof(RedeemBenefitResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> RedeemBenefit([FromBody] RedeemBenefitRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var response = await _benefitService.RedeemBenefitAsync(request, cancellationToken);
+            _logger.LogInformation("Benefit {BenefitId} redeemed by user {UserId}. Quantity: {Quantity}", 
+                request.BenefitId, request.UserId, request.Quantity);
+            return Ok(response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Cannot redeem benefit {BenefitId} for user {UserId}", 
+                request.BenefitId, request.UserId);
+            return BadRequest(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid argument while redeeming benefit {BenefitId}", request.BenefitId);
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error redeeming benefit {BenefitId} for user {UserId}", 
+                request.BenefitId, request.UserId);
+            return StatusCode(500, "An error occurred while redeeming the benefit");
+        }
+    }
 }

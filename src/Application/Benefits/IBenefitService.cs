@@ -14,4 +14,5 @@ public interface IBenefitService
     Task<BenefitResponse> CreateBenefitAsync(BenefitRequest request, CancellationToken cancellationToken = default);
     Task<BenefitResponse> UpdateBenefitAsync(int id, BenefitRequest request, CancellationToken cancellationToken = default);
     Task<bool> DeleteBenefitAsync(int id, CancellationToken cancellationToken = default);
+    Task<RedeemBenefitResponse> RedeemBenefitAsync(RedeemBenefitRequest request, CancellationToken cancellationToken = default);
 }

@@ -214,6 +214,68 @@ public class BenefitService : IBenefitService
     }
 
     /// <summary>
+    /// Redeems a benefit for a user.
+    /// </summary>
+    public async Task<RedeemBenefitResponse> RedeemBenefitAsync(RedeemBenefitRequest request, CancellationToken cancellationToken = default)
+    {
+        var tenantId = _tenantProvider.GetCurrentTenantId();
+
+        // Validate benefit exists and belongs to tenant
+        var benefit = await _context.Benefits
+            .FirstOrDefaultAsync(b => b.Id == request.BenefitId && b.TenantId == tenantId, cancellationToken);
+
+        if (benefit == null)
+            throw new InvalidOperationException($"El beneficio con ID {request.BenefitId} no existe.");
+
+        // Validate user exists and belongs to tenant
+        var userExists = await _context.Users
+            .AnyAsync(u => u.Id == request.UserId && u.TenantId == tenantId, cancellationToken);
+
+        if (!userExists)
+            throw new InvalidOperationException($"El usuario con ID {request.UserId} no existe.");
+
+        // Validate benefit can be consumed
+        if (!benefit.CanBeConsumed)
+        {
+            if (!benefit.IsValid)
+                throw new InvalidOperationException("El beneficio no está vigente.");
+            
+            if (!benefit.HasAvailableQuotas)
+                throw new InvalidOperationException("El beneficio no tiene cuotas disponibles.");
+        }
+
+        // Validate there are enough quotas
+        if (benefit.Quotas < request.Quantity)
+            throw new InvalidOperationException($"No hay suficientes cuotas disponibles. Disponibles: {benefit.Quotas}, Solicitadas: {request.Quantity}");
+
+        // Create Usage record
+        var usage = new Usage(tenantId, request.BenefitId, request.UserId, request.Quantity);
+        _context.Usages.Add(usage);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // Create Consumption record
+        var consumption = new Consumption(tenantId, request.Quantity, DateTime.UtcNow, usage.Id);
+        _context.Consumptions.Add(consumption);
+
+        // Consume quotas from benefit
+        benefit.ConsumeQuotas(request.Quantity);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new RedeemBenefitResponse
+        {
+            UsageId = usage.Id,
+            ConsumptionId = consumption.Id,
+            BenefitId = benefit.Id,
+            UserId = request.UserId,
+            QuantityRedeemed = request.Quantity,
+            RemainingQuotas = benefit.Quotas,
+            RedeemedAt = consumption.ConsumptionDateTime,
+            Message = $"Beneficio canjeado exitosamente. Quedan {benefit.Quotas} cuotas disponibles."
+        };
+    }
+
+    /// <summary>
     /// Maps a Benefit entity to a BenefitResponse DTO.
     /// </summary>
     private static BenefitResponse MapToResponse(Benefit benefit)
