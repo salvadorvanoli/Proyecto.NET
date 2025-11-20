@@ -114,7 +114,7 @@ public class BenefitService : IBenefitService
             validityPeriod = new DateRange(startDate, endDate);
         }
 
-        var benefit = new Benefit(tenantId, request.BenefitTypeId, request.Quotas, validityPeriod);
+        var benefit = new Benefit(tenantId, request.BenefitTypeId, request.Quotas, request.Quantity, validityPeriod);
 
         _context.Benefits.Add(benefit);
         await _context.SaveChangesAsync(cancellationToken);
@@ -176,6 +176,7 @@ public class BenefitService : IBenefitService
         }
 
         benefit.UpdateValidityPeriod(validityPeriod);
+        benefit.UpdateQuantity(request.Quantity);
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -287,6 +288,7 @@ public class BenefitService : IBenefitService
             BenefitTypeId = benefit.BenefitTypeId,
             BenefitTypeName = benefit.BenefitType.Name,
             Quotas = benefit.Quotas,
+            Quantity = benefit.Quantity,
             StartDate = benefit.ValidityPeriod?.StartDate.ToString("yyyy-MM-dd"),
             EndDate = benefit.ValidityPeriod?.EndDate.ToString("yyyy-MM-dd"),
             IsValid = benefit.IsValid,

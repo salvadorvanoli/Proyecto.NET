@@ -19,6 +19,11 @@ public class Benefit : BaseEntity
     public int Quotas { get; protected set; }
 
     /// <summary>
+    /// Quantity associated with this benefit.
+    /// </summary>
+    public int Quantity { get; protected set; }
+
+    /// <summary>
     /// Foreign key to the benefit type.
     /// </summary>
     public int BenefitTypeId { get; protected set; }
@@ -30,7 +35,7 @@ public class Benefit : BaseEntity
     {
     }
 
-    public Benefit(int tenantId, int benefitTypeId, int quotas, DateRange? validityPeriod = null) : base(tenantId)
+    public Benefit(int tenantId, int benefitTypeId, int quotas, int quantity, DateRange? validityPeriod = null) : base(tenantId)
     {
         if (benefitTypeId <= DomainConstants.NumericValidation.TransientEntityId)
             throw new ArgumentException(
@@ -41,9 +46,15 @@ public class Benefit : BaseEntity
             throw new ArgumentException(
                 string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Cuotas", DomainConstants.NumericValidation.MinQuota),
                 nameof(quotas));
+        
+        if (quantity < DomainConstants.NumericValidation.MinQuantity)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Cantidad", DomainConstants.NumericValidation.MinQuantity),
+                nameof(quantity));
 
         BenefitTypeId = benefitTypeId;
         Quotas = quotas;
+        Quantity = quantity;
         ValidityPeriod = validityPeriod;
     }
 
@@ -98,6 +109,20 @@ public class Benefit : BaseEntity
             throw new InvalidOperationException("No hay suficientes cuotas disponibles.");
 
         Quotas -= amount;
+        UpdateTimestamp();
+    }
+
+    /// <summary>
+    /// Updates the quantity associated with the benefit.
+    /// </summary>
+    public void UpdateQuantity(int quantity)
+    {
+        if (quantity < DomainConstants.NumericValidation.MinQuantity)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Cantidad", DomainConstants.NumericValidation.MinQuantity),
+                nameof(quantity));
+
+        Quantity = quantity;
         UpdateTimestamp();
     }
 

@@ -78,6 +78,7 @@
                             <tr>
                                 <th>Tipo de Beneficio</th>
                                 <th class="text-center">Cupos</th>
+                                <th class="text-center">Cantidad</th>
                                 <th>Vigencia</th>
                                 <th class="text-center">Estado</th>
                                 <th>Creado</th>
@@ -94,6 +95,11 @@
                                     <td class="text-center">
                                         <span class="badge @(benefit.HasAvailableQuotas ? "bg-info" : "bg-secondary")">
                                             @benefit.Quotas
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-secondary">
+                                            @benefit.Quantity
                                         </span>
                                     </td>
                                     <td>

@@ -18,6 +18,11 @@ public class BenefitRequest
         ErrorMessage = "Las cuotas deben ser al menos {1}.")]
     public int Quotas { get; set; }
 
+    [Required(ErrorMessage = "La cantidad es obligatoria.")]
+    [Range(DomainConstants.NumericValidation.MinQuantity, int.MaxValue, 
+        ErrorMessage = "La cantidad debe ser al menos {1}.")]
+    public int Quantity { get; set; }
+
     public string? StartDate { get; set; }
     
     public string? EndDate { get; set; }
