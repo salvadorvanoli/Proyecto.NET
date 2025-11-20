@@ -24,6 +24,16 @@ public interface INfcService
     /// Stops listening for NFC tags.
     /// </summary>
     void StopListening();
+    
+    /// <summary>
+    /// Sends an ACCESS GRANTED response to the credential device via NFC.
+    /// </summary>
+    Task<bool> SendAccessGrantedAsync(string message = "Acceso concedido");
+    
+    /// <summary>
+    /// Sends an ACCESS DENIED response to the credential device via NFC.
+    /// </summary>
+    Task<bool> SendAccessDeniedAsync(string message = "Acceso denegado");
 
     /// <summary>
     /// Event fired when an NFC tag is detected.

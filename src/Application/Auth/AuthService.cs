@@ -59,6 +59,7 @@ public class AuthService : IAuthService
         return new LoginResponse
         {
             UserId = user.Id,
+            CredentialId = user.CredentialId,
             Email = user.Email,
             FullName = user.FullName,
             TenantId = user.TenantId,

@@ -99,6 +99,36 @@ public partial class NfcService : INfcService
 
         _isListening = false;
     }
+    
+    public virtual async Task<bool> SendAccessGrantedAsync(string message = "Acceso concedido")
+    {
+#if ANDROID
+        return await SendAccessGrantedAndroidAsync(message);
+#elif IOS
+        // TODO: iOS implementation
+        await Task.CompletedTask;
+        return false;
+#else
+        await Task.CompletedTask;
+        _logger.LogInformation("Simulating ACCESS GRANTED sent: {Message}", message);
+        return true;
+#endif
+    }
+    
+    public virtual async Task<bool> SendAccessDeniedAsync(string message = "Acceso denegado")
+    {
+#if ANDROID
+        return await SendAccessDeniedAndroidAsync(message);
+#elif IOS
+        // TODO: iOS implementation
+        await Task.CompletedTask;
+        return false;
+#else
+        await Task.CompletedTask;
+        _logger.LogInformation("Simulating ACCESS DENIED sent: {Message}", message);
+        return true;
+#endif
+    }
 
 #if !ANDROID && !IOS
     // Simulación temporal para testing sin hardware NFC
@@ -145,5 +175,7 @@ public partial class NfcService : INfcService
     private partial bool GetIsEnabledAndroid();
     private partial Task StartListeningAndroidAsync();
     private partial void StopListeningAndroid();
+    private partial Task<bool> SendAccessGrantedAndroidAsync(string message);
+    private partial Task<bool> SendAccessDeniedAndroidAsync(string message);
 #endif
 }

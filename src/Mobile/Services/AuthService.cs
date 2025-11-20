@@ -1,4 +1,4 @@
-using Mobile.Models;
+using Shared.DTOs.Auth;
 using System.Net.Http.Json;
 using System.Text.Json;
 

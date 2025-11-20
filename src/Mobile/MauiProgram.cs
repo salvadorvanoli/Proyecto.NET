@@ -26,7 +26,7 @@ public static class MauiProgram
 		// Configure HttpClient for AuthService
 		builder.Services.AddHttpClient("AuthClient", client =>
 		{
-			client.BaseAddress = new Uri("http://192.168.1.23:5000/");
+			client.BaseAddress = new Uri("http://192.168.1.28:5000/");
 			client.Timeout = TimeSpan.FromSeconds(30);
 			client.DefaultRequestHeaders.Add("X-Tenant-Id", "1");
 		});
@@ -35,7 +35,7 @@ public static class MauiProgram
 		// Configure HttpClient for UserService
 		builder.Services.AddHttpClient("UserClient", client =>
 		{
-			client.BaseAddress = new Uri("http://192.168.1.23:5000/");
+			client.BaseAddress = new Uri("http://192.168.1.28:5000/");
 			client.Timeout = TimeSpan.FromSeconds(30);
 			client.DefaultRequestHeaders.Add("X-Tenant-Id", "1");
 		});
@@ -44,7 +44,7 @@ public static class MauiProgram
 		// Configure HttpClient for AccessEventService
 		builder.Services.AddHttpClient("AccessEventClient", client =>
 		{
-			client.BaseAddress = new Uri("http://192.168.1.23:5000/");
+			client.BaseAddress = new Uri("http://192.168.1.28:5000/");
 			client.Timeout = TimeSpan.FromSeconds(30);
 			client.DefaultRequestHeaders.Add("X-Tenant-Id", "1");
 		});

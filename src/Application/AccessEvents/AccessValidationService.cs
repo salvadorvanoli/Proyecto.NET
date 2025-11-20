@@ -56,6 +56,9 @@ public class AccessValidationService : IAccessValidationService
             };
         }
 
+        _logger.LogInformation("🔍 User found: Id={UserId}, Email={Email}, TenantId={TenantId}, FullName={FullName}", 
+            user.Id, user.Email, user.TenantId, user.PersonalData.FullName);
+
         var userName = user.PersonalData.FullName;
         if (string.IsNullOrWhiteSpace(userName))
         {
@@ -73,11 +76,14 @@ public class AccessValidationService : IAccessValidationService
             return AccessValidationResultExtensions.Denied(userName, "Punto de Control Desconocido", "Punto de control no encontrado");
         }
 
+        _logger.LogInformation("🔍 ControlPoint found: Id={ControlPointId}, Name={Name}, TenantId={TenantId}", 
+            controlPoint.Id, controlPoint.Name, controlPoint.TenantId);
+
         // 3. Verificar que el usuario pertenece al mismo tenant
         if (user.TenantId != controlPoint.TenantId)
         {
-            _logger.LogWarning("User {UserId} and control point {ControlPointId} belong to different tenants", 
-                userId, controlPointId);
+            _logger.LogWarning("⚠️ TENANT MISMATCH: User TenantId={UserTenantId} vs ControlPoint TenantId={ControlPointTenantId}", 
+                user.TenantId, controlPoint.TenantId);
             return AccessValidationResultExtensions.Denied(userName, controlPoint.Name, "Usuario no autorizado para este tenant");
         }
 
@@ -148,5 +154,47 @@ public class AccessValidationService : IAccessValidationService
         _logger.LogWarning("User {UserId} denied access to control point {ControlPointId} - User roles do not match any active rule", 
             userId, controlPointId);
         return AccessValidationResultExtensions.Denied(userName, controlPoint.Name, "Sin permisos para esta área");
+    }
+
+    public async Task<AccessValidationResult> ValidateAccessByCredentialAsync(
+        int credentialId,
+        int controlPointId,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("🔍 ValidateAccessByCredentialAsync - CredentialId: {CredentialId}, ControlPointId: {ControlPointId}", 
+            credentialId, controlPointId);
+
+        // 1. Buscar la credencial y obtener el usuario asociado
+        var credential = await _context.Credentials
+            .Include(c => c.User)
+                .ThenInclude(u => u.Roles)
+            .FirstOrDefaultAsync(c => c.Id == credentialId, cancellationToken);
+
+        if (credential == null)
+        {
+            _logger.LogWarning("❌ Credential {CredentialId} not found", credentialId);
+            return new AccessValidationResult
+            {
+                IsGranted = false,
+                Reason = "Credencial no encontrada",
+                UserName = "Usuario Desconocido",
+                ControlPointName = "Punto de Control"
+            };
+        }
+
+        if (!credential.IsActive)
+        {
+            _logger.LogWarning("❌ Credential {CredentialId} is INACTIVE", credentialId);
+            return AccessValidationResultExtensions.Denied(
+                credential.User.FullName,
+                "Punto de Control",
+                "Credencial inactiva");
+        }
+
+        _logger.LogInformation("✅ Credential found and ACTIVE - UserId: {UserId}, UserName: {UserName}, TenantId: {TenantId}", 
+            credential.UserId, credential.User?.FullName, credential.User?.TenantId);
+
+        // 2. Usar el userId de la credencial para validar
+        return await ValidateAccessAsync(credential.UserId, controlPointId, cancellationToken);
     }
 }

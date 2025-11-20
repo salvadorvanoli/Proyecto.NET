@@ -1,6 +1,16 @@
 namespace Mobile.Services;
 
 /// <summary>
+/// Response from the access control point
+/// </summary>
+public class AccessResponse
+{
+    public bool AccessGranted { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public DateTime Timestamp { get; set; }
+}
+
+/// <summary>
 /// Service interface for NFC Host Card Emulation (HCE)
 /// Allows a device to emulate an NFC card/tag
 /// </summary>
@@ -20,6 +30,11 @@ public interface INfcCredentialService
     /// Gets or sets the user ID associated with the credential
     /// </summary>
     int? UserId { get; set; }
+
+    /// <summary>
+    /// Event raised when the access control point sends a response
+    /// </summary>
+    event EventHandler<AccessResponse>? AccessResponseReceived;
 
     /// <summary>
     /// Starts HCE service to emit credential via NFC

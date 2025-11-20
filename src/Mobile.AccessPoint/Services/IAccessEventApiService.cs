@@ -21,6 +21,6 @@ public interface IAccessEventApiService
     /// <summary>
     /// Valida si un usuario tiene acceso a un control point específico
     /// </summary>
-    Task<AccessValidationResult> ValidateAccessAsync(int userId, int controlPointId, CancellationToken cancellationToken = default);
+    Task<AccessValidationResult> ValidateAccessAsync(int? userId, int? credentialId, int controlPointId, CancellationToken cancellationToken = default);
 }
 

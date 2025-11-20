@@ -18,6 +18,7 @@ public partial class NfcService
     private Activity? _currentActivity;
     private PendingIntent? _pendingIntent;
     private IntentFilter[]? _intentFilters;
+    private IsoDep? _currentIsoDep; // Mantener referencia al tag actual para respuestas
 
     private partial bool GetIsAvailableAndroid()
     {
@@ -199,7 +200,14 @@ public partial class NfcService
             {
                 _logger.LogInformation("ISO-DEP tag found, attempting to connect...");
                 isoDep.Connect();
-                _logger.LogInformation("✓ Connected to ISO-DEP tag (HCE)");
+                
+                // Aumentar timeout para mantener conexión durante validación backend
+                isoDep.Timeout = 10000; // 10 segundos
+                
+                _logger.LogInformation("✓ Connected to ISO-DEP tag (HCE) with 10s timeout");
+                
+                // Guardar referencia para poder enviar respuestas después
+                _currentIsoDep = isoDep;
 
                 // SELECT AID command (debe coincidir con el AID del servicio HCE)
                 byte[] selectAid = { 0x00, 0xA4, 0x04, 0x00, 0x07, 0xF0, 0x39, 0x41, 0x48, 0x14, 0x81, 0x00, 0x00 };
@@ -221,34 +229,63 @@ public partial class NfcService
                         byte[] getData = { 0x00, 0xCA, 0x00, 0x00, 0x00 };
                         var dataResponse = isoDep.Transceive(getData);
                         
+                        _logger.LogInformation("========================================");
+                        _logger.LogInformation("📡 ISO-DEP HCE RESPONSE RECEIVED");
+                        _logger.LogInformation("Response length: {Length}", dataResponse?.Length ?? 0);
+                        _logger.LogInformation("========================================");
+                        
                         if (dataResponse != null && dataResponse.Length > 2)
                         {
                             // Quitar los últimos 2 bytes (status code)
                             var dataLength = dataResponse.Length - 2;
                             var credentialData = Encoding.UTF8.GetString(dataResponse, 0, dataLength);
-                            _logger.LogInformation("Credential data received: {Data}", credentialData);
+                            
+                            _logger.LogInformation("========================================");
+                            _logger.LogInformation("📨 CREDENTIAL DATA RECEIVED FROM HCE");
+                            _logger.LogInformation("Raw data: '{Data}'", credentialData);
+                            _logger.LogInformation("Data length: {Length}", credentialData.Length);
+                            _logger.LogInformation("========================================");
                             
                             // Parsear "CRED:1|USER:2"
                             var parts = credentialData.Split('|');
+                            _logger.LogInformation("Parsing {Count} parts from payload", parts.Length);
+                            
                             foreach (var part in parts)
                             {
+                                _logger.LogInformation("  Parsing part: '{Part}'", part);
                                 var keyValue = part.Split(':');
                                 if (keyValue.Length == 2)
                                 {
                                     if (keyValue[0] == "CRED" && int.TryParse(keyValue[1], out var cId))
                                     {
                                         credentialId = cId;
+                                        _logger.LogInformation("  ✅ Found CredentialId: {CredentialId}", cId);
                                     }
                                     else if (keyValue[0] == "USER" && int.TryParse(keyValue[1], out var uId))
                                     {
                                         userId = uId;
+                                        _logger.LogInformation("  ✅ Found UserId: {UserId}", uId);
                                     }
+                                    else
+                                    {
+                                        _logger.LogWarning("  ⚠️ Unknown key or invalid value: {Key}={Value}", keyValue[0], keyValue[1]);
+                                    }
+                                }
+                                else
+                                {
+                                    _logger.LogWarning("  ⚠️ Invalid part format (expected KEY:VALUE): '{Part}'", part);
                                 }
                             }
                             
+                            _logger.LogInformation("========================================");
+                            _logger.LogInformation("📊 PARSING RESULT:");
+                            _logger.LogInformation("  UserId: {UserId}", userId?.ToString() ?? "NULL");
+                            _logger.LogInformation("  CredentialId: {CredentialId}", credentialId?.ToString() ?? "NULL");
+                            _logger.LogInformation("========================================");
+                            
                             if (credentialId.HasValue && userId.HasValue)
                             {
-                                _logger.LogInformation("Digital credential detected - UserId: {UserId}, CredentialId: {CredentialId}", 
+                                _logger.LogInformation("✅ Digital credential SUCCESSFULLY detected - UserId: {UserId}, CredentialId: {CredentialId}", 
                                     userId, credentialId);
                                 
                                 // Para credenciales digitales, el controlPointId se obtiene del ViewModel
@@ -256,15 +293,26 @@ public partial class NfcService
                                 controlPointId = 1; // El ViewModel lo sobreescribirá con el ID configurado
                                 controlPointName = $"Control Point {controlPointId}";
                             }
+                            else
+                            {
+                                _logger.LogWarning("❌ Digital credential INCOMPLETE - UserId: {UserId}, CredentialId: {CredentialId}", 
+                                    userId?.ToString() ?? "NULL", credentialId?.ToString() ?? "NULL");
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogWarning("❌ NO RESPONSE or response too short from HCE");
                         }
                     }
                 }
                 
-                isoDep.Close();
+                // NO cerrar isoDep aquí - lo necesitamos para enviar la respuesta
+                // isoDep.Close();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error reading ISO-DEP HCE data");
+                CloseCurrentIsoDep();
             }
         }
 
@@ -347,6 +395,156 @@ public partial class NfcService
         };
 
         TagDetected?.Invoke(this, eventArgs);
+    }
+    
+    private partial async Task<bool> SendAccessGrantedAndroidAsync(string message)
+    {
+        if (_currentIsoDep == null)
+        {
+            _logger.LogWarning("Cannot send ACCESS GRANTED - No ISO-DEP reference");
+            return false;
+        }
+
+        try
+        {
+            // Verificar y reconectar si es necesario
+            if (!_currentIsoDep.IsConnected)
+            {
+                _logger.LogWarning("ISO-DEP connection lost, attempting to reconnect...");
+                _currentIsoDep.Connect();
+                _currentIsoDep.Timeout = 10000;
+                _logger.LogInformation("Reconnected to ISO-DEP");
+            }
+            
+            _logger.LogInformation("📤 Sending ACCESS GRANTED to credential device: {Message}", message);
+            
+            // Construir comando ACCESS GRANTED
+            byte[] messageBytes = Encoding.UTF8.GetBytes(message);
+            byte[] command = new byte[4 + messageBytes.Length];
+            
+            // APDU header: 00 AC 01 00
+            command[0] = 0x00;  // CLA
+            command[1] = 0xAC;  // INS - Access Control
+            command[2] = 0x01;  // P1 - Granted
+            command[3] = 0x00;  // P2
+            
+            // Agregar mensaje
+            Array.Copy(messageBytes, 0, command, 4, messageBytes.Length);
+            
+            // Enviar comando con timeout generoso
+            var response = await Task.Run(() => _currentIsoDep.Transceive(command));
+            
+            if (response != null && response.Length >= 2)
+            {
+                var sw1 = response[response.Length - 2];
+                var sw2 = response[response.Length - 1];
+                
+                if (sw1 == 0x90 && sw2 == 0x00)
+                {
+                    _logger.LogInformation("✅ ACCESS GRANTED sent successfully");
+                    
+                    // Esperar un poco antes de cerrar para que el HCE procese
+                    await Task.Delay(500);
+                    CloseCurrentIsoDep();
+                    return true;
+                }
+            }
+            
+            _logger.LogWarning("⚠️ ACCESS GRANTED sent but received unexpected response");
+            CloseCurrentIsoDep();
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending ACCESS GRANTED: {Message}", ex.Message);
+            CloseCurrentIsoDep();
+            return false;
+        }
+    }
+    
+    private partial async Task<bool> SendAccessDeniedAndroidAsync(string message)
+    {
+        if (_currentIsoDep == null)
+        {
+            _logger.LogWarning("Cannot send ACCESS DENIED - No ISO-DEP reference");
+            return false;
+        }
+
+        try
+        {
+            // Verificar y reconectar si es necesario
+            if (!_currentIsoDep.IsConnected)
+            {
+                _logger.LogWarning("ISO-DEP connection lost, attempting to reconnect...");
+                _currentIsoDep.Connect();
+                _currentIsoDep.Timeout = 10000;
+                _logger.LogInformation("Reconnected to ISO-DEP");
+            }
+            
+            _logger.LogInformation("📤 Sending ACCESS DENIED to credential device: {Message}", message);
+            
+            // Construir comando ACCESS DENIED
+            byte[] messageBytes = Encoding.UTF8.GetBytes(message);
+            byte[] command = new byte[4 + messageBytes.Length];
+            
+            // APDU header: 00 AC 00 00
+            command[0] = 0x00;  // CLA
+            command[1] = 0xAC;  // INS - Access Control
+            command[2] = 0x00;  // P1 - Denied
+            command[3] = 0x00;  // P2
+            
+            // Agregar mensaje
+            Array.Copy(messageBytes, 0, command, 4, messageBytes.Length);
+            
+            // Enviar comando con timeout generoso
+            var response = await Task.Run(() => _currentIsoDep.Transceive(command));
+            
+            if (response != null && response.Length >= 2)
+            {
+                var sw1 = response[response.Length - 2];
+                var sw2 = response[response.Length - 1];
+                
+                if (sw1 == 0x90 && sw2 == 0x00)
+                {
+                    _logger.LogInformation("✅ ACCESS DENIED sent successfully");
+                    
+                    // Esperar un poco antes de cerrar para que el HCE procese
+                    await Task.Delay(500);
+                    CloseCurrentIsoDep();
+                    return true;
+                }
+            }
+            
+            _logger.LogWarning("⚠️ ACCESS DENIED sent but received unexpected response");
+            CloseCurrentIsoDep();
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending ACCESS DENIED: {Message}", ex.Message);
+            CloseCurrentIsoDep();
+            return false;
+        }
+    }
+    
+    private void CloseCurrentIsoDep()
+    {
+        try
+        {
+            if (_currentIsoDep != null && _currentIsoDep.IsConnected)
+            {
+                _currentIsoDep.Close();
+                _logger.LogInformation("ISO-DEP connection closed");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error closing ISO-DEP connection");
+        }
+        finally
+        {
+            _currentIsoDep = null;
+        }
     }
 }
 #endif

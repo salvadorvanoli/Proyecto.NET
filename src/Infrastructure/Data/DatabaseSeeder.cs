@@ -391,16 +391,16 @@ public static class DatabaseSeeder
         }
 
         // Seed NFC Testing User with Credential
-        var nfcTestUser = await context.Users.FirstOrDefaultAsync(u => u.Email == "admin11@backoffice.com");
+        var nfcTestUser = await context.Users.FirstOrDefaultAsync(u => u.Email == "nfctest@indigo.com");
         if (nfcTestUser == null)
         {
             Console.WriteLine("\n🔑 Creating NFC testing user...");
             
-            var tenant = await context.Tenants.FirstAsync();
-            var passwordHash = passwordHasher.HashPassword("Admin123!");
+            var tenant = await context.Tenants.FirstAsync(); // Universidad Indigo (TenantId: 1)
+            var passwordHash = passwordHasher.HashPassword("Test123!");
             var personalData = new PersonalData("Usuario", "NFC Testing", new DateOnly(1995, 5, 15));
 
-            nfcTestUser = new User(tenant.Id, "admin11@backoffice.com", passwordHash, personalData);
+            nfcTestUser = new User(tenant.Id, "nfctest@indigo.com", passwordHash, personalData);
             context.Users.Add(nfcTestUser);
             await context.SaveChangesAsync();
 
@@ -435,6 +435,51 @@ public static class DatabaseSeeder
             Console.WriteLine($"   Credencial creada: ID={credential.Id}, Activa={credential.IsActive}");
         }
 
+        // Seed Regular User for Mobile App
+        var regularUser = await context.Users.FirstOrDefaultAsync(u => u.Email == "usuario1@mobile.com");
+        if (regularUser == null)
+        {
+            Console.WriteLine("\n📱 Creating regular user for Mobile App...");
+            
+            var tenant = await context.Tenants.FirstAsync();
+            var passwordHash = passwordHasher.HashPassword("User123!");
+            var personalData = new PersonalData("Juan", "Pérez", new DateOnly(1995, 5, 15));
+
+            regularUser = new User(tenant.Id, "usuario1@mobile.com", passwordHash, personalData);
+            context.Users.Add(regularUser);
+            await context.SaveChangesAsync();
+
+            // Assign role Usuario
+            var userRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Usuario" && r.TenantId == tenant.Id);
+            if (userRole == null)
+            {
+                userRole = new Role(tenant.Id, "Usuario");
+                context.Roles.Add(userRole);
+                await context.SaveChangesAsync();
+            }
+            
+            regularUser.AssignRole(userRole);
+            await context.SaveChangesAsync();
+
+            // Create and assign credential
+            var credential = new Credential(
+                tenantId: tenant.Id,
+                userId: regularUser.Id,
+                issueDate: DateTime.UtcNow,
+                isActive: true
+            );
+            
+            context.Credentials.Add(credential);
+            await context.SaveChangesAsync();
+
+            regularUser = await context.Users.FirstAsync(u => u.Id == regularUser.Id);
+            regularUser.AssignCredential(credential.Id);
+            await context.SaveChangesAsync();
+
+            Console.WriteLine($"   Usuario Mobile creado: {regularUser.Email}");
+            Console.WriteLine($"   Credencial asignada: ID={credential.Id}");
+        }
+
         // Seed Access Rules for Control Points
         var allControlPointsWithRules = await context.ControlPoints.Include(cp => cp.AccessRules).ToListAsync();
         
@@ -448,26 +493,42 @@ public static class DatabaseSeeder
                 var accessRule = new AccessRule(controlPoint.TenantId, controlPoint.Id);
                 context.AccessRules.Add(accessRule);
 
-                // Assign AdministradorBackoffice role to this access rule
+                // Assign BOTH roles to this access rule
                 var adminRole = await context.Roles
                     .FirstOrDefaultAsync(r => r.Name == "AdministradorBackoffice" && r.TenantId == controlPoint.TenantId);
+                    
+                var userRole = await context.Roles
+                    .FirstOrDefaultAsync(r => r.Name == "Usuario" && r.TenantId == controlPoint.TenantId);
 
                 if (adminRole != null)
                 {
                     accessRule.Roles.Add(adminRole);
-                    await context.SaveChangesAsync();
-                    Console.WriteLine($"   AccessRule creada y rol 'AdministradorBackoffice' asignado al ControlPoint");
                 }
+                
+                if (userRole != null)
+                {
+                    accessRule.Roles.Add(userRole);
+                }
+                
+                await context.SaveChangesAsync();
+                Console.WriteLine($"   AccessRule creada con roles asignados al ControlPoint");
             }
         }
 
         Console.WriteLine("\n✅ NFC testing setup completed!");
         Console.WriteLine("===========================================");
-        Console.WriteLine("TESTING CREDENTIALS:");
-        Console.WriteLine($"Email: {nfcTestUser.Email}");
-        Console.WriteLine("Password: Admin123!");
+        Console.WriteLine("MOBILE APP USER:");
+        Console.WriteLine($"Email: usuario1@mobile.com");
+        Console.WriteLine("Password: User123!");
+        Console.WriteLine($"UserId: {regularUser.Id}");
+        Console.WriteLine($"CredentialId: {regularUser.CredentialId}");
+        Console.WriteLine("===========================================");
+        Console.WriteLine("NFC TESTING USER (Tenant 1 - Universidad Indigo):");
+        Console.WriteLine($"Email: nfctest@indigo.com");
+        Console.WriteLine("Password: Test123!");
         Console.WriteLine($"UserId: {nfcTestUser.Id}");
         Console.WriteLine($"CredentialId: {nfcTestUser.CredentialId}");
+        Console.WriteLine($"TenantId: {nfcTestUser.TenantId}");
         Console.WriteLine("===========================================");
     }
 }

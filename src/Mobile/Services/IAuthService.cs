@@ -1,4 +1,4 @@
-using Mobile.Models;
+using Shared.DTOs.Auth;
 
 namespace Mobile.Services;
 

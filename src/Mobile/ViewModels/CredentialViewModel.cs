@@ -1,6 +1,7 @@
 using System.Windows.Input;
 using Mobile.Services;
 using Microsoft.Extensions.Logging;
+using Shared.DTOs.Auth;
 
 namespace Mobile.ViewModels;
 
@@ -131,8 +132,53 @@ public class CredentialViewModel : BaseViewModel
         Connectivity.ConnectivityChanged += OnConnectivityChanged;
         UpdateConnectivityStatus();
         
+        // Subscribe to NFC access responses from control point
+        _nfcCredentialService.AccessResponseReceived += OnAccessResponseReceived;
+        
         // Load user credentials automatically
         Task.Run(async () => await LoadUserCredentials());
+    }
+    
+    private async void OnAccessResponseReceived(object? sender, AccessResponse response)
+    {
+        try
+        {
+            _logger.LogInformation("🎯 Access response: {Granted} - {Message}", 
+                response.AccessGranted, response.Message);
+
+            // Show alert on main thread
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                string title = response.AccessGranted ? "✅ Acceso Concedido" : "❌ Acceso Denegado";
+                string icon = response.AccessGranted ? "🟢" : "🔴";
+                Color bgColor = response.AccessGranted ? Colors.Green : Colors.Red;
+                
+                // Update status message temporarily
+                string previousStatus = StatusMessage;
+                StatusMessage = $"{icon} {response.Message}";
+                
+                // Show alert
+                await Shell.Current.DisplayAlert(
+                    title, 
+                    response.Message, 
+                    "OK");
+                
+                // Restore previous status after a delay
+                await Task.Delay(3000);
+                if (IsEmulating)
+                {
+                    StatusMessage = "Credencial activa\nAcerca tu celular al punto de control";
+                }
+                else
+                {
+                    StatusMessage = previousStatus;
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling access response");
+        }
     }
 
     private void OnConnectivityChanged(object? sender, Microsoft.Maui.Networking.ConnectivityChangedEventArgs e)
@@ -179,12 +225,22 @@ public class CredentialViewModel : BaseViewModel
             if (user != null)
             {
                 UserId = user.UserId;
-                CredentialId = user.UserId; // For now, credential ID = user ID
+                CredentialId = user.CredentialId;
                 UserName = user.FullName;
                 Roles = string.Join(", ", user.Roles);
                 IsHceAvailable = _nfcCredentialService.IsHceAvailable;
 
-                StatusMessage = "Toca el botón para activar";
+                if (!CredentialId.HasValue)
+                {
+                    StatusMessage = "⚠️ Usuario sin credencial asignada";
+                    _logger.LogWarning("User {UserId} has no credential assigned", UserId);
+                }
+                else
+                {
+                    StatusMessage = "Toca el botón para activar";
+                    _logger.LogInformation("User credentials loaded: UserId={UserId}, CredentialId={CredentialId}", 
+                        UserId, CredentialId);
+                }
             }
             else
             {
@@ -200,9 +256,20 @@ public class CredentialViewModel : BaseViewModel
 
     private async Task StartEmulation()
     {
+        _logger.LogInformation("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        _logger.LogInformation("🔄 StartEmulation CALLED");
+        _logger.LogInformation("   UserId: {UserId}", UserId);
+        _logger.LogInformation("   CredentialId: {CredentialId}", CredentialId);
+        _logger.LogInformation("   UserId.HasValue: {HasValue}", UserId.HasValue);
+        _logger.LogInformation("   CredentialId.HasValue: {HasValue}", CredentialId.HasValue);
+        
         if (!UserId.HasValue || !CredentialId.HasValue)
         {
-            await Shell.Current.DisplayAlert("Error", "No se pudo cargar la credencial. Intenta cerrar sesión e iniciar de nuevo.", "OK");
+            _logger.LogError("❌ CANNOT START EMULATION - Missing values!");
+            _logger.LogError("   UserId: {UserId} (HasValue: {HasValue})", UserId, UserId.HasValue);
+            _logger.LogError("   CredentialId: {CredentialId} (HasValue: {HasValue})", CredentialId, CredentialId.HasValue);
+            await Shell.Current.DisplayAlert("Error", 
+                $"No se pudo cargar la credencial.\n\nUserId: {UserId}\nCredentialId: {CredentialId}\n\nIntenta cerrar sesión e iniciar de nuevo.", "OK");
             return;
         }
 
@@ -211,9 +278,14 @@ public class CredentialViewModel : BaseViewModel
             IsBusy = true;
             StatusMessage = "Iniciando emulación...";
 
+            _logger.LogInformation("✅ Setting values in NFC service:");
+            _logger.LogInformation("   UserId: {UserId}", UserId);
+            _logger.LogInformation("   CredentialId: {CredentialId}", CredentialId);
+            
             _nfcCredentialService.UserId = UserId;
             _nfcCredentialService.CredentialId = CredentialId;
 
+            _logger.LogInformation("🚀 Calling StartEmulatingAsync...");
             await _nfcCredentialService.StartEmulatingAsync();
 
             IsEmulating = true;
@@ -257,6 +329,9 @@ public class CredentialViewModel : BaseViewModel
         try
         {
             StopEmulation(); // Stop any active emulation
+            
+            // Unsubscribe from events
+            _nfcCredentialService.AccessResponseReceived -= OnAccessResponseReceived;
             
             await _authService.LogoutAsync();
             

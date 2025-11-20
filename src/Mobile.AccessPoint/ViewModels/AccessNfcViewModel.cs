@@ -357,22 +357,32 @@ public class AccessNfcViewModel : BaseViewModel
         {
             try
             {
-                // Determinar el userId a usar
-                // Si viene del HCE (credencial digital), usar ese userId
-                // Si no, usar el userId hardcodeado del punto de control
-                int userIdToValidate = e.UserId ?? _currentUserId;
+                // Determinar si es credencial digital o tag tradicional
+                // Si tiene CredentialId, es una credencial digital (ignorar UserId del payload)
+                bool isDigitalCredential = e.CredentialId.HasValue;
                 
-                bool isDigitalCredential = e.UserId.HasValue && e.CredentialId.HasValue;
+                int? userIdToValidate = null;
+                int? credentialIdToValidate = null;
                 
                 if (isDigitalCredential)
                 {
-                    _logger.LogInformation("🪪 Digital credential detected - UserId: {UserId}, CredentialId: {CredentialId}", 
-                        e.UserId, e.CredentialId);
+                    // Para credenciales digitales: SOLO usar CredentialId
+                    credentialIdToValidate = e.CredentialId;
+                    _logger.LogInformation("🪪 Digital credential detected - CredentialId: {CredentialId}", 
+                        e.CredentialId);
                 }
                 else
                 {
-                    _logger.LogInformation("🏷️ Traditional NFC tag detected - Using control point user: {UserId}", 
-                        userIdToValidate);
+                    // NO ACEPTAR TAGS SIN CREDENCIAL DIGITAL
+                    _logger.LogWarning("❌ NFC tag detected without CredentialId - REJECTING");
+                    StatusText = "❌ Tag NFC inválido";
+                    InstructionText = "Este tag no tiene credencial digital válida";
+                    ScanFrameColor = Colors.Red;
+                    await Task.Delay(2000);
+                    StatusText = "Listo para Escanear";
+                    InstructionText = "Acerca tu credencial digital al lector";
+                    ScanFrameColor = Colors.LightBlue;
+                    return;
                 }
 
                 // Mostrar información del punto de control
@@ -389,18 +399,25 @@ public class AccessNfcViewModel : BaseViewModel
                 try
                 {
                     // SIEMPRE validar con backend - El punto de control NUNCA está offline
-                    _logger.LogInformation("🌐 Validating with backend");
-                    _logger.LogInformation("Backend URL: http://192.168.1.23:5000");
-                    _logger.LogInformation("UserId: {UserId}, ControlPointId: {ControlPointId}", userIdToValidate, controlPointIdToUse);
+                    _logger.LogInformation("========================================");
+                    _logger.LogInformation("🌐 VALIDATING WITH BACKEND");
+                    _logger.LogInformation("Backend URL: http://192.168.1.28:5000");
+                    _logger.LogInformation("UserId to send: {UserId}", userIdToValidate ?? -1);
+                    _logger.LogInformation("CredentialId to send: {CredentialId}", credentialIdToValidate ?? -1);
+                    _logger.LogInformation("ControlPointId: {ControlPointId}", controlPointIdToUse);
+                    _logger.LogInformation("========================================");
                     
-                    validationResult = await ValidateAccessAsync(userIdToValidate, controlPointIdToUse);
+                    validationResult = await ValidateAccessAsync(userIdToValidate, credentialIdToValidate, controlPointIdToUse);
                     
                     _logger.LogInformation("✅ Validation result from backend: {Result}", validationResult.Result);
 
-                    // Crear evento en backend
+                    // Crear evento en backend - necesitamos el userId correcto
+                    // Si es credencial digital, necesitamos obtenerlo del credentialId
+                    int userIdForEvent = userIdToValidate ?? _currentUserId;
+                    
                     var request = new CreateAccessEventRequest
                     {
-                        UserId = userIdToValidate,
+                        UserId = userIdForEvent,
                         ControlPointId = controlPointIdToUse,
                         EventDateTime = eventDateTime,
                         Result = validationResult.Result
@@ -410,11 +427,44 @@ public class AccessNfcViewModel : BaseViewModel
 
                     _logger.LogInformation("✅ Access event created: EventId={EventId}, Result={Result}",
                         accessEvent.Id, accessEvent.Result);
+                    
+                    // 🆕 ENVIAR RESPUESTA VISUAL AL CELULAR CON CREDENCIAL
+                    if (isDigitalCredential)
+                    {
+                        bool responseSent = false;
+                        
+                        if (validationResult.IsGranted)
+                        {
+                            _logger.LogInformation("📱 Sending ACCESS GRANTED notification to credential device...");
+                            responseSent = await _nfcService.SendAccessGrantedAsync("✅ Acceso concedido");
+                        }
+                        else
+                        {
+                            _logger.LogInformation("📱 Sending ACCESS DENIED notification to credential device...");
+                            responseSent = await _nfcService.SendAccessDeniedAsync($"❌ {validationResult.Reason}");
+                        }
+                        
+                        if (responseSent)
+                        {
+                            _logger.LogInformation("✅ Visual response sent to credential device successfully");
+                        }
+                        else
+                        {
+                            _logger.LogWarning("⚠️ Could not send visual response to credential device (device may have moved away)");
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
                     // Si falla la conexión, el punto de control NO FUNCIONA
                     _logger.LogError(ex, "❌ BACKEND VALIDATION FAILED - Error: {Message}", ex.Message);
+                    
+                    // 🆕 Enviar respuesta de error al dispositivo credencial antes de mostrar error
+                    if (isDigitalCredential)
+                    {
+                        _logger.LogInformation("📱 Sending ERROR notification to credential device...");
+                        await _nfcService.SendAccessDeniedAsync($"❌ Error de servidor");
+                    }
                     
                     await Shell.Current.DisplayAlert("Error de Conexión", 
                         $"No se pudo conectar al servidor:\n\n{ex.Message}\n\nEl punto de control requiere conexión al backend para funcionar.", 
@@ -434,12 +484,12 @@ public class AccessNfcViewModel : BaseViewModel
         });
     }
 
-    private async Task<AccessValidationResult> ValidateAccessAsync(int userId, int controlPointId)
+    private async Task<AccessValidationResult> ValidateAccessAsync(int? userId, int? credentialId, int controlPointId)
     {
         try
         {
             // Llamar al endpoint de validación del backend
-            var response = await _accessEventApiService.ValidateAccessAsync(userId, controlPointId);
+            var response = await _accessEventApiService.ValidateAccessAsync(userId, credentialId, controlPointId);
             return response;
         }
         catch (Exception ex)

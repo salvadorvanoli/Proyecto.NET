@@ -10,28 +10,9 @@ public partial class App : Microsoft.Maui.Controls.Application
 	{
 		InitializeComponent();
 
-		// Mostrar pantalla de login por defecto
-		MainPage = new NavigationPage(new LoginPage(loginViewModel));
+		// IR DIRECTO A LA PANTALLA DE ESCANEO NFC (sin login)
+		MainPage = new AppShell();
 		
-		// Intentar restaurar sesión en background
-		Task.Run(async () => 
-		{
-			try
-			{
-				var currentUser = await authService.GetCurrentUserAsync();
-				if (currentUser != null)
-				{
-					// Si hay sesión, navegar a AppShell en el UI thread
-					MainThread.BeginInvokeOnMainThread(() =>
-					{
-						MainPage = new AppShell();
-					});
-				}
-			}
-			catch (Exception ex)
-			{
-				System.Diagnostics.Debug.WriteLine($"Init error: {ex.Message}");
-			}
-		});
+		System.Diagnostics.Debug.WriteLine("✅ AccessPoint iniciado sin login - modo debug");
 	}
 }

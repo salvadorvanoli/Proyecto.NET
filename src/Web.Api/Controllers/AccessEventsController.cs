@@ -195,20 +195,54 @@ public class AccessEventsController : ControllerBase
     {
         try
         {
-            _logger.LogInformation("Validating access for user {UserId} to control point {ControlPointId}", 
-                request.UserId, request.ControlPointId);
-
-            var validationResult = await _accessValidationService.ValidateAccessAsync(request.UserId, request.ControlPointId);
+            _logger.LogInformation("========================================");
+            _logger.LogInformation("📨 VALIDATE ACCESS REQUEST RECEIVED");
+            _logger.LogInformation("   UserId: {UserId}", request.UserId);
+            _logger.LogInformation("   CredentialId: {CredentialId}", request.CredentialId);
+            _logger.LogInformation("   ControlPointId: {ControlPointId}", request.ControlPointId);
+            _logger.LogInformation("========================================");
             
-            _logger.LogInformation("Access validation completed. User {UserId}, ControlPoint {ControlPointId}, Result: {Result}, Reason: {Reason}", 
-                request.UserId, request.ControlPointId, validationResult.Result, validationResult.Reason);
+            AccessValidationResult validationResult;
+            
+            // Priorizar CredentialId sobre UserId
+            if (request.CredentialId.HasValue)
+            {
+                _logger.LogInformation("✅ Using CREDENTIAL-based validation for CredentialId: {CredentialId}", 
+                    request.CredentialId);
+                    
+                validationResult = await _accessValidationService.ValidateAccessByCredentialAsync(
+                    request.CredentialId.Value, 
+                    request.ControlPointId);
+                    
+                _logger.LogInformation("📊 Validation Result - UserName: {UserName}, ControlPoint: {ControlPoint}, Result: {Result}, Reason: {Reason}", 
+                    validationResult.UserName, validationResult.ControlPointName, 
+                    validationResult.Result, validationResult.Reason);
+            }
+            else if (request.UserId.HasValue)
+            {
+                _logger.LogInformation("⚠️ Using USER-based validation for UserId: {UserId}", 
+                    request.UserId);
+                    
+                validationResult = await _accessValidationService.ValidateAccessAsync(
+                    request.UserId.Value, 
+                    request.ControlPointId);
+                    
+                _logger.LogInformation("📊 Validation Result - UserName: {UserName}, ControlPoint: {ControlPoint}, Result: {Result}, Reason: {Reason}", 
+                    validationResult.UserName, validationResult.ControlPointName, 
+                    validationResult.Result, validationResult.Reason);
+            }
+            else
+            {
+                _logger.LogWarning("❌ No UserId or CredentialId provided in request");
+                return BadRequest(new { message = "Either UserId or CredentialId must be provided" });
+            }
 
             return Ok(validationResult);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating access for user {UserId} to control point {ControlPointId}", 
-                request.UserId, request.ControlPointId);
+            _logger.LogError(ex, "Error validating access for user {UserId}/credential {CredentialId} to control point {ControlPointId}", 
+                request.UserId, request.CredentialId, request.ControlPointId);
             return StatusCode(500, new { message = "Error validating access", error = ex.Message, stackTrace = ex.StackTrace });
         }
     }

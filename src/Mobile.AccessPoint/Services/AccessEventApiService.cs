@@ -93,13 +93,14 @@ public class AccessEventApiService : IAccessEventApiService
         }
     }
 
-    public async Task<AccessValidationResult> ValidateAccessAsync(int userId, int controlPointId, CancellationToken cancellationToken = default)
+    public async Task<AccessValidationResult> ValidateAccessAsync(int? userId, int? credentialId, int controlPointId, CancellationToken cancellationToken = default)
     {
         try
         {
-            _logger.LogInformation("Validating access for user {UserId} to control point {ControlPointId}", userId, controlPointId);
+            _logger.LogInformation("Validating access for user {UserId}/credential {CredentialId} to control point {ControlPointId}", 
+                userId, credentialId, controlPointId);
 
-            var requestBody = new { UserId = userId, ControlPointId = controlPointId };
+            var requestBody = new { UserId = userId, CredentialId = credentialId, ControlPointId = controlPointId };
             var response = await _httpClient.PostAsJsonAsync("api/access-events/validate", requestBody, _jsonOptions, cancellationToken);
             
             response.EnsureSuccessStatusCode();
