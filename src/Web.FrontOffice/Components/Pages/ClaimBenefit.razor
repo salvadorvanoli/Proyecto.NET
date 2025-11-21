@@ -68,7 +68,7 @@
                 </div>
                 <div class="form-actions">
                     <PrimaryButton Text="Continuar" OnClick="ConfirmarSeleccion" AdditionalClass="@(beneficioTemporal == null ? "disabled" : "")" />
-                    <a href="/beneficios-disponibles" class="action-link">
+                    <a href="/" class="action-link">
                         <SecondaryButton Text="Cancelar" />
                     </a>
                 </div>
@@ -78,7 +78,7 @@
                 <div class="no-benefits">
                     <p class="no-data">No hay beneficios disponibles para reclamar en este momento.</p>
                     <div class="back-action">
-                        <a href="/beneficios-disponibles" class="action-link">
+                        <a href="/" class="action-link">
                             <PrimaryButton Text="Volver" />
                         </a>
                     </div>
@@ -113,7 +113,7 @@
                         <div class="password-prompt">
                             <h3>Confirmar Reclamación</h3>
                             <p>¿Estás seguro de que deseas reclamar este beneficio?</p>
-                            <p class="text-muted">Al reclamar, recibirás @beneficioSeleccionado.Quotas consumiciones disponibles.</p>
+                            <p class="text-muted">Al reclamar, el beneficio quedará disponible para canjear.</p>
                         </div>
                         
                         <div class="form-actions">
@@ -170,8 +170,8 @@
 
                 <div class="form-actions">
                     <PrimaryButton Text="Reclamar Otro Beneficio" OnClick="ReiniciarReclamacion" />
-                    <a href="/beneficios-disponibles" class="action-link">
-                        <SecondaryButton Text="Ver Beneficios Disponibles" />
+                    <a href="/" class="action-link">
+                        <SecondaryButton Text="Volver al Inicio" />
                     </a>
                 </div>
             </div>

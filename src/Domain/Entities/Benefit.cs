@@ -42,7 +42,7 @@ public class Benefit : BaseEntity
                 string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanZero, "ID"),
                 nameof(benefitTypeId));
 
-        if (quotas <= DomainConstants.NumericValidation.MinQuota)
+        if (quotas < DomainConstants.NumericValidation.MinQuota)
             throw new ArgumentException(
                 string.Format(DomainConstants.ErrorMessages.MustBeGreaterThanOrEqualTo, "Cuotas", DomainConstants.NumericValidation.MinQuota),
                 nameof(quotas));
