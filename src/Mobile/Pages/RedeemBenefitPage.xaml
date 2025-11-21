@@ -40,26 +40,54 @@
             </Frame>
 
             <!-- Success Message -->
-            <Frame IsVisible="{Binding HasSuccess}"
-                   BackgroundColor="#E6F4EA"
-                   BorderColor="#34A853"
-                   CornerRadius="8"
-                   Padding="15"
-                   Margin="0,0,0,10">
-                <VerticalStackLayout Spacing="10">
-                    <Label Text="✓ Beneficio canjeado exitosamente"
-                           TextColor="#137333"
-                           FontSize="16"
-                           FontAttributes="Bold" />
-                    <Label Text="{Binding SuccessMessage}"
-                           TextColor="#137333"
-                           FontSize="14" />
-                </VerticalStackLayout>
-            </Frame>
+            <VerticalStackLayout IsVisible="{Binding HasSuccess}"
+                               Spacing="20">
+                <Frame BackgroundColor="#E6F4EA"
+                       BorderColor="#34A853"
+                       CornerRadius="10"
+                       Padding="20">
+                    <VerticalStackLayout Spacing="15">
+                        <Label Text="✓"
+                               FontSize="48"
+                               TextColor="#34A853"
+                               HorizontalOptions="Center"
+                               FontAttributes="Bold" />
+                        <Label Text="Beneficio Canjeado Exitosamente"
+                               TextColor="#137333"
+                               FontSize="20"
+                               FontAttributes="Bold"
+                               HorizontalTextAlignment="Center" />
+                        <Label Text="{Binding SuccessMessage}"
+                               TextColor="#137333"
+                               FontSize="16"
+                               HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </Frame>
 
-            <!-- Benefits List (cuando no hay beneficio seleccionado) -->
-            <VerticalStackLayout IsVisible="{Binding ShowConfirmation, Converter={StaticResource InvertedBoolConverter}}"
-                               Spacing="15">
+                <Button Text="Volver a la Lista"
+                        Command="{Binding BackToListCommand}"
+                        BackgroundColor="{StaticResource Primary}"
+                        TextColor="White"
+                        FontAttributes="Bold"
+                        HeightRequest="50"
+                        CornerRadius="10"
+                        Margin="0,10,0,0" />
+            </VerticalStackLayout>
+
+            <!-- Benefits List (cuando no hay beneficio seleccionado y no hay éxito) -->
+            <VerticalStackLayout Spacing="15">
+                <VerticalStackLayout.Triggers>
+                    <DataTrigger TargetType="VerticalStackLayout"
+                               Binding="{Binding ShowConfirmation}"
+                               Value="True">
+                        <Setter Property="IsVisible" Value="False" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="VerticalStackLayout"
+                               Binding="{Binding HasSuccess}"
+                               Value="True">
+                        <Setter Property="IsVisible" Value="False" />
+                    </DataTrigger>
+                </VerticalStackLayout.Triggers>
                 
                 <CollectionView ItemsSource="{Binding Benefits}"
                               SelectionMode="None"
@@ -160,9 +188,20 @@
                         CornerRadius="10" />
             </VerticalStackLayout>
 
-            <!-- Confirmation View (cuando hay beneficio seleccionado) -->
-            <VerticalStackLayout IsVisible="{Binding ShowConfirmation}"
-                               Spacing="15">
+            <!-- Confirmation View (cuando hay beneficio seleccionado y no hay éxito) -->
+            <VerticalStackLayout Spacing="15">
+                <VerticalStackLayout.Triggers>
+                    <DataTrigger TargetType="VerticalStackLayout"
+                               Binding="{Binding ShowConfirmation}"
+                               Value="False">
+                        <Setter Property="IsVisible" Value="False" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="VerticalStackLayout"
+                               Binding="{Binding HasSuccess}"
+                               Value="True">
+                        <Setter Property="IsVisible" Value="False" />
+                    </DataTrigger>
+                </VerticalStackLayout.Triggers>
                 
                 <!-- Resumen del beneficio -->
                 <Frame BorderColor="{StaticResource Primary}"

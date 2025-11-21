@@ -80,14 +80,19 @@ public class RedeemBenefitViewModel : BaseViewModel
         BackToListCommand = new Command(BackToList);
     }
 
-    private async Task LoadBenefitsAsync()
+    private async Task LoadBenefitsAsync(bool clearSuccessMessage = true)
     {
         if (IsBusy) return;
 
         IsBusy = true;
         HasError = false;
         ErrorMessage = string.Empty;
-        HasSuccess = false;
+        
+        // Solo limpiar el mensaje de éxito si se solicita explícitamente
+        if (clearSuccessMessage)
+        {
+            HasSuccess = false;
+        }
 
         try
         {
@@ -178,12 +183,17 @@ public class RedeemBenefitViewModel : BaseViewModel
 
             if (result.Success)
             {
+                // Limpiar cualquier error previo
+                HasError = false;
+                ErrorMessage = string.Empty;
+                
+                // Actualizar la lista SIN limpiar el mensaje de éxito
+                await LoadBenefitsAsync(clearSuccessMessage: false);
+                
+                // Mostrar mensaje de éxito
                 SuccessMessage = result.Message;
                 HasSuccess = true;
                 ShowConfirmation = false;
-                
-                // Recargar beneficios
-                await LoadBenefitsAsync();
                 
                 System.Diagnostics.Debug.WriteLine($"[RedeemBenefitViewModel] Benefit redeemed successfully");
             }
