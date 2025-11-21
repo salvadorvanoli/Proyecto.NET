@@ -236,12 +236,23 @@ try
                 await EnsureDatabaseExistsAsync(connectionString, logger);
             }
 
-            // Obtener el DbSeeder y ejecutar migraciones
-            var dbSeeder = services.GetRequiredService<DbSeeder>();
-            await dbSeeder.MigrateAsync();
+            // Aplicar migraciones pendientes
+            var context = services.GetRequiredService<ApplicationDbContext>();
+            logger.LogInformation("Checking for pending migrations...");
+            var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+            
+            if (pendingMigrations.Any())
+            {
+                logger.LogInformation("Applying {Count} pending migrations", pendingMigrations.Count());
+                await context.Database.MigrateAsync();
+                logger.LogInformation("Migrations applied successfully");
+            }
+            else
+            {
+                logger.LogInformation("Database is up to date. No migrations needed.");
+            }
 
             // Crear las tablas si no existen (para cuando no hay migraciones)
-            var context = services.GetRequiredService<ApplicationDbContext>();
             await context.Database.EnsureCreatedAsync();
             
             // Alternativamente, se puede usar MigrateAsync() en lugar de EnsureCreatedAsync()

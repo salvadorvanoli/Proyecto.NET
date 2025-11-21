@@ -27,7 +27,7 @@ public partial class ProfilePage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error in ProfilePage.OnAppearing: {ex.Message}");
-            await DisplayAlert("Error", $"No se pudo cargar el perfil: {ex.Message}", "OK");
+            // Error handling is now in the ViewModel
         }
     }
 }

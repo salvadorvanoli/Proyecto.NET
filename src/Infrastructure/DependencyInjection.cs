@@ -47,8 +47,6 @@ public static class DependencyInjection
         // Token service for JWT generation
         services.AddSingleton<ITokenService, TokenService>();
 
-        // Register database seeder
-        services.AddScoped<DbSeeder>();
         services.AddScoped<INotificationHubService, NotificationHubService>();
 
         return services;

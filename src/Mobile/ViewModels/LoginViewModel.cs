@@ -7,6 +7,7 @@ namespace Mobile.ViewModels;
 public class LoginViewModel : BaseViewModel
 {
     private readonly IAuthService _authService;
+    private readonly INavigationService _navigationService;
     private string _username = string.Empty;
     private string _password = string.Empty;
     private string _errorMessage = string.Empty;
@@ -38,9 +39,10 @@ public class LoginViewModel : BaseViewModel
 
     public ICommand LoginCommand { get; }
 
-    public LoginViewModel(IAuthService authService)
+    public LoginViewModel(IAuthService authService, INavigationService navigationService)
     {
         _authService = authService;
+        _navigationService = navigationService;
         LoginCommand = new Command(async () => await LoginAsync());
     }
 
@@ -69,7 +71,7 @@ public class LoginViewModel : BaseViewModel
             if (result != null)
             {
                 // Login exitoso - navegar a CredentialPage
-                await Shell.Current.GoToAsync("//CredentialPage");
+                await _navigationService.NavigateToAsync("//CredentialPage");
             }
             else
             {

@@ -8,6 +8,7 @@ namespace Mobile.ViewModels;
 public class AccessHistoryViewModel : BaseViewModel
 {
     private readonly IAccessEventService _accessEventService;
+    private readonly IDialogService _dialogService;
     private readonly SemaphoreSlim _loadSemaphore = new SemaphoreSlim(1, 1);
     
     private bool _isLoading;
@@ -40,9 +41,18 @@ public class AccessHistoryViewModel : BaseViewModel
     public ICommand LoadMoreCommand { get; }
     public ICommand RefreshCommand { get; }
 
-    public AccessHistoryViewModel(IAccessEventService accessEventService)
+    /// <summary>
+    /// Initializes the ViewModel. Called when the page appears.
+    /// </summary>
+    public async Task InitializeAsync()
+    {
+        await RefreshEventsAsync();
+    }
+
+    public AccessHistoryViewModel(IAccessEventService accessEventService, IDialogService dialogService)
     {
         _accessEventService = accessEventService;
+        _dialogService = dialogService;
         
         Title = "Historial de Accesos";
         
@@ -73,11 +83,6 @@ public class AccessHistoryViewModel : BaseViewModel
                 System.Diagnostics.Debug.WriteLine("✅ RefreshEventsAsync completado después de recibir EventsSynced");
             });
         });
-    }
-
-    public async Task InitializeAsync()
-    {
-        await LoadEventsAsync();
     }
 
     private async Task LoadEventsAsync()
@@ -114,10 +119,9 @@ public class AccessHistoryViewModel : BaseViewModel
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error loading events: {ex.Message}");
-            await Shell.Current.DisplayAlert(
+            await _dialogService.ShowAlertAsync(
                 "Error",
-                "No se pudieron cargar los eventos de acceso",
-                "OK");
+                "No se pudieron cargar los eventos de acceso");
         }
         finally
         {

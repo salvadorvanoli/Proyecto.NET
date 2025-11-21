@@ -420,6 +420,31 @@ public static class DatabaseSeeder
 
             Console.WriteLine($"   Usuario Mobile creado: {regularUser.Email}");
             Console.WriteLine($"   Credencial asignada: ID={credential.Id}");
+
+            // Create Usages (assign benefits to mobile user)
+            var tenantBenefits = await context.Benefits
+                .Where(b => b.TenantId == tenant.Id)
+                .ToListAsync();
+
+            if (tenantBenefits.Any())
+            {
+                Console.WriteLine($"\n🎁 Assigning {tenantBenefits.Count} benefits to mobile user...");
+                
+                foreach (var benefit in tenantBenefits)
+                {
+                    var usage = new Usage(
+                        tenantId: tenant.Id,
+                        benefitId: benefit.Id,
+                        userId: regularUser.Id,
+                        quantity: 5 // Asignar 5 usos por beneficio
+                    );
+                    
+                    context.Usages.Add(usage);
+                }
+
+                await context.SaveChangesAsync();
+                Console.WriteLine($"   ✅ {tenantBenefits.Count} benefits assigned to {regularUser.Email}");
+            }
         }
 
         // Seed Access Rules for Control Points

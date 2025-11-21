@@ -62,6 +62,10 @@ public static class MauiProgram
 		
 		builder.Services.AddSingleton<IAuthService, AuthService>();
 		
+		// Register Navigation and Dialog Services for MVVM
+		builder.Services.AddSingleton<INavigationService, NavigationService>();
+		builder.Services.AddSingleton<IDialogService, DialogService>();
+		
 		// Configure HttpClient for UserService
 		builder.Services.AddHttpClient("UserClient", client =>
 		{
