@@ -9,8 +9,13 @@ namespace Infrastructure.Persistence;
 /// </summary>
 public class ApplicationDbContext : DbContext, IApplicationDbContext
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
+    private readonly ITenantProvider? _tenantProvider;
+
+    public ApplicationDbContext(
+        DbContextOptions<ApplicationDbContext> options,
+        ITenantProvider? tenantProvider = null) : base(options)
     {
+        _tenantProvider = tenantProvider;
     }
 
     // DbSets for all entities
@@ -37,8 +42,23 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
         // Apply all entity configurations
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
-        // Global query filters for multi-tenancy (except for Tenant entity)
-        // This ensures that all queries automatically filter by tenant
+        // ========================================
+        // MULTI-TENANCY: Global Query Filters
+        // ========================================
+        // Automatically filters ALL queries by TenantId to ensure data isolation
+        // between tenants. This provides an additional security layer on top of
+        // manual filtering in services.
+        //
+        // HOW IT WORKS:
+        // - During runtime (HTTP requests): ITenantProvider extracts tenant from JWT
+        // - During migrations/seeds: ITenantProvider is null, so filters are skipped
+        // - To bypass filters in code: use .IgnoreQueryFilters() in LINQ queries
+        //
+        // SECURITY BENEFITS:
+        // - Prevents accidental cross-tenant data leaks
+        // - Protects against forgotten .Where(x => x.TenantId == ...) filters
+        // - Works transparently with Include(), joins, and complex queries
+        // ========================================
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))
@@ -54,12 +74,18 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
 
     /// <summary>
     /// Sets up global query filter for tenant isolation.
+    /// IMPORTANT: This filter is only applied when a TenantProvider is available (runtime queries).
+    /// During migrations and seeds, TenantProvider is null, so the filter is not applied.
     /// </summary>
     private void SetTenantQueryFilter<T>(ModelBuilder modelBuilder) where T : BaseEntity
     {
-        // This would need to be implemented with a tenant provider in a real application
-        // For now, we'll comment it out to avoid compilation issues
-        // modelBuilder.Entity<T>().HasQueryFilter(e => e.TenantId == CurrentTenantId);
+        // Only apply filter if TenantProvider is available (runtime scenarios)
+        // This allows migrations and seeds to work without issues
+        if (_tenantProvider != null)
+        {
+            modelBuilder.Entity<T>().HasQueryFilter(e => 
+                e.TenantId == _tenantProvider.GetCurrentTenantId());
+        }
     }
 
     /// <summary>

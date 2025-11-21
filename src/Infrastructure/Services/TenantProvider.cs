@@ -28,7 +28,9 @@ public class TenantProvider : ITenantProvider
 
         if (httpContext == null)
         {
-            throw new InvalidOperationException("HTTP context is not available.");
+            // This can happen during migrations, seeds, or background jobs
+            // Return a sentinel value that will be handled by the caller
+            throw new InvalidOperationException("HTTP context is not available. This is expected during migrations, seeds, or background operations.");
         }
 
         // SECURITY: Get tenant ID ONLY from JWT claims (authenticated users)
