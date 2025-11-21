@@ -86,11 +86,12 @@ public static class MauiProgram
 		// Configure HttpClient for BenefitService
 		builder.Services.AddHttpClient("BenefitClient", client =>
 		{
-			client.BaseAddress = new Uri("http://192.168.1.2:5000/");
-			client.Timeout = TimeSpan.FromSeconds(30);
-			client.DefaultRequestHeaders.Add("X-Tenant-Id", "1");
+			client.BaseAddress = new Uri(baseUrl);
+			client.Timeout = TimeSpan.FromSeconds(appSettings.ApiSettings.Timeout);
+			client.DefaultRequestHeaders.Add("X-Tenant-Id", tenantId);
+			client.DefaultRequestHeaders.Add("User-Agent", "IndigoMobileApp/1.0");
 		})
-		.AddHttpMessageHandler<JwtTokenHandler>();
+		.ConfigurePrimaryHttpMessageHandler(() => CreateSecureHttpHandler(appSettings));
 		builder.Services.AddSingleton<IBenefitService, BenefitService>();
 		
 		// Register SQLite Database
