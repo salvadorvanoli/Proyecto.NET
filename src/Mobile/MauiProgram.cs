@@ -75,7 +75,11 @@ public static class MauiProgram
 #if ANDROID
 		builder.Services.AddSingleton<INfcCredentialService, Platforms.Android.Services.NfcCredentialService>();
 		builder.Services.AddSingleton<IBiometricAuthService, Platforms.Android.Services.BiometricAuthService>();
+		builder.Services.AddSingleton<INotificationService, Platforms.Android.Services.NotificationService>();
 #endif
+		
+		// Register Connectivity Monitor Service
+		builder.Services.AddSingleton<IConnectivityMonitorService, ConnectivityMonitorService>();
 		
 		// Register ViewModels
 		builder.Services.AddTransient<LoginViewModel>();

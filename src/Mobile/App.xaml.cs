@@ -7,13 +7,18 @@ public partial class App : Microsoft.Maui.Controls.Application
 {
 	private readonly ISyncService _syncService;
 	private readonly IAuthService _authService;
+	private readonly IConnectivityMonitorService _connectivityMonitor;
 	
-	public App(IAuthService authService, ISyncService syncService)
+	public App(IAuthService authService, ISyncService syncService, IConnectivityMonitorService connectivityMonitor)
 	{
 		InitializeComponent();
 
 		_authService = authService;
 		_syncService = syncService;
+		_connectivityMonitor = connectivityMonitor;
+
+		// Iniciar monitoreo de conectividad
+		_connectivityMonitor.StartMonitoring();
 
 		// Mostrar pantalla de login por defecto
 		MainPage = new NavigationPage(new LoginPage(new ViewModels.LoginViewModel(authService)));
