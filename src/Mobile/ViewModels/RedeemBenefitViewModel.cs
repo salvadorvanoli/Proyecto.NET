@@ -77,7 +77,7 @@ public class RedeemBenefitViewModel : BaseViewModel
         ConfirmSelectionCommand = new Command(ConfirmSelection);
         RedeemBenefitCommand = new Command(async () => await RedeemBenefitAsync());
         CancelCommand = new Command(Cancel);
-        BackToListCommand = new Command(BackToList);
+        BackToListCommand = new Command(async () => await BackToListAsync());
     }
 
     private async Task LoadBenefitsAsync(bool clearSuccessMessage = true)
@@ -85,12 +85,12 @@ public class RedeemBenefitViewModel : BaseViewModel
         if (IsBusy) return;
 
         IsBusy = true;
-        HasError = false;
-        ErrorMessage = string.Empty;
         
-        // Solo limpiar el mensaje de éxito si se solicita explícitamente
+        // Solo limpiar mensajes si se solicita explícitamente
         if (clearSuccessMessage)
         {
+            HasError = false;
+            ErrorMessage = string.Empty;
             HasSuccess = false;
         }
 
@@ -99,8 +99,12 @@ public class RedeemBenefitViewModel : BaseViewModel
             var currentUser = await _authService.GetCurrentUserAsync();
             if (currentUser == null)
             {
-                ErrorMessage = "Usuario no autenticado";
-                HasError = true;
+                // Solo mostrar error si no hay un mensaje de éxito activo
+                if (!HasSuccess)
+                {
+                    ErrorMessage = "Usuario no autenticado";
+                    HasError = true;
+                }
                 return;
             }
 
@@ -119,8 +123,12 @@ public class RedeemBenefitViewModel : BaseViewModel
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[RedeemBenefitViewModel] Error loading benefits: {ex.Message}");
-            ErrorMessage = $"Error al cargar beneficios: {ex.Message}";
-            HasError = true;
+            // Solo mostrar error si no hay un mensaje de éxito activo
+            if (!HasSuccess)
+            {
+                ErrorMessage = $"Error al cargar beneficios: {ex.Message}";
+                HasError = true;
+            }
         }
         finally
         {
@@ -187,10 +195,7 @@ public class RedeemBenefitViewModel : BaseViewModel
                 HasError = false;
                 ErrorMessage = string.Empty;
                 
-                // Actualizar la lista SIN limpiar el mensaje de éxito
-                await LoadBenefitsAsync(clearSuccessMessage: false);
-                
-                // Mostrar mensaje de éxito
+                // Mostrar mensaje de éxito (la lista se recargará cuando presione "Volver")
                 SuccessMessage = result.Message;
                 HasSuccess = true;
                 ShowConfirmation = false;
@@ -222,7 +227,7 @@ public class RedeemBenefitViewModel : BaseViewModel
         ErrorMessage = string.Empty;
     }
 
-    private void BackToList()
+    private async Task BackToListAsync()
     {
         SelectedBenefit = null;
         ShowConfirmation = false;
@@ -230,5 +235,8 @@ public class RedeemBenefitViewModel : BaseViewModel
         HasSuccess = false;
         ErrorMessage = string.Empty;
         SuccessMessage = string.Empty;
+        
+        // Recargar la lista con datos frescos del backend
+        await LoadBenefitsAsync(clearSuccessMessage: true);
     }
 }
