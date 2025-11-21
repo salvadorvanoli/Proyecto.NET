@@ -159,6 +159,108 @@ jobs:
           # Import DB Subnet Group
           terraform import aws_db_subnet_group.main proyectonet-db-subnet-group 2>/dev/null || echo "DB subnet group already imported or doesn't exist"
 
+          # Import VPC
+          VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=proyectonet-vpc" --region $AWS_REGION --query 'Vpcs[0].VpcId' --output text 2>/dev/null || echo "")
+          if [ -n "$VPC_ID" ] && [ "$VPC_ID" != "None" ]; then
+            terraform import aws_vpc.main "$VPC_ID" 2>/dev/null || echo "VPC already imported"
+          fi
+
+          # Import Internet Gateway
+          IGW_ID=$(aws ec2 describe-internet-gateways --filters "Name=tag:Name,Values=proyectonet-igw" --region $AWS_REGION --query 'InternetGateways[0].InternetGatewayId' --output text 2>/dev/null || echo "")
+          if [ -n "$IGW_ID" ] && [ "$IGW_ID" != "None" ]; then
+            terraform import aws_internet_gateway.main "$IGW_ID" 2>/dev/null || echo "IGW already imported"
+          fi
+
+          # Import Security Groups
+          ALB_SG_ID=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=proyectonet-alb-sg" --region $AWS_REGION --query 'SecurityGroups[0].GroupId' --output text 2>/dev/null || echo "")
+          if [ -n "$ALB_SG_ID" ] && [ "$ALB_SG_ID" != "None" ]; then
+            terraform import aws_security_group.alb "$ALB_SG_ID" 2>/dev/null || echo "ALB SG already imported"
+          fi
+
+          ECS_SG_ID=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=proyectonet-ecs-tasks-sg" --region $AWS_REGION --query 'SecurityGroups[0].GroupId' --output text 2>/dev/null || echo "")
+          if [ -n "$ECS_SG_ID" ] && [ "$ECS_SG_ID" != "None" ]; then
+            terraform import aws_security_group.ecs_tasks "$ECS_SG_ID" 2>/dev/null || echo "ECS tasks SG already imported"
+          fi
+
+          RDS_SG_ID=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=proyectonet-rds-sg" --region $AWS_REGION --query 'SecurityGroups[0].GroupId' --output text 2>/dev/null || echo "")
+          if [ -n "$RDS_SG_ID" ] && [ "$RDS_SG_ID" != "None" ]; then
+            terraform import aws_security_group.rds "$RDS_SG_ID" 2>/dev/null || echo "RDS SG already imported"
+          fi
+
+          # Import Subnets
+          PUBLIC_SUBNETS=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=proyectonet-public-subnet-*" --region $AWS_REGION --query 'Subnets[*].SubnetId' --output text 2>/dev/null || echo "")
+          if [ -n "$PUBLIC_SUBNETS" ]; then
+            idx=0
+            for subnet_id in $PUBLIC_SUBNETS; do
+              terraform import "aws_subnet.public[$idx]" "$subnet_id" 2>/dev/null || echo "Public subnet $idx already imported"
+              idx=$((idx + 1))
+            done
+          fi
+
+          PRIVATE_SUBNETS=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=proyectonet-private-subnet-*" --region $AWS_REGION --query 'Subnets[*].SubnetId' --output text 2>/dev/null || echo "")
+          if [ -n "$PRIVATE_SUBNETS" ]; then
+            idx=0
+            for subnet_id in $PRIVATE_SUBNETS; do
+              terraform import "aws_subnet.private[$idx]" "$subnet_id" 2>/dev/null || echo "Private subnet $idx already imported"
+              idx=$((idx + 1))
+            done
+          fi
+
+          # Import Route Tables
+          PUBLIC_RT_ID=$(aws ec2 describe-route-tables --filters "Name=tag:Name,Values=proyectonet-public-rt" --region $AWS_REGION --query 'RouteTables[0].RouteTableId' --output text 2>/dev/null || echo "")
+          if [ -n "$PUBLIC_RT_ID" ] && [ "$PUBLIC_RT_ID" != "None" ]; then
+            terraform import aws_route_table.public "$PUBLIC_RT_ID" 2>/dev/null || echo "Public RT already imported"
+          fi
+
+          PRIVATE_RT_ID=$(aws ec2 describe-route-tables --filters "Name=tag:Name,Values=proyectonet-private-rt" --region $AWS_REGION --query 'RouteTables[0].RouteTableId' --output text 2>/dev/null || echo "")
+          if [ -n "$PRIVATE_RT_ID" ] && [ "$PRIVATE_RT_ID" != "None" ]; then
+            terraform import aws_route_table.private "$PRIVATE_RT_ID" 2>/dev/null || echo "Private RT already imported"
+          fi
+
+          # Import ECS Cluster
+          CLUSTER_ARN=$(aws ecs describe-clusters --clusters proyectonet-cluster --region $AWS_REGION --query 'clusters[0].clusterArn' --output text 2>/dev/null || echo "")
+          if [ -n "$CLUSTER_ARN" ] && [ "$CLUSTER_ARN" != "None" ] && [ "$CLUSTER_ARN" != "null" ]; then
+            terraform import aws_ecs_cluster.main "$CLUSTER_ARN" 2>/dev/null || echo "ECS cluster already imported"
+          fi
+
+          # Import ECS Services
+          API_SERVICE=$(aws ecs describe-services --cluster proyectonet-cluster --services proyectonet-api-service --region $AWS_REGION --query 'services[0].serviceArn' --output text 2>/dev/null || echo "")
+          if [ -n "$API_SERVICE" ] && [ "$API_SERVICE" != "None" ] && [ "$API_SERVICE" != "null" ]; then
+            terraform import aws_ecs_service.api "$API_SERVICE" 2>/dev/null || echo "API service already imported"
+          fi
+
+          BACKOFFICE_SERVICE=$(aws ecs describe-services --cluster proyectonet-cluster --services proyectonet-backoffice-service --region $AWS_REGION --query 'services[0].serviceArn' --output text 2>/dev/null || echo "")
+          if [ -n "$BACKOFFICE_SERVICE" ] && [ "$BACKOFFICE_SERVICE" != "None" ] && [ "$BACKOFFICE_SERVICE" != "null" ]; then
+            terraform import aws_ecs_service.backoffice "$BACKOFFICE_SERVICE" 2>/dev/null || echo "BackOffice service already imported"
+          fi
+
+          FRONTOFFICE_SERVICE=$(aws ecs describe-services --cluster proyectonet-cluster --services proyectonet-frontoffice-service --region $AWS_REGION --query 'services[0].serviceArn' --output text 2>/dev/null || echo "")
+          if [ -n "$FRONTOFFICE_SERVICE" ] && [ "$FRONTOFFICE_SERVICE" != "None" ] && [ "$FRONTOFFICE_SERVICE" != "null" ]; then
+            terraform import aws_ecs_service.frontoffice "$FRONTOFFICE_SERVICE" 2>/dev/null || echo "FrontOffice service already imported"
+          fi
+
+          # Import ECS Task Definitions (latest revision)
+          API_TASK_DEF=$(aws ecs describe-task-definition --task-definition proyectonet-api --region $AWS_REGION --query 'taskDefinition.taskDefinitionArn' --output text 2>/dev/null || echo "")
+          if [ -n "$API_TASK_DEF" ] && [ "$API_TASK_DEF" != "None" ] && [ "$API_TASK_DEF" != "null" ]; then
+            terraform import aws_ecs_task_definition.api "$API_TASK_DEF" 2>/dev/null || echo "API task definition already imported"
+          fi
+
+          BACKOFFICE_TASK_DEF=$(aws ecs describe-task-definition --task-definition proyectonet-backoffice --region $AWS_REGION --query 'taskDefinition.taskDefinitionArn' --output text 2>/dev/null || echo "")
+          if [ -n "$BACKOFFICE_TASK_DEF" ] && [ "$BACKOFFICE_TASK_DEF" != "None" ] && [ "$BACKOFFICE_TASK_DEF" != "null" ]; then
+            terraform import aws_ecs_task_definition.backoffice "$BACKOFFICE_TASK_DEF" 2>/dev/null || echo "BackOffice task definition already imported"
+          fi
+
+          FRONTOFFICE_TASK_DEF=$(aws ecs describe-task-definition --task-definition proyectonet-frontoffice --region $AWS_REGION --query 'taskDefinition.taskDefinitionArn' --output text 2>/dev/null || echo "")
+          if [ -n "$FRONTOFFICE_TASK_DEF" ] && [ "$FRONTOFFICE_TASK_DEF" != "None" ] && [ "$FRONTOFFICE_TASK_DEF" != "null" ]; then
+            terraform import aws_ecs_task_definition.frontoffice "$FRONTOFFICE_TASK_DEF" 2>/dev/null || echo "FrontOffice task definition already imported"
+          fi
+
+          # Import RDS Instance if exists
+          RDS_ID=$(aws rds describe-db-instances --db-instance-identifier proyectonet-sqlserver --region $AWS_REGION --query 'DBInstances[0].DBInstanceIdentifier' --output text 2>/dev/null || echo "")
+          if [ -n "$RDS_ID" ] && [ "$RDS_ID" != "None" ]; then
+            terraform import aws_db_instance.sqlserver "$RDS_ID" 2>/dev/null || echo "RDS instance already imported"
+          fi
+
           echo "Import process completed!"
 
       - name: Terraform Validate
