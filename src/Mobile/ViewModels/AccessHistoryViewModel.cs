@@ -8,6 +8,7 @@ namespace Mobile.ViewModels;
 public class AccessHistoryViewModel : BaseViewModel
 {
     private readonly IAccessEventService _accessEventService;
+    private readonly SemaphoreSlim _loadSemaphore = new SemaphoreSlim(1, 1);
     
     private bool _isLoading;
     private bool _isLoadingMore;
@@ -83,23 +84,23 @@ public class AccessHistoryViewModel : BaseViewModel
     {
         System.Diagnostics.Debug.WriteLine("🔄 LoadEventsAsync INICIADO");
         
-        if (IsLoading)
+        // Usar semáforo para evitar cargas concurrentes
+        if (!await _loadSemaphore.WaitAsync(0))
         {
-            System.Diagnostics.Debug.WriteLine("⚠️ LoadEventsAsync - Ya está cargando, saliendo");
+            System.Diagnostics.Debug.WriteLine("⚠️ LoadEventsAsync - Ya hay una carga en progreso, saliendo");
             return;
         }
 
-        IsLoading = true;
-
         try
         {
+            IsLoading = true;
+            
             System.Diagnostics.Debug.WriteLine("🧹 Limpiando eventos actuales. Count antes: {0}", AccessEvents.Count);
             _currentPage = 0;
             AccessEvents.Clear();
 
             System.Diagnostics.Debug.WriteLine("🌐 Solicitando eventos al servicio (skip=0, take={0})", PageSize);
             var events = await _accessEventService.GetMyAccessEventsAsync(0, PageSize);
-            System.Diagnostics.Debug.WriteLine("📦 Eventos recibidos del servicio: {0}", events.Count);
             System.Diagnostics.Debug.WriteLine("📦 Eventos recibidos del servicio: {0}", events.Count);
             
             foreach (var evt in events)
@@ -121,6 +122,8 @@ public class AccessHistoryViewModel : BaseViewModel
         finally
         {
             IsLoading = false;
+            _loadSemaphore.Release();
+            System.Diagnostics.Debug.WriteLine("✅ LoadEventsAsync COMPLETADO - Semáforo liberado");
         }
     }
 
