@@ -401,7 +401,6 @@ public class AccessNfcViewModel : BaseViewModel
                     // SIEMPRE validar con backend - El punto de control NUNCA está offline
                     _logger.LogInformation("========================================");
                     _logger.LogInformation("🌐 VALIDATING WITH BACKEND");
-                    _logger.LogInformation("Backend URL: http://192.168.1.28:5000");
                     _logger.LogInformation("UserId to send: {UserId}", userIdToValidate ?? -1);
                     _logger.LogInformation("CredentialId to send: {CredentialId}", credentialIdToValidate ?? -1);
                     _logger.LogInformation("ControlPointId: {ControlPointId}", controlPointIdToUse);

@@ -37,7 +37,7 @@ public static class MauiProgram
 		if (string.IsNullOrEmpty(baseUrl))
 		{
 			// Default para desarrollo local
-			baseUrl = "http://192.168.1.3:5000/";
+			baseUrl = "http://192.168.1.28:5000/";
 			System.Diagnostics.Debug.WriteLine("⚠️ Usando BaseUrl por defecto para desarrollo");
 		}
 		
