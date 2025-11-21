@@ -37,7 +37,7 @@ public static class MauiProgram
 		if (string.IsNullOrEmpty(baseUrl))
 		{
 			// Default para desarrollo local
-			baseUrl = "http://192.168.1.28:5000/";
+			baseUrl = "http://192.168.1.3:5000/";
 			System.Diagnostics.Debug.WriteLine("⚠️ Usando BaseUrl por defecto para desarrollo");
 		}
 		
@@ -46,6 +46,9 @@ public static class MauiProgram
 		{
 			tenantId = "1";
 		}
+
+		// Register JWT Token Handler
+		builder.Services.AddTransient<JwtTokenHandler>();
 
 		// Configurar HttpClient con seguridad mejorada
 		builder.Services.AddHttpClient("AuthClient", client =>
@@ -59,41 +62,39 @@ public static class MauiProgram
 		
 		builder.Services.AddSingleton<IAuthService, AuthService>();
 		
-		// Configure HttpClient for UserService
-		builder.Services.AddHttpClient("UserClient", client =>
-		{
-			client.BaseAddress = new Uri(baseUrl);
-			client.Timeout = TimeSpan.FromSeconds(appSettings.ApiSettings.Timeout);
-			client.DefaultRequestHeaders.Add("X-Tenant-Id", tenantId);
-			client.DefaultRequestHeaders.Add("User-Agent", "IndigoMobileApp/1.0");
-		})
-		.ConfigurePrimaryHttpMessageHandler(() => CreateSecureHttpHandler(appSettings));
-		
-		builder.Services.AddSingleton<IUserService, UserService>();
-		
-		// Configure HttpClient for AccessEventService
-		builder.Services.AddHttpClient("AccessEventClient", client =>
-		{
-			client.BaseAddress = new Uri(baseUrl);
-			client.Timeout = TimeSpan.FromSeconds(appSettings.ApiSettings.Timeout);
-			client.DefaultRequestHeaders.Add("X-Tenant-Id", tenantId);
-			client.DefaultRequestHeaders.Add("User-Agent", "IndigoMobileApp/1.0");
-		})
-		.ConfigurePrimaryHttpMessageHandler(() => CreateSecureHttpHandler(appSettings));
-		
-		builder.Services.AddSingleton<IAccessEventService, AccessEventService>();
-		
-		// Configure HttpClient for BenefitService
-		builder.Services.AddHttpClient("BenefitClient", client =>
-		{
-			client.BaseAddress = new Uri("http://192.168.1.2:5000/");
-			client.Timeout = TimeSpan.FromSeconds(30);
-			client.DefaultRequestHeaders.Add("X-Tenant-Id", "1");
-		})
-		.AddHttpMessageHandler<JwtTokenHandler>();
-		builder.Services.AddSingleton<IBenefitService, BenefitService>();
-		
-		// Register SQLite Database
+	// Configure HttpClient for UserService
+	builder.Services.AddHttpClient("UserClient", client =>
+	{
+		client.BaseAddress = new Uri(baseUrl);
+		client.Timeout = TimeSpan.FromSeconds(appSettings.ApiSettings.Timeout);
+		client.DefaultRequestHeaders.Add("X-Tenant-Id", tenantId);
+		client.DefaultRequestHeaders.Add("User-Agent", "IndigoMobileApp/1.0");
+	})
+	.ConfigurePrimaryHttpMessageHandler(() => CreateSecureHttpHandler(appSettings))
+	.AddHttpMessageHandler<JwtTokenHandler>();
+	
+	builder.Services.AddSingleton<IUserService, UserService>();	// Configure HttpClient for AccessEventService
+	builder.Services.AddHttpClient("AccessEventClient", client =>
+	{
+		client.BaseAddress = new Uri(baseUrl);
+		client.Timeout = TimeSpan.FromSeconds(appSettings.ApiSettings.Timeout);
+		client.DefaultRequestHeaders.Add("X-Tenant-Id", tenantId);
+		client.DefaultRequestHeaders.Add("User-Agent", "IndigoMobileApp/1.0");
+	})
+	.ConfigurePrimaryHttpMessageHandler(() => CreateSecureHttpHandler(appSettings))
+	.AddHttpMessageHandler<JwtTokenHandler>();
+	
+	builder.Services.AddSingleton<IAccessEventService, AccessEventService>();	// Configure HttpClient for BenefitService
+	builder.Services.AddHttpClient("BenefitClient", client =>
+	{
+		client.BaseAddress = new Uri(baseUrl);
+		client.Timeout = TimeSpan.FromSeconds(appSettings.ApiSettings.Timeout);
+		client.DefaultRequestHeaders.Add("X-Tenant-Id", tenantId);
+		client.DefaultRequestHeaders.Add("User-Agent", "IndigoMobileApp/1.0");
+	})
+	.ConfigurePrimaryHttpMessageHandler(() => CreateSecureHttpHandler(appSettings))
+	.AddHttpMessageHandler<JwtTokenHandler>();
+	builder.Services.AddSingleton<IBenefitService, BenefitService>();		// Register SQLite Database
 		builder.Services.AddSingleton<ILocalDatabase, LocalDatabase>();
 		
 		// Register SyncService
