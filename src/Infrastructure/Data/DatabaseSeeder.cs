@@ -191,6 +191,7 @@ public static class DatabaseSeeder
                     benefitType.TenantId,
                     benefitType.Id,
                     quotas: 50,
+                    quantity: 10,
                     validityPeriod: validityPeriod
                 );
 
@@ -202,67 +203,8 @@ public static class DatabaseSeeder
             Console.WriteLine("Benefits created successfully!");
         }
 
-        // Seed Consumptions (sample data for some users)
-        if (!await context.Consumptions.AnyAsync())
-        {
-            Console.WriteLine("\nCreating sample usages and consumptions...");
-            
-            var allUsers = await context.Users.ToListAsync();
-            var allBenefits = await context.Benefits.Include(b => b.BenefitType).ToListAsync();
-
-            var usages = new List<Usage>();
-
-            // Create some sample usages for the first user of each tenant
-            foreach (var tenant in await context.Tenants.ToListAsync())
-            {
-                var firstUser = allUsers.FirstOrDefault(u => u.TenantId == tenant.Id);
-                if (firstUser == null) continue;
-
-                var tenantBenefits = allBenefits.Where(b => b.TenantId == tenant.Id).ToList();
-                
-                // Add usage for first 2 benefits
-                for (int i = 0; i < Math.Min(2, tenantBenefits.Count); i++)
-                {
-                    var benefit = tenantBenefits[i];
-                    var usage = new Usage(
-                        tenant.Id,
-                        benefitId: benefit.Id,
-                        userId: firstUser.Id,
-                        quantity: 1
-                    );
-
-                    usages.Add(usage);
-                }
-            }
-
-            context.Usages.AddRange(usages);
-            await context.SaveChangesAsync();
-
-            // Add consumptions for usages
-            var savedUsages = await context.Usages.ToListAsync();
-            var consumptions = new List<Consumption>();
-
-            foreach (var usage in savedUsages)
-            {
-                // Add 1-3 consumptions per usage
-                var consumptionCount = new Random().Next(1, 4);
-                for (int i = 0; i < consumptionCount; i++)
-                {
-                    var consumption = new Consumption(
-                        usage.TenantId,
-                        amount: 1,
-                        consumptionDateTime: DateTime.UtcNow.AddDays(-new Random().Next(1, 30)),
-                        usageId: usage.Id
-                    );
-                    consumptions.Add(consumption);
-                }
-            }
-
-            context.Consumptions.AddRange(consumptions);
-            await context.SaveChangesAsync();
-            
-            Console.WriteLine("✅ Sample usages and consumptions created successfully!");
-        }
+        // Note: Usages and Consumptions are now created through the claim/redeem flow
+        // No sample data is seeded for these entities
 
         // Seed Space Types
         if (!await context.SpaceTypes.AnyAsync())

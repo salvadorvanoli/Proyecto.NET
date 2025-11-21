@@ -51,6 +51,7 @@ public class EditModel : PageModel
             {
                 BenefitTypeId = benefit.BenefitTypeId,
                 Quotas = benefit.Quotas,
+                Quantity = benefit.Quantity,
                 StartDate = benefit.StartDate,
                 EndDate = benefit.EndDate
             };

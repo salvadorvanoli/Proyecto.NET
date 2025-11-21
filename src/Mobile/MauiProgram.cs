@@ -83,6 +83,16 @@ public static class MauiProgram
 		
 		builder.Services.AddSingleton<IAccessEventService, AccessEventService>();
 		
+		// Configure HttpClient for BenefitService
+		builder.Services.AddHttpClient("BenefitClient", client =>
+		{
+			client.BaseAddress = new Uri("http://192.168.1.2:5000/");
+			client.Timeout = TimeSpan.FromSeconds(30);
+			client.DefaultRequestHeaders.Add("X-Tenant-Id", "1");
+		})
+		.AddHttpMessageHandler<JwtTokenHandler>();
+		builder.Services.AddSingleton<IBenefitService, BenefitService>();
+		
 		// Register SQLite Database
 		builder.Services.AddSingleton<ILocalDatabase, LocalDatabase>();
 		
@@ -92,19 +102,26 @@ public static class MauiProgram
 		// Register NFC Credential service (HCE) - for emitting credential
 #if ANDROID
 		builder.Services.AddSingleton<INfcCredentialService, Platforms.Android.Services.NfcCredentialService>();
+		builder.Services.AddSingleton<IBiometricAuthService, Platforms.Android.Services.BiometricAuthService>();
+		builder.Services.AddSingleton<INotificationService, Platforms.Android.Services.NotificationService>();
 #endif
+		
+		// Register Connectivity Monitor Service
+		builder.Services.AddSingleton<IConnectivityMonitorService, ConnectivityMonitorService>();
 		
 		// Register ViewModels
 		builder.Services.AddTransient<LoginViewModel>();
 		builder.Services.AddTransient<CredentialViewModel>();
 		builder.Services.AddTransient<ProfileViewModel>();
 		builder.Services.AddTransient<AccessHistoryViewModel>();
+		builder.Services.AddTransient<RedeemBenefitViewModel>();
 		
 		// Register pages
 		builder.Services.AddTransient<LoginPage>();
 		builder.Services.AddTransient<CredentialPage>();
 		builder.Services.AddTransient<ProfilePage>();
 		builder.Services.AddTransient<AccessHistoryPage>();
+		builder.Services.AddTransient<RedeemBenefitPage>();
 
 		var app = builder.Build();
 
