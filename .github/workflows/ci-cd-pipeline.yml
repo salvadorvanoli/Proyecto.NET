@@ -87,6 +87,56 @@ jobs:
           TF_VAR_db_username: ${{ secrets.TF_VAR_db_username }}
         run: terraform init -input=false
 
+      - name: Import existing resources
+        working-directory: terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          TF_VAR_db_password: ${{ secrets.TF_VAR_db_password }}
+          TF_VAR_jwt_secret: ${{ secrets.TF_VAR_jwt_secret }}
+          TF_VAR_db_username: ${{ secrets.TF_VAR_db_username }}
+        run: |
+          echo "Importing existing resources to Terraform state..."
+
+          # Import ECR Repositories
+          terraform import aws_ecr_repository.api proyectonet-api 2>/dev/null || echo "api repo already imported or doesn't exist"
+          terraform import aws_ecr_repository.backoffice proyectonet-backoffice 2>/dev/null || echo "backoffice repo already imported or doesn't exist"
+          terraform import aws_ecr_repository.frontoffice proyectonet-frontoffice 2>/dev/null || echo "frontoffice repo already imported or doesn't exist"
+
+          # Import CloudWatch Log Groups
+          terraform import aws_cloudwatch_log_group.api /ecs/proyectonet-api 2>/dev/null || echo "api logs already imported or doesn't exist"
+          terraform import aws_cloudwatch_log_group.backoffice /ecs/proyectonet-backoffice 2>/dev/null || echo "backoffice logs already imported or doesn't exist"
+          terraform import aws_cloudwatch_log_group.frontoffice /ecs/proyectonet-frontoffice 2>/dev/null || echo "frontoffice logs already imported or doesn't exist"
+
+          # Import ALB
+          ALB_ARN=$(aws elbv2 describe-load-balancers --names proyectonet-alb --region $AWS_REGION --query 'LoadBalancers[0].LoadBalancerArn' --output text 2>/dev/null || echo "")
+          if [ -n "$ALB_ARN" ] && [ "$ALB_ARN" != "None" ]; then
+            terraform import aws_lb.main "$ALB_ARN" 2>/dev/null || echo "ALB already imported"
+          fi
+
+          # Import Target Groups
+          API_TG_ARN=$(aws elbv2 describe-target-groups --names proyectonet-api-tg --region $AWS_REGION --query 'TargetGroups[0].TargetGroupArn' --output text 2>/dev/null || echo "")
+          if [ -n "$API_TG_ARN" ] && [ "$API_TG_ARN" != "None" ]; then
+            terraform import aws_lb_target_group.api "$API_TG_ARN" 2>/dev/null || echo "API TG already imported"
+          fi
+
+          BACKOFFICE_TG_ARN=$(aws elbv2 describe-target-groups --names proyectonet-backoffice-tg --region $AWS_REGION --query 'TargetGroups[0].TargetGroupArn' --output text 2>/dev/null || echo "")
+          if [ -n "$BACKOFFICE_TG_ARN" ] && [ "$BACKOFFICE_TG_ARN" != "None" ]; then
+            terraform import aws_lb_target_group.backoffice "$BACKOFFICE_TG_ARN" 2>/dev/null || echo "BackOffice TG already imported"
+          fi
+
+          FRONTOFFICE_TG_ARN=$(aws elbv2 describe-target-groups --names proyectonet-frontoffice-tg --region $AWS_REGION --query 'TargetGroups[0].TargetGroupArn' --output text 2>/dev/null || echo "")
+          if [ -n "$FRONTOFFICE_TG_ARN" ] && [ "$FRONTOFFICE_TG_ARN" != "None" ]; then
+            terraform import aws_lb_target_group.frontoffice "$FRONTOFFICE_TG_ARN" 2>/dev/null || echo "FrontOffice TG already imported"
+          fi
+
+          # Import DB Subnet Group
+          terraform import aws_db_subnet_group.main proyectonet-db-subnet-group 2>/dev/null || echo "DB subnet group already imported or doesn't exist"
+
+          echo "Import process completed!"
+
       - name: Terraform Validate
         working-directory: terraform
         env:
