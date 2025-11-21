@@ -9,6 +9,7 @@ public class RedeemBenefitViewModel : BaseViewModel
 {
     private readonly IBenefitService _benefitService;
     private readonly IAuthService _authService;
+    private readonly IBiometricAuthService? _biometricAuthService;
     
     private ObservableCollection<RedeemableBenefitDto> _benefits = new();
     private RedeemableBenefitDto? _selectedBenefit;
@@ -67,10 +68,11 @@ public class RedeemBenefitViewModel : BaseViewModel
     public ICommand CancelCommand { get; }
     public ICommand BackToListCommand { get; }
 
-    public RedeemBenefitViewModel(IBenefitService benefitService, IAuthService authService)
+    public RedeemBenefitViewModel(IBenefitService benefitService, IAuthService authService, IBiometricAuthService? biometricAuthService = null)
     {
         _benefitService = benefitService;
         _authService = authService;
+        _biometricAuthService = biometricAuthService;
         
         LoadBenefitsCommand = new Command(async () => await LoadBenefitsAsync());
         SelectBenefitCommand = new Command<RedeemableBenefitDto>(SelectBenefit);
@@ -168,6 +170,32 @@ public class RedeemBenefitViewModel : BaseViewModel
             ErrorMessage = "No hay beneficio seleccionado";
             HasError = true;
             return;
+        }
+
+        // Solicitar autenticación biométrica antes de canjear
+        if (_biometricAuthService != null)
+        {
+            try
+            {
+                var authenticated = await _biometricAuthService.AuthenticateAsync(
+                    "Canjear beneficio",
+                    "Verifica tu identidad para canjear este beneficio"
+                );
+
+                if (!authenticated)
+                {
+                    ErrorMessage = "Autenticación cancelada o fallida";
+                    HasError = true;
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[RedeemBenefitViewModel] Biometric auth error: {ex.Message}");
+                ErrorMessage = "Error en la autenticación biométrica";
+                HasError = true;
+                return;
+            }
         }
 
         IsBusy = true;

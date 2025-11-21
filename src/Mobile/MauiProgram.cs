@@ -74,6 +74,7 @@ public static class MauiProgram
 		// Register NFC Credential service (HCE) - for emitting credential
 #if ANDROID
 		builder.Services.AddSingleton<INfcCredentialService, Platforms.Android.Services.NfcCredentialService>();
+		builder.Services.AddSingleton<IBiometricAuthService, Platforms.Android.Services.BiometricAuthService>();
 #endif
 		
 		// Register ViewModels
