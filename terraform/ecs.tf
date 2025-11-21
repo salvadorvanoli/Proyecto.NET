@@ -34,6 +34,16 @@ resource "aws_cloudwatch_log_group" "api" {
   }
 }
 
+resource "aws_cloudwatch_log_group" "frontoffice" {
+  name              = "/ecs/${var.project_name}-frontoffice"
+  retention_in_days = 7
+
+  tags = {
+    Name        = "${var.project_name}-frontoffice-logs"
+    Environment = var.environment
+  }
+}
+
 # Usar el LabRole existente del AWS Learner Lab
 # El Learner Lab no permite crear roles IAM, pero proporciona un LabRole con permisos suficientes
 data "aws_iam_role" "lab_role" {
@@ -198,6 +208,69 @@ resource "aws_ecs_task_definition" "backoffice" {
   }
 }
 
+# ECS Task Definition - FrontOffice
+resource "aws_ecs_task_definition" "frontoffice" {
+  family                   = "${var.project_name}-frontoffice"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = var.frontoffice_cpu
+  memory                   = var.frontoffice_memory
+  execution_role_arn       = data.aws_iam_role.lab_role.arn
+  task_role_arn            = data.aws_iam_role.lab_role.arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "frontoffice"
+      image     = "${aws_ecr_repository.frontoffice.repository_url}:latest"
+      essential = true
+
+      portMappings = [
+        {
+          containerPort = 8080
+          protocol      = "tcp"
+        }
+      ]
+
+      environment = [
+        {
+          name  = "ASPNETCORE_ENVIRONMENT"
+          value = "Production"
+        },
+        {
+          name  = "ASPNETCORE_URLS"
+          value = "http://+:8080"
+        },
+        {
+          name  = "API_BASE_URL"
+          value = "http://${aws_lb.main.dns_name}/api"
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.frontoffice.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "ecs"
+        }
+      }
+
+      healthCheck = {
+        command     = ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 60
+      }
+    }
+  ])
+
+  tags = {
+    Name        = "${var.project_name}-frontoffice-task"
+    Environment = var.environment
+  }
+}
+
 # ECS Service - API
 resource "aws_ecs_service" "api" {
   name            = "${var.project_name}-api-service"
@@ -250,6 +323,34 @@ resource "aws_ecs_service" "backoffice" {
 
   tags = {
     Name        = "${var.project_name}-backoffice-service"
+    Environment = var.environment
+  }
+}
+
+# ECS Service - FrontOffice
+resource "aws_ecs_service" "frontoffice" {
+  name            = "${var.project_name}-frontoffice-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.frontoffice.arn
+  desired_count   = var.frontoffice_desired_count
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = aws_subnet.public[*].id
+    security_groups  = [aws_security_group.ecs_tasks.id]
+    assign_public_ip = true
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.frontoffice.arn
+    container_name   = "frontoffice"
+    container_port   = 8080
+  }
+
+  depends_on = [aws_lb_listener.main]
+
+  tags = {
+    Name        = "${var.project_name}-frontoffice-service"
     Environment = var.environment
   }
 }

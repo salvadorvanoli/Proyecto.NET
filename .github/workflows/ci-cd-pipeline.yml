@@ -44,6 +44,14 @@ on:
         options:
           - "true"
           - "false"
+      deploy_frontoffice:
+        description: "Desplegar FrontOffice (true/false)"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
       run_update_services:
         description: "Forzar actualización de servicios ECS después del build (true/false)"
         required: false
@@ -169,6 +177,7 @@ jobs:
       ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
       API_REPO: proyectonet-api
       BACKOFFICE_REPO: proyectonet-backoffice
+      FRONTOFFICE_REPO: proyectonet-frontoffice
       IMAGE_TAG: latest
     steps:
       - name: Checkout code
@@ -195,6 +204,18 @@ jobs:
           docker build -t ${BACKOFFICE_REPO}:${IMAGE_TAG} --target final-backoffice -f Dockerfile .
           docker tag ${BACKOFFICE_REPO}:${IMAGE_TAG} ${ECR_REGISTRY}/${BACKOFFICE_REPO}:${IMAGE_TAG}
           docker push ${ECR_REGISTRY}/${BACKOFFICE_REPO}:${IMAGE_TAG}
+
+      - name: Build and push Docker image for FrontOffice
+        if: ${{ github.event.inputs.deploy_frontoffice != 'false' }}
+        env:
+          ECR_REGISTRY: ${{ env.ECR_REGISTRY }}
+          FRONTOFFICE_REPO: ${{ env.FRONTOFFICE_REPO }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+        run: |
+          echo "Building FrontOffice using root Dockerfile (target final-frontoffice)"
+          docker build -t ${FRONTOFFICE_REPO}:${IMAGE_TAG} --target final-frontoffice -f Dockerfile .
+          docker tag ${FRONTOFFICE_REPO}:${IMAGE_TAG} ${ECR_REGISTRY}/${FRONTOFFICE_REPO}:${IMAGE_TAG}
+          docker push ${ECR_REGISTRY}/${FRONTOFFICE_REPO}:${IMAGE_TAG}
 
       - name: Build and push Docker image for API
         if: ${{ github.event.inputs.deploy_api != 'false' }}
@@ -256,7 +277,7 @@ jobs:
           for svc in $(echo "$services_json" | jq -r '.serviceArns[]'); do
             svcName=$(basename "$svc")
             echo "Checking service: $svcName"
-            if echo "$svcName" | grep -qi "backoffice" || echo "$svcName" | grep -qi "api"; then
+            if echo "$svcName" | grep -qi "backoffice" || echo "$svcName" | grep -qi "api" || echo "$svcName" | grep -qi "frontoffice"; then
               echo "Forcing new deployment for $svcName"
               aws ecs update-service --cluster "$clusterName" --service "$svcName" --force-new-deployment --region "$AWS_REGION"
             else
@@ -344,4 +365,3 @@ jobs:
 
     outputs:
       deploy_url: ${{ steps.get_url.outputs.deploy_url }}
-
