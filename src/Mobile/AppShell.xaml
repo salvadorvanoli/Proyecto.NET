@@ -29,4 +29,11 @@
             Route="AccessHistoryPage" />
     </FlyoutItem>
 
+    <FlyoutItem Title="🎁 Beneficios">
+        <ShellContent
+            Title="Canjear Beneficio"
+            ContentTemplate="{DataTemplate pages:RedeemBenefitPage}"
+            Route="RedeemBenefitPage" />
+    </FlyoutItem>
+
 </Shell>

@@ -161,17 +161,9 @@ try
         {
             if (builder.Environment.IsDevelopment())
             {
-                policy.WithOrigins(
-                        "http://localhost:5001",
-                        "https://localhost:5001",
-                        "http://localhost:5002",
-                        "https://localhost:5002",
-                        "http://localhost:5000",
-                        "https://localhost:5000"
-                    )
+                policy.AllowAnyOrigin()
                     .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowCredentials();
+                    .AllowAnyHeader();
             }
             else
             {

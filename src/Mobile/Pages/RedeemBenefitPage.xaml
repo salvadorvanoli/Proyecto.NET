@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodel="clr-namespace:Mobile.ViewModels"
+             xmlns:models="clr-namespace:Mobile.Models"
+             x:Class="Mobile.Pages.RedeemBenefitPage"
+             x:DataType="viewmodel:RedeemBenefitViewModel"
+             Title="Canjear Beneficio">
+    
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+            
+            <!-- Título -->
+            <Label Text="Canjear Beneficio"
+                   FontSize="28"
+                   FontAttributes="Bold"
+                   TextColor="{StaticResource Primary}" />
+            
+            <Label Text="Selecciona y confirma el beneficio que deseas canjear"
+                   FontSize="14"
+                   TextColor="{StaticResource Gray600}"
+                   Margin="0,0,0,10" />
+
+            <!-- Loading Indicator -->
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                             IsVisible="{Binding IsBusy}"
+                             Color="{StaticResource Primary}"
+                             HeightRequest="50" />
+
+            <!-- Error Message -->
+            <Frame IsVisible="{Binding HasError}"
+                   BackgroundColor="#FFE6E6"
+                   BorderColor="#FF4444"
+                   CornerRadius="8"
+                   Padding="15"
+                   Margin="0,0,0,10">
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="#CC0000"
+                       FontSize="14" />
+            </Frame>
+
+            <!-- Success Message -->
+            <Frame IsVisible="{Binding HasSuccess}"
+                   BackgroundColor="#E6F4EA"
+                   BorderColor="#34A853"
+                   CornerRadius="8"
+                   Padding="15"
+                   Margin="0,0,0,10">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="✓ Beneficio canjeado exitosamente"
+                           TextColor="#137333"
+                           FontSize="16"
+                           FontAttributes="Bold" />
+                    <Label Text="{Binding SuccessMessage}"
+                           TextColor="#137333"
+                           FontSize="14" />
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Benefits List (cuando no hay beneficio seleccionado) -->
+            <VerticalStackLayout IsVisible="{Binding ShowConfirmation, Converter={StaticResource InvertedBoolConverter}}"
+                               Spacing="15">
+                
+                <CollectionView ItemsSource="{Binding Benefits}"
+                              SelectionMode="None"
+                              IsVisible="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:RedeemableBenefitDto">
+                            <Frame Margin="0,0,0,10"
+                                   Padding="15"
+                                   CornerRadius="10"
+                                   BorderColor="{StaticResource Gray300}"
+                                   BackgroundColor="White">
+                                <Frame.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodel:RedeemBenefitViewModel}}, Path=SelectBenefitCommand}"
+                                                        CommandParameter="{Binding .}" />
+                                </Frame.GestureRecognizers>
+                                
+                                <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
+                                    <!-- Nombre del beneficio -->
+                                    <Label Grid.Row="0" Grid.Column="0"
+                                           Text="{Binding BenefitTypeName}"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="{StaticResource Primary}" />
+                                    
+                                    <!-- Indicador de selección -->
+                                    <Label Grid.Row="0" Grid.Column="1" Grid.RowSpan="3"
+                                           Text="✓"
+                                           FontSize="24"
+                                           TextColor="{StaticResource Primary}"
+                                           VerticalOptions="Center"
+                                           IsVisible="False">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label"
+                                                       Binding="{Binding Source={RelativeSource AncestorType={x:Type viewmodel:RedeemBenefitViewModel}}, Path=SelectedBenefit.Id}"
+                                                       Value="{Binding Id}">
+                                                <Setter Property="IsVisible" Value="True" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                    
+                                    <!-- Cantidad disponible -->
+                                    <HorizontalStackLayout Grid.Row="1" Grid.Column="0" Spacing="5" Margin="0,5,0,0">
+                                        <Label Text="Consumiciones:"
+                                               FontSize="14"
+                                               TextColor="{StaticResource Gray600}" />
+                                        <Label Text="{Binding Quantity}"
+                                               FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource Gray900}" />
+                                    </HorizontalStackLayout>
+                                    
+                                    <!-- Vigencia -->
+                                    <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Spacing="5" Margin="0,5,0,0">
+                                        <Label Text="Vigencia:"
+                                               FontSize="14"
+                                               TextColor="{StaticResource Gray600}" />
+                                        <Label FontSize="14"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource Gray900}">
+                                            <Label.Triggers>
+                                                <DataTrigger TargetType="Label"
+                                                           Binding="{Binding IsPermanent}"
+                                                           Value="True">
+                                                    <Setter Property="Text" Value="Permanente" />
+                                                </DataTrigger>
+                                                <DataTrigger TargetType="Label"
+                                                           Binding="{Binding IsPermanent}"
+                                                           Value="False">
+                                                    <Setter Property="Text" Value="{Binding EndDate, StringFormat='{0:dd/MM/yyyy}'}" />
+                                                </DataTrigger>
+                                            </Label.Triggers>
+                                        </Label>
+                                    </HorizontalStackLayout>
+                                </Grid>
+                            </Frame>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                    
+                    <CollectionView.EmptyView>
+                        <VerticalStackLayout Padding="20" Spacing="15">
+                            <Label Text="No tienes beneficios disponibles para canjear"
+                                   FontSize="16"
+                                   TextColor="{StaticResource Gray600}"
+                                   HorizontalOptions="Center" />
+                        </VerticalStackLayout>
+                    </CollectionView.EmptyView>
+                </CollectionView>
+
+                <!-- Botón Continuar -->
+                <Button Text="Continuar"
+                        Command="{Binding ConfirmSelectionCommand}"
+                        IsEnabled="{Binding SelectedBenefit, Converter={StaticResource IsNotNullConverter}}"
+                        BackgroundColor="{StaticResource Primary}"
+                        TextColor="White"
+                        FontAttributes="Bold"
+                        Margin="0,10,0,0"
+                        HeightRequest="50"
+                        CornerRadius="10" />
+            </VerticalStackLayout>
+
+            <!-- Confirmation View (cuando hay beneficio seleccionado) -->
+            <VerticalStackLayout IsVisible="{Binding ShowConfirmation}"
+                               Spacing="15">
+                
+                <!-- Resumen del beneficio -->
+                <Frame BorderColor="{StaticResource Primary}"
+                       BackgroundColor="#F5F5FF"
+                       CornerRadius="10"
+                       Padding="15">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Beneficio Seleccionado"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="{StaticResource Primary}" />
+                        
+                        <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,*" ColumnSpacing="10" RowSpacing="8">
+                            <Label Grid.Row="0" Grid.Column="0"
+                                   Text="Nombre:"
+                                   FontSize="14"
+                                   TextColor="{StaticResource Gray600}" />
+                            <Label Grid.Row="0" Grid.Column="1"
+                                   Text="{Binding SelectedBenefit.BenefitTypeName}"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Gray900}" />
+                            
+                            <Label Grid.Row="1" Grid.Column="0"
+                                   Text="Disponibles:"
+                                   FontSize="14"
+                                   TextColor="{StaticResource Gray600}" />
+                            <Label Grid.Row="1" Grid.Column="1"
+                                   Text="{Binding SelectedBenefit.Quantity}"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Gray900}" />
+                            
+                            <Label Grid.Row="2" Grid.Column="0"
+                                   Text="A canjear:"
+                                   FontSize="14"
+                                   TextColor="{StaticResource Gray600}" />
+                            <Label Grid.Row="2" Grid.Column="1"
+                                   Text="1"
+                                   FontSize="14"
+                                   FontAttributes="Bold"
+                                   TextColor="{StaticResource Primary}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Mensaje de confirmación -->
+                <VerticalStackLayout Spacing="10" Margin="0,10,0,0">
+                    <Label Text="¿Estás seguro de que deseas canjear una consumición de este beneficio?"
+                           FontSize="16"
+                           TextColor="{StaticResource Gray900}"
+                           HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+
+                <!-- Botones de acción -->
+                <Button Text="Confirmar Canje"
+                        Command="{Binding RedeemBenefitCommand}"
+                        BackgroundColor="{StaticResource Primary}"
+                        TextColor="White"
+                        FontAttributes="Bold"
+                        HeightRequest="50"
+                        CornerRadius="10"
+                        Margin="0,20,0,0" />
+
+                <Button Text="Cancelar"
+                        Command="{Binding CancelCommand}"
+                        BackgroundColor="Transparent"
+                        TextColor="{StaticResource Gray600}"
+                        BorderColor="{StaticResource Gray400}"
+                        BorderWidth="1"
+                        HeightRequest="50"
+                        CornerRadius="10" />
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
