@@ -114,6 +114,30 @@ jobs:
           ALB_ARN=$(aws elbv2 describe-load-balancers --names proyectonet-alb --region $AWS_REGION --query 'LoadBalancers[0].LoadBalancerArn' --output text 2>/dev/null || echo "")
           if [ -n "$ALB_ARN" ] && [ "$ALB_ARN" != "None" ]; then
             terraform import aws_lb.main "$ALB_ARN" 2>/dev/null || echo "ALB already imported"
+
+            # Import ALB Listeners
+            LISTENER_ARN=$(aws elbv2 describe-listeners --load-balancer-arn "$ALB_ARN" --region $AWS_REGION --query 'Listeners[?Port==`80`].ListenerArn' --output text 2>/dev/null || echo "")
+            if [ -n "$LISTENER_ARN" ] && [ "$LISTENER_ARN" != "None" ]; then
+              terraform import aws_lb_listener.main "$LISTENER_ARN" 2>/dev/null || echo "Listener already imported"
+
+              # Import Listener Rules
+              # Get all listener rules for this listener
+              RULES=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN" --region $AWS_REGION --query 'Rules[?!IsDefault].RuleArn' --output text 2>/dev/null || echo "")
+              if [ -n "$RULES" ]; then
+                for RULE_ARN in $RULES; do
+                  # Try to determine which rule this is based on priority
+                  PRIORITY=$(aws elbv2 describe-rules --rule-arns "$RULE_ARN" --region $AWS_REGION --query 'Rules[0].Priority' --output text 2>/dev/null || echo "")
+
+                  if [ "$PRIORITY" = "50" ]; then
+                    terraform import aws_lb_listener_rule.api "$RULE_ARN" 2>/dev/null || echo "API rule already imported"
+                  elif [ "$PRIORITY" = "75" ]; then
+                    terraform import aws_lb_listener_rule.frontoffice "$RULE_ARN" 2>/dev/null || echo "FrontOffice rule already imported"
+                  elif [ "$PRIORITY" = "100" ]; then
+                    terraform import aws_lb_listener_rule.backoffice "$RULE_ARN" 2>/dev/null || echo "BackOffice rule already imported"
+                  fi
+                done
+              fi
+            fi
           fi
 
           # Import Target Groups
@@ -269,7 +293,7 @@ jobs:
             echo "Checking service: $svcName"
             if echo "$svcName" | grep -qi "backoffice" || echo "$svcName" | grep -qi "api" || echo "$svcName" | grep -qi "frontoffice"; then
               echo "Forcing new deployment for $svcName"
-              aws ecs update-service --cluster "$clusterName" --service "$svcName" --force-new-deployment --region "$AWS_REGION"
+              aws ecs update_service --cluster "$clusterName" --service "$svcName" --force-new-deployment --region "$AWS_REGION"
             else
               echo "Skipping $svcName"
             fi
@@ -366,6 +390,7 @@ jobs:
           echo "   • API:         ${{ steps.get_urls.outputs.api_url }}"
           echo ""
           echo "=========================================="
+          echo ""
 
       - name: Write deployment URLs to file
         if: always()
