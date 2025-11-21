@@ -2,6 +2,9 @@ using System.Windows.Input;
 using Mobile.Services;
 using Microsoft.Extensions.Logging;
 using Shared.DTOs.Auth;
+using Mobile.Models;
+using CommunityToolkit.Maui.Views;
+using Mobile.Popups;
 
 namespace Mobile.ViewModels;
 
@@ -13,6 +16,8 @@ public class CredentialViewModel : BaseViewModel
 {
     private readonly INfcCredentialService _nfcCredentialService;
     private readonly IAuthService _authService;
+    private readonly IAccessEventService _accessEventService;
+    private readonly ISyncService _syncService;
     private readonly ILogger<CredentialViewModel> _logger;
 
     private int? _userId;
@@ -28,6 +33,12 @@ public class CredentialViewModel : BaseViewModel
     private Color _connectivityStatusColor = Colors.Gray;
     private string _activationButtonText = "🚀 Activar Credencial";
     private Color _activationButtonColor = Colors.Green;
+    private bool _showAccessResult;
+    private string _accessResultIcon = "✅";
+    private string _accessResultTitle = "Acceso Concedido";
+    private string _accessResultMessage = "";
+    private Color _accessResultTextColor = Colors.Green;
+    private Color _accessResultBorderColor = Colors.Green;
 
     public int? UserId
     {
@@ -107,6 +118,42 @@ public class CredentialViewModel : BaseViewModel
         set => SetProperty(ref _activationButtonColor, value);
     }
 
+    public bool ShowAccessResult
+    {
+        get => _showAccessResult;
+        set => SetProperty(ref _showAccessResult, value);
+    }
+
+    public string AccessResultIcon
+    {
+        get => _accessResultIcon;
+        set => SetProperty(ref _accessResultIcon, value);
+    }
+
+    public string AccessResultTitle
+    {
+        get => _accessResultTitle;
+        set => SetProperty(ref _accessResultTitle, value);
+    }
+
+    public string AccessResultMessage
+    {
+        get => _accessResultMessage;
+        set => SetProperty(ref _accessResultMessage, value);
+    }
+
+    public Color AccessResultTextColor
+    {
+        get => _accessResultTextColor;
+        set => SetProperty(ref _accessResultTextColor, value);
+    }
+
+    public Color AccessResultBorderColor
+    {
+        get => _accessResultBorderColor;
+        set => SetProperty(ref _accessResultBorderColor, value);
+    }
+
     public ICommand StartEmulationCommand { get; }
     public ICommand StopEmulationCommand { get; }
     public ICommand ToggleEmulationCommand { get; }
@@ -115,10 +162,14 @@ public class CredentialViewModel : BaseViewModel
     public CredentialViewModel(
         INfcCredentialService nfcCredentialService,
         IAuthService authService,
+        IAccessEventService accessEventService,
+        ISyncService syncService,
         ILogger<CredentialViewModel> logger)
     {
         _nfcCredentialService = nfcCredentialService;
         _authService = authService;
+        _accessEventService = accessEventService;
+        _syncService = syncService;
         _logger = logger;
 
         Title = "Mi Credencial Digital";
@@ -146,32 +197,73 @@ public class CredentialViewModel : BaseViewModel
             _logger.LogInformation("🎯 Access response: {Granted} - {Message}", 
                 response.AccessGranted, response.Message);
 
-            // Show alert on main thread
-            await MainThread.InvokeOnMainThreadAsync(async () =>
+            // Guardar evento localmente (especialmente importante en modo offline)
+            try
             {
-                string title = response.AccessGranted ? "✅ Acceso Concedido" : "❌ Acceso Denegado";
-                string icon = response.AccessGranted ? "🟢" : "🔴";
-                Color bgColor = response.AccessGranted ? Colors.Green : Colors.Red;
-                
-                // Update status message temporarily
-                string previousStatus = StatusMessage;
-                StatusMessage = $"{icon} {response.Message}";
-                
-                // Show alert
-                await Shell.Current.DisplayAlert(
-                    title, 
-                    response.Message, 
-                    "OK");
-                
-                // Restore previous status after a delay
-                await Task.Delay(3000);
-                if (IsEmulating)
+                var accessEvent = new AccessEventDto
                 {
-                    StatusMessage = "Credencial activa\nAcerca tu celular al punto de control";
+                    UserId = UserId ?? 0,
+                    ControlPointId = response.ControlPointId ?? 0, // Si el AccessPoint no envía ID, será 0
+                    ControlPointName = response.ControlPointName ?? "Punto de Control", // Nombre por defecto
+                    SpaceName = "",
+                    Timestamp = DateTime.UtcNow,
+                    WasGranted = response.AccessGranted,
+                    DenialReason = response.AccessGranted ? null : response.Message
+                };
+
+                await _accessEventService.SaveAccessEventAsync(accessEvent);
+                _logger.LogInformation("✅ Evento de acceso guardado localmente - ControlPoint: {Name}", accessEvent.ControlPointName);
+
+                // Notificar al historial para que se actualice
+                _logger.LogInformation("📢 ENVIANDO MENSAJE: AccessEventCreated desde CredentialViewModel");
+                MessagingCenter.Send(this, "AccessEventCreated");
+                _logger.LogInformation("📢 MENSAJE ENVIADO: AccessEventCreated");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error guardando evento de acceso localmente");
+            }
+
+            // Mostrar card de resultado en la página
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                try
+                {
+                    _logger.LogInformation("🎨 Mostrando card de resultado...");
+                    
+                    // Configurar la card según el resultado
+                    if (response.AccessGranted)
+                    {
+                        AccessResultIcon = "✅";
+                        AccessResultTitle = "Acceso Concedido";
+                        AccessResultTextColor = Colors.Green;
+                        AccessResultBorderColor = Colors.Green;
+                    }
+                    else
+                    {
+                        AccessResultIcon = "⛔";
+                        AccessResultTitle = "Acceso Denegado";
+                        AccessResultTextColor = Colors.Red;
+                        AccessResultBorderColor = Colors.Red;
+                    }
+                    
+                    AccessResultMessage = response.Message;
+                    ShowAccessResult = true;
+                    
+                    _logger.LogInformation("✅ Card de resultado mostrada");
+                    
+                    // Ocultar la card después de 5 segundos
+                    Task.Delay(5000).ContinueWith(_ =>
+                    {
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            ShowAccessResult = false;
+                        });
+                    });
                 }
-                else
+                catch (Exception cardEx)
                 {
-                    StatusMessage = previousStatus;
+                    _logger.LogError(cardEx, "Error mostrando card de resultado");
                 }
             });
         }
@@ -183,7 +275,24 @@ public class CredentialViewModel : BaseViewModel
 
     private void OnConnectivityChanged(object? sender, Microsoft.Maui.Networking.ConnectivityChangedEventArgs e)
     {
+        var wasOffline = !IsOnline;
         UpdateConnectivityStatus();
+        
+        // Si volvimos a estar online, sincronizar eventos pendientes
+        if (wasOffline && IsOnline)
+        {
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await _syncService.SyncPendingEventsAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error syncing pending events after reconnection");
+                }
+            });
+        }
     }
 
     private void UpdateConnectivityStatus()

@@ -21,6 +21,11 @@ public class AccessValidationResult
     public string Result => IsGranted ? "Granted" : "Denied";
     
     /// <summary>
+    /// User ID (for creating access events).
+    /// </summary>
+    public int UserId { get; set; }
+    
+    /// <summary>
     /// User's full name.
     /// </summary>
     public string UserName { get; set; } = string.Empty;

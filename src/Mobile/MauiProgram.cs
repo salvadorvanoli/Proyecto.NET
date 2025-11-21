@@ -3,6 +3,7 @@ using Mobile.Data;
 using Mobile.Pages;
 using Mobile.Services;
 using Mobile.ViewModels;
+using CommunityToolkit.Maui;
 
 namespace Mobile;
 
@@ -13,6 +14,7 @@ public static class MauiProgram
 		var builder = MauiApp.CreateBuilder();
 		builder
 			.UseMauiApp<App>()
+			.UseMauiCommunityToolkit()
 			.ConfigureFonts(fonts =>
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");

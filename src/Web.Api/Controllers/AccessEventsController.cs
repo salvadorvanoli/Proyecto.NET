@@ -5,6 +5,7 @@ using Application.AccessRules;
 using Shared.DTOs.AccessEvents;
 using Shared.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Web.Api.Controllers;
 
@@ -62,9 +63,13 @@ public class AccessEventsController : ControllerBase
     {
         try
         {
-            // TODO: Obtener userId del token JWT cuando se implemente autenticación
-            // Por ahora, usaremos un userId de prueba
-            var userId = 1; // Este debería venir del JWT token
+            // Obtener userId del token JWT
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                _logger.LogWarning("Unable to retrieve user ID from token");
+                return Unauthorized(new { message = "User not authenticated" });
+            }
             
             var allEvents = await _accessEventService.GetUserAccessEventsAsync(userId);
             var paginatedEvents = allEvents.Skip(skip).Take(take).ToList();
@@ -90,8 +95,13 @@ public class AccessEventsController : ControllerBase
     {
         try
         {
-            // TODO: Obtener userId del token JWT
-            var userId = 1;
+            // Obtener userId del token JWT
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            {
+                _logger.LogWarning("Unable to retrieve user ID from token");
+                return Unauthorized(new { message = "User not authenticated" });
+            }
             
             var events = await _accessEventService.GetUserAccessEventsAsync(userId);
             var count = events.Count;

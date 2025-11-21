@@ -113,6 +113,7 @@ public class NfcHostCardEmulationService : HostApduService
         // Check if it's an ACCESS GRANTED command from the control point
         if (IsAccessGrantedApdu(commandApdu))
         {
+            System.Diagnostics.Debug.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             System.Diagnostics.Debug.WriteLine("✅ NFC HCE: ACCESS GRANTED received from control point");
             
             // Extract message if present
@@ -124,17 +125,29 @@ public class NfcHostCardEmulationService : HostApduService
                     byte[] messageBytes = new byte[commandApdu.Length - ACCESS_GRANTED_APDU.Length];
                     Array.Copy(commandApdu, ACCESS_GRANTED_APDU.Length, messageBytes, 0, messageBytes.Length);
                     message = Encoding.UTF8.GetString(messageBytes).TrimEnd('\0');
+                    System.Diagnostics.Debug.WriteLine($"   Extracted message: '{message}'");
                 }
-                catch { /* Use default message */ }
+                catch (Exception ex)
+                { 
+                    System.Diagnostics.Debug.WriteLine($"   Error extracting message: {ex.Message}");
+                }
             }
             
+            System.Diagnostics.Debug.WriteLine($"🔔 Invoking OnAccessResponseReceived event...");
+            System.Diagnostics.Debug.WriteLine($"   Event is null? {OnAccessResponseReceived == null}");
+            System.Diagnostics.Debug.WriteLine($"   Subscriber count: {OnAccessResponseReceived?.GetInvocationList()?.Length ?? 0}");
+            
             // Notify the app
-            OnAccessResponseReceived?.Invoke(null, new Mobile.Services.AccessResponse
+            var response = new Mobile.Services.AccessResponse
             {
                 AccessGranted = true,
                 Message = message,
                 Timestamp = DateTime.Now
-            });
+            };
+            
+            OnAccessResponseReceived?.Invoke(null, response);
+            System.Diagnostics.Debug.WriteLine("✅ Event invoked!");
+            System.Diagnostics.Debug.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             
             return SELECT_OK_SW;
         }
@@ -142,6 +155,7 @@ public class NfcHostCardEmulationService : HostApduService
         // Check if it's an ACCESS DENIED command from the control point
         if (IsAccessDeniedApdu(commandApdu))
         {
+            System.Diagnostics.Debug.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             System.Diagnostics.Debug.WriteLine("❌ NFC HCE: ACCESS DENIED received from control point");
             
             // Extract message if present
@@ -153,17 +167,29 @@ public class NfcHostCardEmulationService : HostApduService
                     byte[] messageBytes = new byte[commandApdu.Length - ACCESS_DENIED_APDU.Length];
                     Array.Copy(commandApdu, ACCESS_DENIED_APDU.Length, messageBytes, 0, messageBytes.Length);
                     message = Encoding.UTF8.GetString(messageBytes).TrimEnd('\0');
+                    System.Diagnostics.Debug.WriteLine($"   Extracted message: '{message}'");
                 }
-                catch { /* Use default message */ }
+                catch (Exception ex)
+                { 
+                    System.Diagnostics.Debug.WriteLine($"   Error extracting message: {ex.Message}");
+                }
             }
             
+            System.Diagnostics.Debug.WriteLine($"🔔 Invoking OnAccessResponseReceived event...");
+            System.Diagnostics.Debug.WriteLine($"   Event is null? {OnAccessResponseReceived == null}");
+            System.Diagnostics.Debug.WriteLine($"   Subscriber count: {OnAccessResponseReceived?.GetInvocationList()?.Length ?? 0}");
+            
             // Notify the app
-            OnAccessResponseReceived?.Invoke(null, new Mobile.Services.AccessResponse
+            var response = new Mobile.Services.AccessResponse
             {
                 AccessGranted = false,
                 Message = message,
                 Timestamp = DateTime.Now
-            });
+            };
+            
+            OnAccessResponseReceived?.Invoke(null, response);
+            System.Diagnostics.Debug.WriteLine("✅ Event invoked!");
+            System.Diagnostics.Debug.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             
             return SELECT_OK_SW;
         }

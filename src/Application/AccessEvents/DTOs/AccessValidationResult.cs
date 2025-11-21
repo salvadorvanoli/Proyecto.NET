@@ -10,12 +10,13 @@ public static class AccessValidationResultExtensions
     /// <summary>
     /// Creates a granted access result.
     /// </summary>
-    public static AccessValidationResult Granted(string userName, string controlPointName, string reason = "Acceso permitido")
+    public static AccessValidationResult Granted(int userId, string userName, string controlPointName, string reason = "Acceso permitido")
     {
         return new AccessValidationResult
         {
             IsGranted = true,
             Reason = reason,
+            UserId = userId,
             UserName = userName,
             ControlPointName = controlPointName
         };
@@ -24,12 +25,13 @@ public static class AccessValidationResultExtensions
     /// <summary>
     /// Creates a denied access result.
     /// </summary>
-    public static AccessValidationResult Denied(string userName, string controlPointName, string reason)
+    public static AccessValidationResult Denied(int userId, string userName, string controlPointName, string reason)
     {
         return new AccessValidationResult
         {
             IsGranted = false,
             Reason = reason,
+            UserId = userId,
             UserName = userName,
             ControlPointName = controlPointName
         };

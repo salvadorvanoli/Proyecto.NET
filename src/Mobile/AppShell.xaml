@@ -5,26 +5,44 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:Mobile"
     xmlns:pages="clr-namespace:Mobile.Pages"
-    Shell.FlyoutBehavior="Flyout"
+    FlyoutBehavior="Flyout"
     Title="Credencial Digital">
 
-    <FlyoutItem Title="🪪 Mi Credencial">
+    <!-- Header del menú -->
+    <Shell.FlyoutHeader>
+        <Grid BackgroundColor="{StaticResource Primary}" Padding="20" HeightRequest="150">
+            <VerticalStackLayout VerticalOptions="Center">
+                <Label Text="🪪" FontSize="50" HorizontalOptions="Center" TextColor="White"/>
+                <Label Text="Credencial Digital" FontSize="20" FontAttributes="Bold" 
+                       HorizontalOptions="Center" TextColor="White" Margin="0,10,0,0"/>
+            </VerticalStackLayout>
+        </Grid>
+    </Shell.FlyoutHeader>
+
+    <!-- LoginPage sin menú -->
+    <ShellContent
+        Title="Login"
+        ContentTemplate="{DataTemplate pages:LoginPage}"
+        Route="LoginPage"
+        FlyoutItemIsVisible="False" />
+
+    <FlyoutItem Title="Mi Credencial" Icon="{FontImage Glyph='🪪', Color=White, Size=20}">
         <ShellContent
             Title="Credencial"
             ContentTemplate="{DataTemplate pages:CredentialPage}"
             Route="CredentialPage" />
     </FlyoutItem>
 
-    <FlyoutItem Title="👤 Mi Perfil">
+    <FlyoutItem Title="Mi Perfil" Icon="{FontImage Glyph='👤', Color=White, Size=20}">
         <ShellContent
             Title="Perfil"
             ContentTemplate="{DataTemplate pages:ProfilePage}"
             Route="ProfilePage" />
     </FlyoutItem>
 
-    <FlyoutItem Title="📋 Historial">
+    <FlyoutItem Title="Historial de Accesos" Icon="{FontImage Glyph='📋', Color=White, Size=20}">
         <ShellContent
-            Title="Historial de Accesos"
+            Title="Historial"
             ContentTemplate="{DataTemplate pages:AccessHistoryPage}"
             Route="AccessHistoryPage" />
     </FlyoutItem>

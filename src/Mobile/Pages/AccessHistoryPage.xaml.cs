@@ -15,6 +15,7 @@ public partial class AccessHistoryPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await ViewModel.InitializeAsync();
+        // Siempre refrescar al entrar a la pestaña
+        await ViewModel.RefreshEventsAsync();
     }
 }

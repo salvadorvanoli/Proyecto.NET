@@ -411,13 +411,10 @@ public class AccessNfcViewModel : BaseViewModel
                     
                     _logger.LogInformation("✅ Validation result from backend: {Result}", validationResult.Result);
 
-                    // Crear evento en backend - necesitamos el userId correcto
-                    // Si es credencial digital, necesitamos obtenerlo del credentialId
-                    int userIdForEvent = userIdToValidate ?? _currentUserId;
-                    
+                    // Crear evento en backend - usar el userId del resultado de validación
                     var request = new CreateAccessEventRequest
                     {
-                        UserId = userIdForEvent,
+                        UserId = validationResult.UserId,
                         ControlPointId = controlPointIdToUse,
                         EventDateTime = eventDateTime,
                         Result = validationResult.Result

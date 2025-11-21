@@ -48,6 +48,30 @@ public class AccessHistoryViewModel : BaseViewModel
         LoadEventsCommand = new Command(async () => await LoadEventsAsync());
         LoadMoreCommand = new Command(async () => await LoadMoreEventsAsync());
         RefreshCommand = new Command(async () => await RefreshEventsAsync());
+
+        System.Diagnostics.Debug.WriteLine("🔔 AccessHistoryViewModel constructor - Suscribiéndose a mensajes");
+
+        // Suscribirse a notificaciones de nuevos eventos
+        MessagingCenter.Subscribe<CredentialViewModel>(this, "AccessEventCreated", async (sender) =>
+        {
+            System.Diagnostics.Debug.WriteLine("📬 MENSAJE RECIBIDO: AccessEventCreated en AccessHistoryViewModel");
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await RefreshEventsAsync();
+                System.Diagnostics.Debug.WriteLine("✅ RefreshEventsAsync completado después de recibir AccessEventCreated");
+            });
+        });
+
+        // Suscribirse a notificaciones de sincronización completada
+        MessagingCenter.Subscribe<Services.SyncService>(this, "EventsSynced", async (sender) =>
+        {
+            System.Diagnostics.Debug.WriteLine("📬 MENSAJE RECIBIDO: EventsSynced en AccessHistoryViewModel");
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await RefreshEventsAsync();
+                System.Diagnostics.Debug.WriteLine("✅ RefreshEventsAsync completado después de recibir EventsSynced");
+            });
+        });
     }
 
     public async Task InitializeAsync()
@@ -57,23 +81,33 @@ public class AccessHistoryViewModel : BaseViewModel
 
     private async Task LoadEventsAsync()
     {
+        System.Diagnostics.Debug.WriteLine("🔄 LoadEventsAsync INICIADO");
+        
         if (IsLoading)
+        {
+            System.Diagnostics.Debug.WriteLine("⚠️ LoadEventsAsync - Ya está cargando, saliendo");
             return;
+        }
 
         IsLoading = true;
 
         try
         {
+            System.Diagnostics.Debug.WriteLine("🧹 Limpiando eventos actuales. Count antes: {0}", AccessEvents.Count);
             _currentPage = 0;
             AccessEvents.Clear();
 
+            System.Diagnostics.Debug.WriteLine("🌐 Solicitando eventos al servicio (skip=0, take={0})", PageSize);
             var events = await _accessEventService.GetMyAccessEventsAsync(0, PageSize);
+            System.Diagnostics.Debug.WriteLine("📦 Eventos recibidos del servicio: {0}", events.Count);
+            System.Diagnostics.Debug.WriteLine("📦 Eventos recibidos del servicio: {0}", events.Count);
             
             foreach (var evt in events)
             {
                 AccessEvents.Add(evt);
             }
 
+            System.Diagnostics.Debug.WriteLine("✅ Eventos agregados a la colección. Count final: {0}", AccessEvents.Count);
             HasMoreItems = events.Count == PageSize;
         }
         catch (Exception ex)
@@ -121,8 +155,10 @@ public class AccessHistoryViewModel : BaseViewModel
         }
     }
 
-    private async Task RefreshEventsAsync()
+    public async Task RefreshEventsAsync()
     {
+        System.Diagnostics.Debug.WriteLine("🔄 RefreshEventsAsync LLAMADO");
         await LoadEventsAsync();
+        System.Diagnostics.Debug.WriteLine("✅ LoadEventsAsync completado desde RefreshEventsAsync");
     }
 }

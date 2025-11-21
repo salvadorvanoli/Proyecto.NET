@@ -15,8 +15,8 @@ public partial class App : Microsoft.Maui.Controls.Application
 		_authService = authService;
 		_syncService = syncService;
 
-		// Mostrar pantalla de login por defecto
-		MainPage = new NavigationPage(new LoginPage(new ViewModels.LoginViewModel(authService)));
+		// Inicializar con AppShell
+		MainPage = new AppShell();
 		
 		// Intentar restaurar sesión en background
 		Task.Run(async () => 
@@ -35,24 +35,33 @@ public partial class App : Microsoft.Maui.Controls.Application
 						// Usuario desactivado - hacer logout
 						await _authService.LogoutAsync();
 						
-						MainThread.BeginInvokeOnMainThread(() =>
+						MainThread.BeginInvokeOnMainThread(async () =>
 						{
-							MainPage?.DisplayAlert(
+							await Shell.Current.DisplayAlert(
 								"Sesión Cerrada", 
 								"Tu cuenta ha sido desactivada. Por favor contacta al administrador.", 
 								"OK");
+							await Shell.Current.GoToAsync("//LoginPage");
 						});
 						return;
 					}
 					
-					// Si hay sesión y usuario está activo, navegar a AppShell
-					MainThread.BeginInvokeOnMainThread(() =>
+					// Si hay sesión y usuario está activo, navegar a CredentialPage
+					MainThread.BeginInvokeOnMainThread(async () =>
 					{
-						MainPage = new AppShell();
+						await Shell.Current.GoToAsync("//CredentialPage");
 					});
 					
 					// Sincronizar eventos pendientes en background
 					_ = Task.Run(async () => await _syncService.SyncPendingEventsAsync());
+				}
+				else
+				{
+					// No hay sesión - ir a login
+					MainThread.BeginInvokeOnMainThread(async () =>
+					{
+						await Shell.Current.GoToAsync("//LoginPage");
+					});
 				}
 			}
 			catch (Exception ex)

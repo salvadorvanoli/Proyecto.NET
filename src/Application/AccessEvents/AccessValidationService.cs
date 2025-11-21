@@ -73,7 +73,7 @@ public class AccessValidationService : IAccessValidationService
         if (controlPoint == null)
         {
             _logger.LogWarning("Control point {ControlPointId} not found", controlPointId);
-            return AccessValidationResultExtensions.Denied(userName, "Punto de Control Desconocido", "Punto de control no encontrado");
+            return AccessValidationResultExtensions.Denied(user.Id, userName, "Punto de Control Desconocido", "Punto de control no encontrado");
         }
 
         _logger.LogInformation("🔍 ControlPoint found: Id={ControlPointId}, Name={Name}, TenantId={TenantId}", 
@@ -84,7 +84,7 @@ public class AccessValidationService : IAccessValidationService
         {
             _logger.LogWarning("⚠️ TENANT MISMATCH: User TenantId={UserTenantId} vs ControlPoint TenantId={ControlPointTenantId}", 
                 user.TenantId, controlPoint.TenantId);
-            return AccessValidationResultExtensions.Denied(userName, controlPoint.Name, "Usuario no autorizado para este tenant");
+            return AccessValidationResultExtensions.Denied(user.Id, userName, controlPoint.Name, "Usuario no autorizado para este tenant");
         }
 
         // 4. Cargar las AccessRules para este ControlPoint con sus Roles
@@ -97,14 +97,14 @@ public class AccessValidationService : IAccessValidationService
         if (!user.HasActiveCredential)
         {
             _logger.LogWarning("User {UserId} has no active credential", userId);
-            return AccessValidationResultExtensions.Denied(userName, controlPoint.Name, "Credencial inactiva o inexistente");
+            return AccessValidationResultExtensions.Denied(user.Id, userName, controlPoint.Name, "Credencial inactiva o inexistente");
         }
 
         // 5. Verificar que hay reglas de acceso para este control point
         if (!accessRules.Any())
         {
             _logger.LogWarning("Control point {ControlPointId} has no access rules", controlPointId);
-            return AccessValidationResultExtensions.Denied(userName, controlPoint.Name, "No hay reglas de acceso configuradas");
+            return AccessValidationResultExtensions.Denied(user.Id, userName, controlPoint.Name, "No hay reglas de acceso configuradas");
         }
 
         // 6. Obtener los roles del usuario
@@ -112,7 +112,7 @@ public class AccessValidationService : IAccessValidationService
         if (!userRoles.Any())
         {
             _logger.LogWarning("User {UserId} has no roles assigned", userId);
-            return AccessValidationResultExtensions.Denied(userName, controlPoint.Name, "Usuario sin roles asignados");
+            return AccessValidationResultExtensions.Denied(user.Id, userName, controlPoint.Name, "Usuario sin roles asignados");
         }
 
         // 7. Validar acceso según las reglas
@@ -135,6 +135,7 @@ public class AccessValidationService : IAccessValidationService
                 
                 var roleNames = string.Join(", ", userRoles.Select(r => r.Name));
                 return AccessValidationResultExtensions.Granted(
+                    user.Id,
                     userName, 
                     controlPoint.Name, 
                     $"Acceso autorizado - Roles: {roleNames}");
@@ -148,12 +149,12 @@ public class AccessValidationService : IAccessValidationService
         {
             _logger.LogWarning("User {UserId} denied access to control point {ControlPointId} - No active rules at this time", 
                 userId, controlPointId);
-            return AccessValidationResultExtensions.Denied(userName, controlPoint.Name, "Fuera del horario permitido");
+            return AccessValidationResultExtensions.Denied(user.Id, userName, controlPoint.Name, "Fuera del horario permitido");
         }
 
         _logger.LogWarning("User {UserId} denied access to control point {ControlPointId} - User roles do not match any active rule", 
             userId, controlPointId);
-        return AccessValidationResultExtensions.Denied(userName, controlPoint.Name, "Sin permisos para esta área");
+        return AccessValidationResultExtensions.Denied(user.Id, userName, controlPoint.Name, "Sin permisos para esta área");
     }
 
     public async Task<AccessValidationResult> ValidateAccessByCredentialAsync(
@@ -186,6 +187,7 @@ public class AccessValidationService : IAccessValidationService
         {
             _logger.LogWarning("❌ Credential {CredentialId} is INACTIVE", credentialId);
             return AccessValidationResultExtensions.Denied(
+                credential.UserId,
                 credential.User.FullName,
                 "Punto de Control",
                 "Credencial inactiva");

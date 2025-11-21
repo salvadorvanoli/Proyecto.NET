@@ -80,6 +80,12 @@ public class SyncService : ISyncService
             }
 
             System.Diagnostics.Debug.WriteLine($"✅ Synced {syncedCount} of {unsyncedEvents.Count} pending events");
+            
+            // Notificar que se completó la sincronización
+            if (syncedCount > 0)
+            {
+                MessagingCenter.Send<SyncService>(this, "EventsSynced");
+            }
         }
         catch (Exception ex)
         {

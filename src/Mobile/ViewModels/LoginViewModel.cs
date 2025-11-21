@@ -65,8 +65,8 @@ public class LoginViewModel : BaseViewModel
 
             if (result != null)
             {
-                // Login exitoso - navegar a AppShell
-                Microsoft.Maui.Controls.Application.Current!.MainPage = new AppShell();
+                // Login exitoso - navegar a CredentialPage
+                await Shell.Current.GoToAsync("//CredentialPage");
             }
             else
             {

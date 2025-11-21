@@ -23,16 +23,27 @@ public class NfcCredentialService : INfcCredentialService
         _logger = logger;
         InitializeNfc();
         
+        _logger.LogInformation("🔔 NfcCredentialService constructor - Suscribiendo a evento HCE");
         // Subscribe to HCE service events
         NfcHostCardEmulationService.OnAccessResponseReceived += HandleAccessResponse;
+        _logger.LogInformation("✅ Suscripción completada");
     }
 
     private void HandleAccessResponse(object? sender, AccessResponse response)
     {
-        _logger.LogInformation("📩 Access response received: {AccessGranted} - {Message}", 
+        _logger.LogInformation("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        _logger.LogInformation("📩 HandleAccessResponse CALLED in NfcCredentialService");
+        _logger.LogInformation("   Access response: {AccessGranted} - {Message}", 
             response.AccessGranted, response.Message);
         
+        _logger.LogInformation("🔔 Invocando AccessResponseReceived event...");
+        _logger.LogInformation("   Event is null? {IsNull}", AccessResponseReceived == null);
+        _logger.LogInformation("   Subscriber count: {Count}", AccessResponseReceived?.GetInvocationList()?.Length ?? 0);
+        
         AccessResponseReceived?.Invoke(this, response);
+        
+        _logger.LogInformation("✅ Event invoked from NfcCredentialService");
+        _logger.LogInformation("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     }
 
     public bool IsHceAvailable
@@ -82,24 +93,12 @@ public class NfcCredentialService : INfcCredentialService
                     Java.Lang.Class.FromType(typeof(NfcHostCardEmulationService)));
 
                 bool isDefault = _cardEmulation.IsDefaultServiceForCategory(componentName, CardEmulation.CategoryPayment);
-                _logger.LogInformation("   Is default payment service BEFORE: {IsDefault}", isDefault);
+                _logger.LogInformation("   Is default payment service: {IsDefault}", isDefault);
 
-                // FORCE this app to be the default payment service
-                try
+                if (!isDefault)
                 {
-                    // This will show a system dialog asking user to set this app as default
-                    var activity = Platform.CurrentActivity;
-                    if (activity != null)
-                    {
-                        _logger.LogInformation("🔔 Requesting user to set this app as default payment service...");
-                        var intent = new global::Android.Content.Intent(global::Android.Provider.Settings.ActionNfcPaymentSettings);
-                        activity.StartActivity(intent);
-                        _logger.LogInformation("✅ NFC payment settings opened - user needs to select this app");
-                    }
-                }
-                catch (Exception settingsEx)
-                {
-                    _logger.LogWarning(settingsEx, "Could not open NFC payment settings");
+                    _logger.LogWarning("⚠️ Esta app NO está configurada como servicio de pago predeterminado");
+                    _logger.LogWarning("   El usuario debe configurarla manualmente en Ajustes > NFC > App de pago");
                 }
 
                 // The HCE service is now ready to respond when another device reads this device
@@ -130,7 +129,8 @@ public class NfcCredentialService : INfcCredentialService
             _logger.LogInformation("Stopping NFC credential emulation");
             
             NfcHostCardEmulationService.SetCredential(null, null);
-            NfcHostCardEmulationService.OnAccessResponseReceived -= HandleAccessResponse;
+            // NO desuscribirse del evento - mantener la suscripción activa
+            // NfcHostCardEmulationService.OnAccessResponseReceived -= HandleAccessResponse;
             _isEmulating = false;
             
             _logger.LogInformation("NFC credential emulation stopped");
