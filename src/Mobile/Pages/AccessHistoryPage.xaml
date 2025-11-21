@@ -14,6 +14,7 @@
             <converters:BoolToAccessIconConverter x:Key="BoolToAccessIconConverter"/>
             <converters:BoolToAccessStatusConverter x:Key="BoolToAccessStatusConverter"/>
             <converters:BoolToAccessColorConverter x:Key="BoolToAccessColorConverter"/>
+            <converters:UtcToLocalDateTimeConverter x:Key="UtcToLocalDateTimeConverter"/>
         </ResourceDictionary>
     </ContentPage.Resources>
 
@@ -39,60 +40,68 @@
 
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:AccessEventDto">
-                    <Frame Margin="15,10"
-                           Padding="15"
+                    <Frame Margin="12,6"
+                           Padding="12"
                            BackgroundColor="White"
                            BorderColor="#E0E0E0"
-                           CornerRadius="12"
+                           CornerRadius="10"
                            HasShadow="True">
                         
-                        <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto">
+                        <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto">
                             
                             <!-- Control Point Name -->
                             <Label Grid.Row="0" Grid.Column="0"
                                    Text="{Binding ControlPointName}"
-                                   FontSize="18"
+                                   FontSize="16"
                                    FontAttributes="Bold"
-                                   TextColor="{StaticResource Primary}"/>
+                                   TextColor="{StaticResource Primary}"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1"/>
 
                             <!-- Status Icon -->
                             <Label Grid.Row="0" Grid.Column="1"
                                    Text="{Binding WasGranted, Converter={StaticResource BoolToAccessIconConverter}}"
-                                   FontSize="28"
-                                   VerticalOptions="Center"/>
+                                   FontSize="24"
+                                   VerticalOptions="Center"
+                                   Margin="8,0,0,0"/>
 
                             <!-- Space Name -->
                             <Label Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
                                    Text="{Binding SpaceName}"
-                                   FontSize="14"
+                                   FontSize="13"
                                    TextColor="{StaticResource Gray600}"
-                                   Margin="0,5,0,0"/>
+                                   Margin="0,4,0,0"
+                                   LineBreakMode="TailTruncation"
+                                   MaxLines="1"/>
 
                             <!-- Timestamp -->
                             <HorizontalStackLayout Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
-                                                 Spacing="5"
-                                                 Margin="0,10,0,0">
-                                <Label Text="🕐" FontSize="16"/>
-                                <Label Text="{Binding Timestamp, StringFormat='{0:dd/MM/yyyy HH:mm:ss}'}"
-                                       FontSize="14"
-                                       TextColor="{StaticResource Gray600}"/>
+                                                 Spacing="4"
+                                                 Margin="0,8,0,0">
+                                <Label Text="🕐" FontSize="14"/>
+                                <Label Text="{Binding Timestamp, Converter={StaticResource UtcToLocalDateTimeConverter}, ConverterParameter='dd/MM/yyyy HH:mm:ss'}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource Gray600}"
+                                       VerticalTextAlignment="Center"/>
                             </HorizontalStackLayout>
 
                             <!-- Status Text -->
                             <Label Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
                                    Text="{Binding WasGranted, Converter={StaticResource BoolToAccessStatusConverter}}"
-                                   FontSize="14"
+                                   FontSize="13"
                                    FontAttributes="Bold"
                                    TextColor="{Binding WasGranted, Converter={StaticResource BoolToAccessColorConverter}}"
-                                   Margin="0,5,0,0"/>
+                                   Margin="0,4,0,0"/>
 
                             <!-- Denial Reason (if any) -->
                             <Label Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
                                    Text="{Binding DenialReason, StringFormat='❌ {0}'}"
                                    IsVisible="{Binding DenialReason, Converter={StaticResource IsNotNullConverter}}"
-                                   FontSize="13"
+                                   FontSize="12"
                                    TextColor="#DC3545"
-                                   Margin="0,5,0,0"/>
+                                   Margin="0,4,0,0"
+                                   LineBreakMode="WordWrap"
+                                   MaxLines="2"/>
 
                         </Grid>
                     </Frame>

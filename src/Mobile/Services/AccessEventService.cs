@@ -18,6 +18,13 @@ internal class ControlPointResponseBackend
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
+    public SpaceResponseBackend Space { get; set; } = null!;
+}
+
+internal class SpaceResponseBackend
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
 }
 
 public class AccessEventService : IAccessEventService
@@ -79,16 +86,55 @@ public class AccessEventService : IAccessEventService
                 {
                     System.Diagnostics.Debug.WriteLine($"[AccessEventService] Deserialized {backendEvents.Count} events from backend");
                     
-                    var mappedEvents = backendEvents.Select(e => new AccessEventDto
+                    // Guardar eventos del servidor en BD local para acceso offline
+                    foreach (var backendEvent in backendEvents)
                     {
-                        Id = e.Id,
-                        UserId = e.UserId,
-                        ControlPointId = e.ControlPoint?.Id ?? 0,
-                        ControlPointName = e.ControlPoint?.Name ?? "Desconocido",
-                        SpaceName = "", // El backend no devuelve el nombre del espacio en este endpoint
-                        Timestamp = e.EventDateTime,
-                        WasGranted = e.Result == "Granted",
-                        DenialReason = e.Result != "Granted" ? e.Result : null
+                        // Asegurar que la fecha del backend se interprete como UTC
+                        var utcTimestamp = backendEvent.EventDateTime.Kind == DateTimeKind.Utc
+                            ? backendEvent.EventDateTime
+                            : DateTime.SpecifyKind(backendEvent.EventDateTime, DateTimeKind.Utc);
+                        
+                        var localEvent = new LocalAccessEvent
+                        {
+                            UserId = backendEvent.UserId,
+                            ControlPointId = backendEvent.ControlPoint?.Id ?? 0,
+                            ControlPointName = backendEvent.ControlPoint?.Name ?? "Desconocido",
+                            SpaceName = backendEvent.ControlPoint?.Space?.Name ?? "Desconocido",
+                            Timestamp = utcTimestamp,
+                            WasGranted = backendEvent.Result == "Granted",
+                            DenialReason = backendEvent.Result != "Granted" ? backendEvent.Result : null,
+                            IsSynced = true // Eventos del servidor ya están sincronizados
+                        };
+                        
+                        // Solo guardar si no existe ya (evitar duplicados)
+                        var existingEvents = await _localDatabase.GetAccessEventsAsync(currentUser.UserId, 0, int.MaxValue);
+                        if (!existingEvents.Any(e => 
+                            e.ControlPointId == localEvent.ControlPointId && 
+                            Math.Abs((e.Timestamp - localEvent.Timestamp).TotalSeconds) < 2))
+                        {
+                            await _localDatabase.SaveAccessEventAsync(localEvent);
+                        }
+                    }
+                    System.Diagnostics.Debug.WriteLine($"[AccessEventService] Cached {backendEvents.Count} events in local database");
+                    
+                    var mappedEvents = backendEvents.Select(e => 
+                    {
+                        // Asegurar que la fecha del backend se interprete como UTC
+                        var utcTimestamp = e.EventDateTime.Kind == DateTimeKind.Utc
+                            ? e.EventDateTime
+                            : DateTime.SpecifyKind(e.EventDateTime, DateTimeKind.Utc);
+                        
+                        return new AccessEventDto
+                        {
+                            Id = e.Id,
+                            UserId = e.UserId,
+                            ControlPointId = e.ControlPoint?.Id ?? 0,
+                            ControlPointName = e.ControlPoint?.Name ?? "Desconocido",
+                            SpaceName = e.ControlPoint?.Space?.Name ?? "Desconocido",
+                            Timestamp = utcTimestamp,
+                            WasGranted = e.Result == "Granted",
+                            DenialReason = e.Result != "Granted" ? e.Result : null
+                        };
                     }).ToList();
                     
                     System.Diagnostics.Debug.WriteLine($"[AccessEventService] Returning {mappedEvents.Count} events from server");

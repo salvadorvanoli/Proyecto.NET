@@ -10,6 +10,7 @@ public class AccessHistoryViewModel : BaseViewModel
     private readonly IAccessEventService _accessEventService;
     private readonly IDialogService _dialogService;
     private readonly SemaphoreSlim _loadSemaphore = new SemaphoreSlim(1, 1);
+    private NetworkAccess _previousNetworkAccess;
     
     private bool _isLoading;
     private bool _isLoadingMore;
@@ -62,6 +63,12 @@ public class AccessHistoryViewModel : BaseViewModel
 
         System.Diagnostics.Debug.WriteLine("🔔 AccessHistoryViewModel constructor - Suscribiéndose a mensajes");
 
+        // Guardar estado inicial de conectividad
+        _previousNetworkAccess = Connectivity.NetworkAccess;
+
+        // Suscribirse a cambios de conectividad
+        Connectivity.ConnectivityChanged += OnConnectivityChanged;
+
         // Suscribirse a notificaciones de nuevos eventos
         MessagingCenter.Subscribe<CredentialViewModel>(this, "AccessEventCreated", async (sender) =>
         {
@@ -83,6 +90,23 @@ public class AccessHistoryViewModel : BaseViewModel
                 System.Diagnostics.Debug.WriteLine("✅ RefreshEventsAsync completado después de recibir EventsSynced");
             });
         });
+    }
+
+    private async void OnConnectivityChanged(object? sender, ConnectivityChangedEventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine($"🌐 Conectividad cambió: {_previousNetworkAccess} → {e.NetworkAccess}");
+        
+        // Solo recargar si pasamos de offline a online
+        if (_previousNetworkAccess != NetworkAccess.Internet && e.NetworkAccess == NetworkAccess.Internet)
+        {
+            System.Diagnostics.Debug.WriteLine("✅ Reconectado a Internet - Recargando historial");
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await RefreshEventsAsync();
+            });
+        }
+        
+        _previousNetworkAccess = e.NetworkAccess;
     }
 
     private async Task LoadEventsAsync()
@@ -167,5 +191,11 @@ public class AccessHistoryViewModel : BaseViewModel
         System.Diagnostics.Debug.WriteLine("🔄 RefreshEventsAsync LLAMADO");
         await LoadEventsAsync();
         System.Diagnostics.Debug.WriteLine("✅ LoadEventsAsync completado desde RefreshEventsAsync");
+    }
+
+    ~AccessHistoryViewModel()
+    {
+        // Desuscribirse del evento de conectividad
+        Connectivity.ConnectivityChanged -= OnConnectivityChanged;
     }
 }

@@ -23,6 +23,7 @@ public class AccessEventService : IAccessEventService
     {
         var events = await _context.AccessEvents
             .Include(e => e.ControlPoint)
+                .ThenInclude(cp => cp.Space)
             .Where(e => e.UserId == userId)
             .OrderByDescending(e => e.EventDateTime)
             .ToListAsync();
@@ -34,6 +35,7 @@ public class AccessEventService : IAccessEventService
     {
         var events = await _context.AccessEvents
             .Include(e => e.ControlPoint)
+                .ThenInclude(cp => cp.Space)
             .OrderByDescending(e => e.EventDateTime)
             .ToListAsync();
 
@@ -44,6 +46,7 @@ public class AccessEventService : IAccessEventService
     {
         var accessEvent = await _context.AccessEvents
             .Include(e => e.ControlPoint)
+                .ThenInclude(cp => cp.Space)
             .Where(e => e.Id == eventId)
             .FirstOrDefaultAsync();
 
@@ -84,6 +87,7 @@ public class AccessEventService : IAccessEventService
 
         var createdEvent = await _context.AccessEvents
             .Include(e => e.ControlPoint)
+                .ThenInclude(cp => cp.Space)
             .FirstOrDefaultAsync(e => e.Id == accessEvent.Id);
 
         return MapToResponse(createdEvent!);
@@ -99,7 +103,12 @@ public class AccessEventService : IAccessEventService
             ControlPoint = new ControlPointResponse
             {
                 Id = accessEvent.ControlPoint.Id,
-                Name = accessEvent.ControlPoint.Name
+                Name = accessEvent.ControlPoint.Name,
+                Space = new SpaceResponse
+                {
+                    Id = accessEvent.ControlPoint.Space.Id,
+                    Name = accessEvent.ControlPoint.Space.Name
+                }
             },
             UserId = accessEvent.UserId
         };

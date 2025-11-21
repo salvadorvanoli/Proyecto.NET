@@ -142,7 +142,7 @@ public class NfcHostCardEmulationService : HostApduService
             {
                 AccessGranted = true,
                 Message = message,
-                Timestamp = DateTime.Now
+                Timestamp = DateTime.UtcNow
             };
             
             OnAccessResponseReceived?.Invoke(null, response);
@@ -184,7 +184,7 @@ public class NfcHostCardEmulationService : HostApduService
             {
                 AccessGranted = false,
                 Message = message,
-                Timestamp = DateTime.Now
+                Timestamp = DateTime.UtcNow
             };
             
             OnAccessResponseReceived?.Invoke(null, response);
