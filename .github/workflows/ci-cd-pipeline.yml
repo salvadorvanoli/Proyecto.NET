@@ -87,6 +87,52 @@ jobs:
           TF_VAR_db_username: ${{ secrets.TF_VAR_db_username }}
         run: terraform init -input=false
 
+      - name: Clean Terraform state conflicts
+        working-directory: terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          echo "Cleaning conflicting resources from Terraform state..."
+
+          # Remove all resources from state to start fresh with imports
+          terraform state rm aws_vpc.main 2>/dev/null || true
+          terraform state rm aws_internet_gateway.main 2>/dev/null || true
+          terraform state rm 'aws_subnet.public[0]' 2>/dev/null || true
+          terraform state rm 'aws_subnet.public[1]' 2>/dev/null || true
+          terraform state rm 'aws_subnet.private[0]' 2>/dev/null || true
+          terraform state rm 'aws_subnet.private[1]' 2>/dev/null || true
+          terraform state rm aws_route_table.public 2>/dev/null || true
+          terraform state rm aws_route_table.private 2>/dev/null || true
+          terraform state rm 'aws_route_table_association.public[0]' 2>/dev/null || true
+          terraform state rm 'aws_route_table_association.public[1]' 2>/dev/null || true
+          terraform state rm 'aws_route_table_association.private[0]' 2>/dev/null || true
+          terraform state rm 'aws_route_table_association.private[1]' 2>/dev/null || true
+          terraform state rm aws_security_group.alb 2>/dev/null || true
+          terraform state rm aws_security_group.ecs_tasks 2>/dev/null || true
+          terraform state rm aws_security_group.rds 2>/dev/null || true
+          terraform state rm aws_lb.main 2>/dev/null || true
+          terraform state rm aws_lb_target_group.api 2>/dev/null || true
+          terraform state rm aws_lb_target_group.backoffice 2>/dev/null || true
+          terraform state rm aws_lb_target_group.frontoffice 2>/dev/null || true
+          terraform state rm aws_lb_listener.main 2>/dev/null || true
+          terraform state rm aws_lb_listener_rule.api 2>/dev/null || true
+          terraform state rm aws_lb_listener_rule.backoffice 2>/dev/null || true
+          terraform state rm aws_lb_listener_rule.frontoffice 2>/dev/null || true
+          terraform state rm aws_db_subnet_group.main 2>/dev/null || true
+          terraform state rm aws_ecs_cluster.main 2>/dev/null || true
+          terraform state rm aws_ecs_service.api 2>/dev/null || true
+          terraform state rm aws_ecs_service.backoffice 2>/dev/null || true
+          terraform state rm aws_ecs_service.frontoffice 2>/dev/null || true
+          terraform state rm aws_ecs_task_definition.api 2>/dev/null || true
+          terraform state rm aws_ecs_task_definition.backoffice 2>/dev/null || true
+          terraform state rm aws_ecs_task_definition.frontoffice 2>/dev/null || true
+          terraform state rm aws_db_instance.sqlserver 2>/dev/null || true
+
+          echo "State cleanup completed!"
+
       - name: Import existing resources
         working-directory: terraform
         env:
