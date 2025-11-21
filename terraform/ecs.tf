@@ -241,6 +241,10 @@ resource "aws_ecs_task_definition" "frontoffice" {
           value = "http://+:8080"
         },
         {
+          name  = "PathBase"
+          value = "/frontoffice"
+        },
+        {
           name  = "ApiSettings__BaseUrl"
           value = "http://${aws_lb.main.dns_name}"
         }
