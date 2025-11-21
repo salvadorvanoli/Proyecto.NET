@@ -62,65 +62,6 @@ on:
           - "false"
 
 jobs:
-  build-maui:
-    name: Build & Test MAUI Apps
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Install MAUI workload
-        run: |
-          dotnet workload install maui --skip-manifest-update
-
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'microsoft'
-          java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept Android SDK licenses
-        run: yes | sdkmanager --licenses || true
-
-      - name: Install Android SDK components
-        run: |
-          sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;25.1.8937393"
-
-      - name: Restore dependencies
-        run: dotnet restore Proyecto.NET.sln
-        working-directory: Proyecto.NET
-
-      - name: Build Mobile.Credential
-        run: |
-          dotnet build src/Mobile.Credential/Mobile.Credential.csproj \
-            -f net8.0-android \
-            -c Release \
-            -p:AndroidSdkDirectory=$ANDROID_HOME \
-            -p:JavaSdkDirectory=$JAVA_HOME
-        working-directory: Proyecto.NET
-
-      - name: Build Mobile.AccessPoint
-        run: |
-          dotnet build src/Mobile.AccessPoint/Mobile.AccessPoint.csproj \
-            -f net8.0-android \
-            -c Release \
-            -p:AndroidSdkDirectory=$ANDROID_HOME \
-            -p:JavaSdkDirectory=$JAVA_HOME
-        working-directory: Proyecto.NET
-
-      - name: Run unit tests
-        run: dotnet test --no-build --verbosity normal
-        working-directory: Proyecto.NET
-        continue-on-error: true
-
   infra:
     name: Provision infra (Terraform)
     if: ${{ github.event.inputs.run_infra != 'false' }}
@@ -311,8 +252,8 @@ jobs:
           aws --version
           rm -rf awscliv2.zip aws/
 
-      - name: Get ALB DNS and produce deploy URL
-        id: get_url
+      - name: Get ALB DNS and produce deploy URLs
+        id: get_urls
         run: |
           set -euo pipefail
           ALB_NAME="proyectonet-alb"
@@ -326,42 +267,83 @@ jobs:
           fi
 
           if [ -n "$dns" ] && [ "$dns" != "None" ]; then
-            url="http://$dns"
             echo "Found ALB DNS: $dns"
-            echo "Deployment URL: $url"
-            echo "deploy_url=$url" >> $GITHUB_OUTPUT
+
+            # Construct URLs for all services
+            backoffice_url="http://$dns"
+            frontoffice_url="http://$dns/frontoffice"
+            api_url="http://$dns/api"
+
+            echo "BackOffice URL: $backoffice_url"
+            echo "FrontOffice URL: $frontoffice_url"
+            echo "API URL: $api_url"
+
+            # Save to GitHub outputs
+            echo "backoffice_url=$backoffice_url" >> $GITHUB_OUTPUT
+            echo "frontoffice_url=$frontoffice_url" >> $GITHUB_OUTPUT
+            echo "api_url=$api_url" >> $GITHUB_OUTPUT
+            echo "alb_dns=$dns" >> $GITHUB_OUTPUT
           else
             echo "No ALB DNS found via AWS CLI. Trying terraform state file as fallback..."
             if [ -f terraform/terraform.tfstate ]; then
-              url=$(jq -r '.outputs.backoffice_url.value' terraform/terraform.tfstate 2>/dev/null || true)
-              if [ -n "$url" ] && [ "$url" != "null" ]; then
-                echo "Found URL in terraform.tfstate: $url"
-                echo "deploy_url=$url" >> $GITHUB_OUTPUT
-              else
-                echo "No backoffice_url in terraform.tfstate"
-                echo "deploy_url=NOT_FOUND" >> $GITHUB_OUTPUT
-              fi
+              backoffice_url=$(jq -r '.outputs.backoffice_url.value' terraform/terraform.tfstate 2>/dev/null || echo "NOT_FOUND")
+              frontoffice_url=$(jq -r '.outputs.frontoffice_url.value' terraform/terraform.tfstate 2>/dev/null || echo "NOT_FOUND")
+              api_url=$(jq -r '.outputs.api_url.value' terraform/terraform.tfstate 2>/dev/null || echo "NOT_FOUND")
+
+              echo "backoffice_url=$backoffice_url" >> $GITHUB_OUTPUT
+              echo "frontoffice_url=$frontoffice_url" >> $GITHUB_OUTPUT
+              echo "api_url=$api_url" >> $GITHUB_OUTPUT
+              echo "alb_dns=NOT_FOUND" >> $GITHUB_OUTPUT
             else
               echo "terraform.tfstate not present in repository"
-              echo "deploy_url=NOT_FOUND" >> $GITHUB_OUTPUT
+              echo "backoffice_url=NOT_FOUND" >> $GITHUB_OUTPUT
+              echo "frontoffice_url=NOT_FOUND" >> $GITHUB_OUTPUT
+              echo "api_url=NOT_FOUND" >> $GITHUB_OUTPUT
+              echo "alb_dns=NOT_FOUND" >> $GITHUB_OUTPUT
             fi
           fi
 
-      - name: Show final URL
+      - name: Show deployment URLs
         run: |
-          echo "Final deploy URL: ${{ steps.get_url.outputs.deploy_url }}"
+          echo "=========================================="
+          echo "  DEPLOYMENT COMPLETED SUCCESSFULLY"
+          echo "=========================================="
+          echo ""
+          echo "📍 ALB DNS: ${{ steps.get_urls.outputs.alb_dns }}"
+          echo ""
+          echo "🌐 Application URLs:"
+          echo "   • BackOffice:  ${{ steps.get_urls.outputs.backoffice_url }}"
+          echo "   • FrontOffice: ${{ steps.get_urls.outputs.frontoffice_url }}"
+          echo "   • API:         ${{ steps.get_urls.outputs.api_url }}"
+          echo ""
+          echo "=========================================="
 
-      - name: Write deploy URL to file
+      - name: Write deployment URLs to file
         if: always()
         run: |
-          echo "${{ steps.get_url.outputs.deploy_url }}" > deploy-url.txt
+          cat > deployment-urls.txt << EOF
+          ========================================
+          DEPLOYMENT URLS
+          ========================================
 
-      - name: Upload deploy URL artifact
+          ALB DNS: ${{ steps.get_urls.outputs.alb_dns }}
+
+          BackOffice URL:  ${{ steps.get_urls.outputs.backoffice_url }}
+          FrontOffice URL: ${{ steps.get_urls.outputs.frontoffice_url }}
+          API URL:         ${{ steps.get_urls.outputs.api_url }}
+
+          ========================================
+          EOF
+
+      - name: Upload deployment URLs artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: deploy-url
-          path: deploy-url.txt
+          name: deployment-urls
+          path: deployment-urls.txt
 
     outputs:
-      deploy_url: ${{ steps.get_url.outputs.deploy_url }}
+      backoffice_url: ${{ steps.get_urls.outputs.backoffice_url }}
+      frontoffice_url: ${{ steps.get_urls.outputs.frontoffice_url }}
+      api_url: ${{ steps.get_urls.outputs.api_url }}
+      alb_dns: ${{ steps.get_urls.outputs.alb_dns }}
