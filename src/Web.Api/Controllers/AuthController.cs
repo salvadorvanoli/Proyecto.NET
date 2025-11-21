@@ -49,5 +49,37 @@ public class AuthController : ControllerBase
             return StatusCode(500, new { error = "Ocurrió un error durante el inicio de sesión." });
         }
     }
+
+    /// <summary>
+    /// Authenticates a mobile user with extended token lifetime (7 days).
+    /// Use this endpoint for mobile apps that may operate offline.
+    /// </summary>
+    [HttpPost("mobile-login")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<LoginResponse>> MobileLogin([FromBody] LoginRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            const int MOBILE_TOKEN_LIFETIME_MINUTES = 10080; // 7 días = 7 * 24 * 60
+            var response = await _authService.LoginAsync(request, MOBILE_TOKEN_LIFETIME_MINUTES, cancellationToken);
+
+            if (response == null)
+            {
+                _logger.LogWarning("Failed mobile login attempt for email: {Email}", request.Email);
+                return Unauthorized(new { error = "Email o contraseña incorrectos." });
+            }
+
+            _logger.LogInformation("Mobile user {Email} logged in successfully with extended token (7 days). TenantId: {TenantId}", 
+                response.Email, response.TenantId);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during mobile login for email: {Email}", request.Email);
+            return StatusCode(500, new { error = "Ocurrió un error durante el inicio de sesión." });
+        }
+    }
 }
 

@@ -11,7 +11,7 @@ namespace Application.Common.Interfaces
         /// Generates a JWT access token for the specified user information.
         /// IMPORTANT: Includes TenantId to ensure multi-tenant isolation.
         /// </summary>
-        string GenerateToken(int userId, string email, int tenantId, IEnumerable<string> roles);
+        string GenerateToken(int userId, string email, int tenantId, IEnumerable<string> roles, int? customLifetimeMinutes = null);
 
         /// <summary>
         /// Gets token lifetime in minutes as configured.

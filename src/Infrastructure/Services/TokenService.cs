@@ -35,7 +35,7 @@ namespace Infrastructure.Services
 
         public int GetTokenLifetimeMinutes() => _lifetimeMinutes;
 
-        public string GenerateToken(int userId, string email, int tenantId, IEnumerable<string> roles)
+        public string GenerateToken(int userId, string email, int tenantId, IEnumerable<string> roles, int? customLifetimeMinutes = null)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secret));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -56,12 +56,14 @@ namespace Infrastructure.Services
                 claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
             }
 
+            var lifetimeToUse = customLifetimeMinutes ?? _lifetimeMinutes;
+            
             var token = new JwtSecurityToken(
                 issuer: _issuer,
                 audience: _audience,
                 claims: claims,
                 notBefore: now,
-                expires: now.AddMinutes(_lifetimeMinutes),
+                expires: now.AddMinutes(lifetimeToUse),
                 signingCredentials: creds
             );
 

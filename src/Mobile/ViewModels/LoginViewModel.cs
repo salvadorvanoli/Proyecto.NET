@@ -1,4 +1,5 @@
 using Mobile.Services;
+using Mobile.Validators;
 using System.Windows.Input;
 
 namespace Mobile.ViewModels;
@@ -50,9 +51,11 @@ public class LoginViewModel : BaseViewModel
         HasError = false;
         ErrorMessage = string.Empty;
 
-        if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(Password))
+        // Validar credenciales con validador robusto
+        var validation = LoginValidator.ValidateCredentials(Username, Password);
+        if (!validation.IsValid)
         {
-            ErrorMessage = "Usuario y contraseña son requeridos";
+            ErrorMessage = validation.ErrorMessage!;
             HasError = true;
             return;
         }
@@ -74,9 +77,17 @@ public class LoginViewModel : BaseViewModel
                 HasError = true;
             }
         }
+        catch (InvalidOperationException ex)
+        {
+            // Errores controlados del servicio (red, etc.)
+            ErrorMessage = ex.Message;
+            HasError = true;
+        }
         catch (Exception ex)
         {
-            ErrorMessage = $"Error al iniciar sesión: {ex.Message}";
+            // Errores inesperados
+            System.Diagnostics.Debug.WriteLine($"Error inesperado en LoginAsync: {ex}");
+            ErrorMessage = "Ocurrió un error inesperado. Por favor, intenta nuevamente.";
             HasError = true;
         }
         finally

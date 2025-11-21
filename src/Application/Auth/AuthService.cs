@@ -22,6 +22,11 @@ public class AuthService : IAuthService
 
     public async Task<LoginResponse?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
+        return await LoginAsync(request, customTokenLifetimeMinutes: null, cancellationToken);
+    }
+
+    public async Task<LoginResponse?> LoginAsync(LoginRequest request, int? customTokenLifetimeMinutes, CancellationToken cancellationToken = default)
+    {
         // Find user by email (case-insensitive)
         var user = await _context.Users
             .Include(u => u.Roles)
@@ -44,10 +49,11 @@ public class AuthService : IAuthService
 
         try
         {
-            token = _tokenService?.GenerateToken(user.Id, user.Email, user.TenantId, user.Roles.Select(r => r.Name)) ?? null;
-            if (token != null && _tokenService != null)
+            var lifetimeMinutes = customTokenLifetimeMinutes ?? _tokenService?.GetTokenLifetimeMinutes();
+            token = _tokenService?.GenerateToken(user.Id, user.Email, user.TenantId, user.Roles.Select(r => r.Name), customTokenLifetimeMinutes) ?? null;
+            if (token != null && lifetimeMinutes.HasValue)
             {
-                expiresAt = DateTime.UtcNow.AddMinutes(_tokenService.GetTokenLifetimeMinutes());
+                expiresAt = DateTime.UtcNow.AddMinutes(lifetimeMinutes.Value);
             }
         }
         catch
