@@ -14,5 +14,11 @@ public interface ITenantProvider
     /// Sets the current tenant ID for the request context.
     /// </summary>
     void SetCurrentTenantId(int tenantId);
+
+    /// <summary>
+    /// Checks if HTTP context is available for retrieving tenant information.
+    /// Returns false during migrations, seeds, or background jobs.
+    /// </summary>
+    bool IsHttpContextAvailable();
 }
 

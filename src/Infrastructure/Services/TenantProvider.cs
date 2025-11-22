@@ -28,7 +28,10 @@ public class TenantProvider : ITenantProvider
 
         if (httpContext == null)
         {
-            throw new InvalidOperationException("HTTP context is not available.");
+            // This can happen during migrations, seeds, or background jobs
+            // Throw an exception to indicate that HTTP context is not available
+            // The global query filter in ApplicationDbContext checks IsHttpContextAvailable() to prevent this
+            throw new InvalidOperationException("HTTP context is not available. This is expected during migrations, seeds, or background operations.");
         }
 
         // SECURITY: Get tenant ID ONLY from JWT claims (authenticated users)
@@ -62,5 +65,10 @@ public class TenantProvider : ITenantProvider
     public void SetCurrentTenantId(int tenantId)
     {
         _currentTenantId = tenantId;
+    }
+
+    public bool IsHttpContextAvailable()
+    {
+        return _httpContextAccessor.HttpContext != null;
     }
 }

@@ -28,6 +28,10 @@ public static class DependencyInjection
             var connectionString = configuration.GetConnectionString("DefaultConnection");
             options.UseSqlServer(connectionString);
 
+            // Suppress pending model changes warning - interface changes don't affect database schema
+            options.ConfigureWarnings(warnings =>
+                warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+
             // Enable sensitive data logging in development
             #if DEBUG
                 options.EnableSensitiveDataLogging();

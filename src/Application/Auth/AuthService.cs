@@ -28,7 +28,9 @@ public class AuthService : IAuthService
     public async Task<LoginResponse?> LoginAsync(LoginRequest request, int? customTokenLifetimeMinutes, CancellationToken cancellationToken = default)
     {
         // Find user by email (case-insensitive)
+        // IgnoreQueryFilters is required because during login there's no authenticated context yet
         var user = await _context.Users
+            .IgnoreQueryFilters()
             .Include(u => u.Roles)
             .FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower(), cancellationToken);
 

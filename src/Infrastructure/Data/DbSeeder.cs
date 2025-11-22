@@ -31,7 +31,7 @@ public class DbSeeder
         try
         {
             // Verificar si ya hay datos
-            if (await _context.Tenants.AnyAsync())
+            if (await _context.Tenants.IgnoreQueryFilters().AnyAsync())
             {
                 _logger.LogInformation("Database already contains data. Skipping seed.");
                 return;
