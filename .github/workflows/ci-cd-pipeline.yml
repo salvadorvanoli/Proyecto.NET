@@ -175,7 +175,7 @@ jobs:
 
   update-services:
     name: Update ECS services
-    if: ${{ github.event.inputs.run_update_services != 'false' }}
+    if: ${{ always() && github.event.inputs.run_update_services != 'false' && (needs.build.result == 'success' || needs.build.result == 'skipped') }}
     needs: [infra, build]
     runs-on: ubuntu-latest
     env:
