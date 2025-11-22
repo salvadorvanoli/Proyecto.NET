@@ -420,7 +420,7 @@ jobs:
             echo "Checking service: $svcName"
             if echo "$svcName" | grep -qi "backoffice" || echo "$svcName" | grep -qi "api" || echo "$svcName" | grep -qi "frontoffice"; then
               echo "Forcing new deployment for $svcName"
-              aws ecs update_service --cluster "$clusterName" --service "$svcName" --force-new-deployment --region "$AWS_REGION"
+              aws ecs update-service --cluster "$clusterName" --service "$svcName" --force-new-deployment --region "$AWS_REGION"
             else
               echo "Skipping $svcName"
             fi
