@@ -2,6 +2,8 @@ using Mobile.Models;
 using Mobile.Services;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using Mobile.Messages;
 
 namespace Mobile.ViewModels;
 
@@ -70,7 +72,7 @@ public class AccessHistoryViewModel : BaseViewModel
         Connectivity.ConnectivityChanged += OnConnectivityChanged;
 
         // Suscribirse a notificaciones de nuevos eventos
-        MessagingCenter.Subscribe<CredentialViewModel>(this, "AccessEventCreated", async (sender) =>
+        WeakReferenceMessenger.Default.Register<AccessEventCreatedMessage>(this, async (recipient, message) =>
         {
             System.Diagnostics.Debug.WriteLine("📬 MENSAJE RECIBIDO: AccessEventCreated en AccessHistoryViewModel");
             await MainThread.InvokeOnMainThreadAsync(async () =>
@@ -81,7 +83,7 @@ public class AccessHistoryViewModel : BaseViewModel
         });
 
         // Suscribirse a notificaciones de sincronización completada
-        MessagingCenter.Subscribe<Services.SyncService>(this, "EventsSynced", async (sender) =>
+        WeakReferenceMessenger.Default.Register<EventsSyncedMessage>(this, async (recipient, message) =>
         {
             System.Diagnostics.Debug.WriteLine("📬 MENSAJE RECIBIDO: EventsSynced en AccessHistoryViewModel");
             await MainThread.InvokeOnMainThreadAsync(async () =>

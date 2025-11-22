@@ -1,6 +1,8 @@
 using Mobile.Data;
 using Mobile.Models;
 using System.Net.Http.Json;
+using CommunityToolkit.Mvvm.Messaging;
+using Mobile.Messages;
 
 namespace Mobile.Services;
 
@@ -84,7 +86,7 @@ public class SyncService : ISyncService
             // Notificar que se completó la sincronización
             if (syncedCount > 0)
             {
-                MessagingCenter.Send<SyncService>(this, "EventsSynced");
+                WeakReferenceMessenger.Default.Send(new EventsSyncedMessage { SyncedCount = syncedCount });
             }
         }
         catch (Exception ex)

@@ -5,6 +5,8 @@ using Shared.DTOs.Auth;
 using Mobile.Models;
 using CommunityToolkit.Maui.Views;
 using Mobile.Popups;
+using CommunityToolkit.Mvvm.Messaging;
+using Mobile.Messages;
 
 namespace Mobile.ViewModels;
 
@@ -222,7 +224,7 @@ public class CredentialViewModel : BaseViewModel
 
                 // Notificar al historial para que se actualice
                 _logger.LogInformation("📢 ENVIANDO MENSAJE: AccessEventCreated desde CredentialViewModel");
-                MessagingCenter.Send(this, "AccessEventCreated");
+                WeakReferenceMessenger.Default.Send(new AccessEventCreatedMessage());
                 _logger.LogInformation("📢 MENSAJE ENVIADO: AccessEventCreated");
             }
             catch (Exception ex)
