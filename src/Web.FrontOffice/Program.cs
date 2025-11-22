@@ -208,9 +208,15 @@ app.Use(async (context, next) =>
     // XSS Protection
     context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
 
-    // Content Security Policy - ajustado para Blazor Server
+    // Content Security Policy - ajustado para Blazor Server y permitir source maps de CDN
     context.Response.Headers.Append("Content-Security-Policy",
-        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net; connect-src 'self' ws: wss:; frame-ancestors 'self'");
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; " +
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+        "img-src 'self' data: https:; " +
+        "font-src 'self' https://cdn.jsdelivr.net; " +
+        "connect-src 'self' ws: wss: https://cdn.jsdelivr.net; " +
+        "frame-ancestors 'self'");
 
     // Referrer Policy
     context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -227,7 +233,15 @@ app.Use(async (context, next) =>
 app.UseIpRateLimiting();
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+
+// Configurar StaticFileOptions para que funcione con PathBase
+var staticFileOptions = new StaticFileOptions();
+if (!string.IsNullOrEmpty(pathBase))
+{
+    staticFileOptions.RequestPath = pathBase;
+}
+app.UseStaticFiles(staticFileOptions);
+
 app.UseAntiforgery();
 
 app.UseAuthentication();
