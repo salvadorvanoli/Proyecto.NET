@@ -62,8 +62,59 @@ on:
           - "false"
 
 jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies (excluding MAUI projects)
+        run: |
+          dotnet restore src/Domain/Domain.csproj
+          dotnet restore src/Application/Application.csproj
+          dotnet restore src/Infrastructure/Infrastructure.csproj
+          dotnet restore src/Shared/Shared.csproj
+          dotnet restore src/Web.Api/Web.Api.csproj
+          dotnet restore src/Web.BackOffice/Web.BackOffice.csproj
+          dotnet restore src/Web.FrontOffice/Web.FrontOffice.csproj
+
+      - name: Build projects (excluding MAUI)
+        run: |
+          dotnet build src/Domain/Domain.csproj --configuration Release --no-restore
+          dotnet build src/Application/Application.csproj --configuration Release --no-restore
+          dotnet build src/Infrastructure/Infrastructure.csproj --configuration Release --no-restore
+          dotnet build src/Shared/Shared.csproj --configuration Release --no-restore
+          dotnet build src/Web.Api/Web.Api.csproj --configuration Release --no-restore
+          dotnet build src/Web.BackOffice/Web.BackOffice.csproj --configuration Release --no-restore
+          dotnet build src/Web.FrontOffice/Web.FrontOffice.csproj --configuration Release --no-restore
+
+      - name: Run tests
+        run: |
+          if [ -d "test" ] && [ "$(ls -A test 2>/dev/null)" ]; then
+            echo "✓ Running tests before deployment..."
+            dotnet test --configuration Release --verbosity normal --logger "trx" --results-directory ./test-results
+          else
+            echo "⚠ No test projects found. Skipping tests."
+            exit 0
+          fi
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: ./test-results/*.trx
+          retention-days: 30
+
   infra:
     name: Provision infra (Terraform)
+    needs: test
     if: ${{ github.event.inputs.run_infra != 'false' }}
     runs-on: ubuntu-latest
     steps:
@@ -314,6 +365,7 @@ jobs:
 
   build:
     name: Build & push images
+    needs: test
     runs-on: ubuntu-latest
     env:
       ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com

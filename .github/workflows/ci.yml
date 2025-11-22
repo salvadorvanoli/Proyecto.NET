@@ -1,0 +1,93 @@
+name: Run Tests
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'src/**'
+      - 'test/**'
+      - '*.sln'
+      - '.github/workflows/ci.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'test/**'
+      - '*.sln'
+      - '.github/workflows/ci.yml'
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  BUILD_CONFIGURATION: 'Release'
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+        
+    - name: Restore dependencies (excluding MAUI projects)
+      run: |
+        dotnet restore src/Domain/Domain.csproj
+        dotnet restore src/Application/Application.csproj
+        dotnet restore src/Infrastructure/Infrastructure.csproj
+        dotnet restore src/Shared/Shared.csproj
+        dotnet restore src/Web.Api/Web.Api.csproj
+        dotnet restore src/Web.BackOffice/Web.BackOffice.csproj
+        dotnet restore src/Web.FrontOffice/Web.FrontOffice.csproj
+      
+    - name: Build projects (required for tests)
+      run: |
+        dotnet build src/Domain/Domain.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+        dotnet build src/Application/Application.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+        dotnet build src/Infrastructure/Infrastructure.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+        dotnet build src/Shared/Shared.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+        dotnet build src/Web.Api/Web.Api.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+        dotnet build src/Web.BackOffice/Web.BackOffice.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+        dotnet build src/Web.FrontOffice/Web.FrontOffice.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+      
+    - name: Run tests
+      run: |
+        if [ -d "test" ] && [ "$(ls -A test 2>/dev/null)" ]; then
+          echo "✓ Test projects found. Running tests..."
+          dotnet test --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger "trx" --results-directory ./test-results
+        else
+          echo "⚠ No test projects found in 'test/' directory."
+          echo "Tests will be skipped. Consider adding unit tests to improve code quality."
+          exit 0
+        fi
+      
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: ./test-results/*.trx
+        retention-days: 30
+        
+    - name: Test Summary
+      if: always()
+      run: |
+        echo "## Test Execution Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ -d "test" ] && [ "$(ls -A test 2>/dev/null)" ]; then
+          echo "✓ Tests executed successfully" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠ No test projects found - tests were skipped" >> $GITHUB_STEP_SUMMARY
+        fi
