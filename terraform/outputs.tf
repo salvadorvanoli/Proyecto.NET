@@ -13,6 +13,11 @@ output "backoffice_url" {
   value       = "http://${aws_lb.main.dns_name}"
 }
 
+output "frontoffice_url" {
+  description = "URL del FrontOffice"
+  value       = "http://${aws_lb.main.dns_name}/frontoffice"
+}
+
 output "api_url" {
   description = "URL de la API"
   value       = "http://${aws_lb.main.dns_name}/api"
@@ -31,6 +36,11 @@ output "ecr_repository_backoffice_url" {
 output "ecr_repository_api_url" {
   description = "URL del repositorio ECR para API"
   value       = aws_ecr_repository.api.repository_url
+}
+
+output "ecr_repository_frontoffice_url" {
+  description = "URL del repositorio ECR para FrontOffice"
+  value       = aws_ecr_repository.frontoffice.repository_url
 }
 
 output "ecs_cluster_name" {
@@ -67,7 +77,7 @@ output "security_notes" {
   description = "Notas importantes de seguridad"
   value = <<-EOT
     IMPORTANTE - SEGURIDAD:
-    
+
     1. JWT Secret: Configurado vía variable sensible (no visible en outputs)
     2. DB Password: Configurado vía variable sensible (no visible en outputs)
     3. HTTPS: Actualmente usando HTTP. Para producción:
@@ -77,7 +87,7 @@ output "security_notes" {
     4. CORS: Configurado para: ${length(var.cors_allowed_origins) > 0 ? join(", ", var.cors_allowed_origins) : "ALB DNS (auto)"}
     5. Rate Limiting: Configurado en la aplicación (5 login/min, 200 req/min)
     6. Security Headers: Configurados en la aplicación (HSTS, CSP, etc.)
-    
+
     Para conectar BackOffice/FrontOffice a la API, usa:
        API URL: http://${aws_lb.main.dns_name}
        BackOffice URL: http://${aws_lb.main.dns_name}

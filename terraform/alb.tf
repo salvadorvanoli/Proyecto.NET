@@ -77,6 +77,40 @@ resource "aws_lb_target_group" "backoffice" {
   }
 }
 
+# Target Group - FrontOffice
+resource "aws_lb_target_group" "frontoffice" {
+  name        = "${var.project_name}-frontoffice-tg"
+  port        = 8080
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.main.id
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    interval            = 30
+    matcher             = "200"
+    path                = "/health"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+    timeout             = 5
+    unhealthy_threshold = 3
+  }
+
+  deregistration_delay = 30
+
+  stickiness {
+    type            = "lb_cookie"
+    cookie_duration = 28800  # 8 horas
+    enabled         = true
+  }
+
+  tags = {
+    Name        = "${var.project_name}-frontoffice-tg"
+    Environment = var.environment
+  }
+}
+
 # ALB Listener
 # IMPORTANTE: En producción, deberías configurar HTTPS (puerto 443) con un certificado SSL/TLS
 # Para desarrollo/learner lab, se usa HTTP (puerto 80)
@@ -133,6 +167,23 @@ resource "aws_lb_listener" "main" {
 #     }
 #   }
 # }
+
+# Listener Rule - FrontOffice
+resource "aws_lb_listener_rule" "frontoffice" {
+  listener_arn = aws_lb_listener.main.arn
+  priority     = 75
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.frontoffice.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/frontoffice/*", "/frontoffice"]
+    }
+  }
+}
 
 # Listener Rule - BackOffice (default)
 resource "aws_lb_listener_rule" "backoffice" {
