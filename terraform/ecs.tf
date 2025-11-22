@@ -83,6 +83,10 @@ resource "aws_ecs_task_definition" "api" {
           value = "http://+:8080"
         },
         {
+          name  = "PATH_BASE"
+          value = "/api"
+        },
+        {
           name  = "SEED_DATABASE"
           value = "true"
         },
@@ -241,8 +245,12 @@ resource "aws_ecs_task_definition" "frontoffice" {
           value = "http://+:8080"
         },
         {
+          name  = "PATH_BASE"
+          value = "/frontoffice"
+        },
+        {
           name  = "API_BASE_URL"
-          value = "http://${aws_lb.main.dns_name}/api"
+          value = "http://${aws_lb.main.dns_name}"
         }
       ]
 

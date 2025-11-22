@@ -22,15 +22,16 @@ builder.Services.AddControllers(); // Agregar soporte para API controllers
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/login";
-        options.LogoutPath = "/logout";
-        options.AccessDeniedPath = "/access-denied";
+        options.LoginPath = "/Auth/Login";
+        options.LogoutPath = "/Auth/Logout";
+        options.AccessDeniedPath = "/Auth/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         options.Cookie.Name = ".ProyectoNet.FrontOffice.Auth";
         options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.Path = "/frontoffice/";
     });
 
 builder.Services.AddAuthorization();
@@ -92,8 +93,12 @@ builder.Services.AddScoped<JwtTokenHandler>();
 // Add HttpClient factory for Blazor components
 builder.Services.AddHttpClient();
 
-// Configure API Base URL from configuration
-var apiBaseUrl = builder.Configuration.GetValue<string>("ApiSettings:BaseUrl") ?? "http://localhost:5236/";
+// Configure API Base URL from environment variable (same as BackOffice)
+var apiBaseUrl = builder.Configuration["API_BASE_URL"]
+                 ?? Environment.GetEnvironmentVariable("API_BASE_URL")
+                 ?? builder.Configuration.GetValue<string>("ApiSettings:BaseUrl")
+                 ?? "http://localhost:5236/";
+Console.WriteLine($"Configuring FrontOffice to use API at: {apiBaseUrl}");
 
 // Configure HttpClient for Auth API
 builder.Services.AddHttpClient<IAuthApiService, AuthApiService>(client =>
@@ -174,6 +179,25 @@ if (!app.Environment.IsDevelopment())
 }
 
 // ========================================
+// CONFIGURACIÓN: Forwarded Headers para ALB
+// ========================================
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor |
+                       Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+});
+
+// ========================================
+// CONFIGURACIÓN: Path Base para ALB (DEBE IR ANTES DE UseStaticFiles)
+// ========================================
+var pathBase = builder.Configuration["PathBase"] ?? Environment.GetEnvironmentVariable("PATH_BASE");
+if (!string.IsNullOrEmpty(pathBase))
+{
+    app.UsePathBase(pathBase);
+    Console.WriteLine($"FrontOffice configured to use path base: {pathBase}");
+}
+
+// ========================================
 // SEGURIDAD: Security Headers
 // ========================================
 app.Use(async (context, next) =>
@@ -193,9 +217,15 @@ app.Use(async (context, next) =>
     // XSS Protection
     context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
 
-    // Content Security Policy - ajustado para Blazor Server
-    context.Response.Headers.Append("Content-Security-Policy", 
-        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net; connect-src 'self' ws: wss:; frame-ancestors 'self'");
+    // Content Security Policy - ajustado para Blazor Server y permitir source maps de CDN
+    context.Response.Headers.Append("Content-Security-Policy",
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; " +
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+        "img-src 'self' data: https:; " +
+        "font-src 'self' https://cdn.jsdelivr.net; " +
+        "connect-src 'self' ws: wss: https://cdn.jsdelivr.net; " +
+        "frame-ancestors 'self'");
 
     // Referrer Policy
     context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -212,7 +242,10 @@ app.Use(async (context, next) =>
 app.UseIpRateLimiting();
 
 app.UseHttpsRedirection();
+
+// Configurar archivos estáticos (UsePathBase ya está configurado arriba)
 app.UseStaticFiles();
+
 app.UseAntiforgery();
 
 app.UseAuthentication();

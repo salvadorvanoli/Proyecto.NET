@@ -168,6 +168,23 @@ resource "aws_lb_listener" "main" {
 #   }
 # }
 
+# Listener Rule - API
+resource "aws_lb_listener_rule" "api" {
+  listener_arn = aws_lb_listener.main.arn
+  priority     = 50
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/api", "/api/*"]
+    }
+  }
+}
+
 # Listener Rule - FrontOffice
 resource "aws_lb_listener_rule" "frontoffice" {
   listener_arn = aws_lb_listener.main.arn
@@ -180,7 +197,7 @@ resource "aws_lb_listener_rule" "frontoffice" {
 
   condition {
     path_pattern {
-      values = ["/frontoffice/*", "/frontoffice"]
+      values = ["/frontoffice", "/frontoffice/*"]
     }
   }
 }
@@ -198,23 +215,6 @@ resource "aws_lb_listener_rule" "backoffice" {
   condition {
     path_pattern {
       values = ["/*"]
-    }
-  }
-}
-
-# Listener Rule - API
-resource "aws_lb_listener_rule" "api" {
-  listener_arn = aws_lb_listener.main.arn
-  priority     = 50
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.api.arn
-  }
-
-  condition {
-    path_pattern {
-      values = ["/api/*"]
     }
   }
 }

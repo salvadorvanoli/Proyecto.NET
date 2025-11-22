@@ -59,7 +59,7 @@ try
 
     builder.Services.AddControllers();
     builder.Services.AddSignalR();
-    
+
     // Registrar TenantAuthorizationFilter como servicio para uso con atributos
     builder.Services.AddScoped<TenantAuthorizationFilter>();
 
@@ -99,7 +99,7 @@ try
                 },
                 OnTokenValidated = context =>
                 {
-                    var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                    var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value
                                  ?? context.Principal?.FindFirst("sub")?.Value;
                     if (userId != null)
                     {
@@ -243,10 +243,10 @@ try
             // Crear las tablas si no existen (para cuando no hay migraciones)
             var context = services.GetRequiredService<ApplicationDbContext>();
             await context.Database.EnsureCreatedAsync();
-            
+
             // Alternativamente, se puede usar MigrateAsync() en lugar de EnsureCreatedAsync()
             // await context.Database.MigrateAsync();
-            
+
             logger.LogInformation("Database schema ensured.");
 
             // Ejecutar el seed si está habilitado
@@ -270,6 +270,17 @@ try
     {
         app.UseSwagger();
         app.UseSwaggerUI();
+    }
+
+    // ========================================
+    // CONFIGURACIÓN: Path Base para ALB
+    // ========================================
+    // Cuando la API está detrás de un ALB con path /api, necesitamos configurar el path base
+    var pathBase = builder.Configuration["PathBase"] ?? Environment.GetEnvironmentVariable("PATH_BASE");
+    if (!string.IsNullOrEmpty(pathBase))
+    {
+        app.UsePathBase(pathBase);
+        Log.Information($"API configured to use path base: {pathBase}");
     }
 
     // ========================================
@@ -298,7 +309,7 @@ try
         context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
 
         // Content Security Policy - ajustar según necesidades
-        context.Response.Headers.Append("Content-Security-Policy", 
+        context.Response.Headers.Append("Content-Security-Policy",
             "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'");
 
         // Referrer Policy
@@ -339,19 +350,19 @@ try
     });
 
     app.UseHttpsRedirection();
-    
+
     // IMPORTANTE: CORS debe ir ANTES de MapHub para SignalR
     app.UseCors("AllowWebApps");
-    
+
     // ========================================
     // SEGURIDAD: Authentication & Authorization
     // ========================================
     app.UseAuthentication();
     app.UseAuthorization();
-    
+
     app.MapApiHealthChecks();
     app.MapControllers();
-    
+
     // Mapear SignalR Hub
     app.MapHub<NotificationHub>("/notificationHub");
 
