@@ -80,7 +80,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     /// - During HTTP requests: Filter ALWAYS applies (IsHttpContextAvailable() = true)
     /// - During migrations/seeds: Filter disabled (no HttpContext), which is SAFE because:
     ///   * Migrations run in controlled environment (dev/CI/CD)
-    ///   * Seeders explicitly use .IgnoreQueryFilters() for cross-tenant setup
+    ///   * During seeding/migrations, tenant filter is bypassed because HttpContext is unavailable
     ///   * Production seeds run during deployment, not runtime
     /// 
     /// If HttpContext becomes unavailable during runtime (extremely rare edge case),
@@ -92,8 +92,8 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
         // This prevents crashes during migrations and seeds when HttpContext is not available
         // but ITenantProvider is still injected by DI
         modelBuilder.Entity<T>().HasQueryFilter(e => 
-            _tenantProvider == null || 
-            !_tenantProvider.IsHttpContextAvailable() ||
+            _tenantProvider != null &&
+            _tenantProvider.IsHttpContextAvailable() &&
             e.TenantId == _tenantProvider.GetCurrentTenantId());
     }
 

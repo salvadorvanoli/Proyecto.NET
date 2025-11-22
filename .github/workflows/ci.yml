@@ -91,7 +91,11 @@ jobs:
         echo "## Test Execution Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         if [ -d "test" ] && [ "$(ls -A test 2>/dev/null)" ]; then
-          echo "✓ Tests executed successfully" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✓ Tests executed successfully - all tests passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✗ Tests were executed but some tests failed" >> $GITHUB_STEP_SUMMARY
+          fi
         else
           echo "⚠ No test projects found - tests were skipped" >> $GITHUB_STEP_SUMMARY
         fi
