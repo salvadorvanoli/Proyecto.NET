@@ -37,7 +37,7 @@ public static class MauiProgram
 		if (string.IsNullOrEmpty(baseUrl))
 		{
 			// Default para desarrollo local
-			baseUrl = "http://192.168.1.28:5000/";
+			baseUrl = "http://192.168.1.5:5000/";
 			System.Diagnostics.Debug.WriteLine("⚠️ Usando BaseUrl por defecto para desarrollo");
 		}
 		
@@ -187,8 +187,14 @@ public static class MauiProgram
 			// Validar certificados del servidor
 			ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
 			{
+				// En desarrollo con HTTP, permitir sin certificado
+				if (cert == null)
+				{
+					return true;
+				}
+				
 				// En producción, implementar certificate pinning
-				if (settings.Security.CertificatePinning.Enabled && cert != null)
+				if (settings.Security.CertificatePinning.Enabled)
 				{
 					var certHash = System.Security.Cryptography.SHA256.HashData(cert.RawData);
 					var certPin = Convert.ToBase64String(certHash);
