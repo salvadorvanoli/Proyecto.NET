@@ -178,9 +178,17 @@ if (!app.Environment.IsDevelopment())
 }
 
 // ========================================
-// CONFIGURACIÓN: Path Base para ALB
+// CONFIGURACIÓN: Forwarded Headers para ALB
 // ========================================
-// Cuando el FrontOffice está detrás de un ALB con path /frontoffice, necesitamos configurar el path base
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor |
+                       Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+});
+
+// ========================================
+// CONFIGURACIÓN: Path Base para ALB (DEBE IR ANTES DE UseStaticFiles)
+// ========================================
 var pathBase = builder.Configuration["PathBase"] ?? Environment.GetEnvironmentVariable("PATH_BASE");
 if (!string.IsNullOrEmpty(pathBase))
 {
@@ -234,7 +242,7 @@ app.UseIpRateLimiting();
 
 app.UseHttpsRedirection();
 
-// Configurar archivos estáticos - NO usar RequestPath cuando ya hay PathBase
+// Configurar archivos estáticos (UsePathBase ya está configurado arriba)
 app.UseStaticFiles();
 
 app.UseAntiforgery();
