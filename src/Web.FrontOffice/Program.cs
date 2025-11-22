@@ -234,13 +234,8 @@ app.UseIpRateLimiting();
 
 app.UseHttpsRedirection();
 
-// Configurar StaticFileOptions para que funcione con PathBase
-var staticFileOptions = new StaticFileOptions();
-if (!string.IsNullOrEmpty(pathBase))
-{
-    staticFileOptions.RequestPath = pathBase;
-}
-app.UseStaticFiles(staticFileOptions);
+// Configurar archivos estáticos - NO usar RequestPath cuando ya hay PathBase
+app.UseStaticFiles();
 
 app.UseAntiforgery();
 
