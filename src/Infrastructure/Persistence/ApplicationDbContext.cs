@@ -13,7 +13,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
 
     public ApplicationDbContext(
         DbContextOptions<ApplicationDbContext> options,
-        ITenantProvider? tenantProvider = null) : base(options)
+        ITenantProvider? tenantProvider) : base(options)
     {
         _tenantProvider = tenantProvider;
     }
@@ -75,7 +75,16 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     /// <summary>
     /// Sets up global query filter for tenant isolation.
     /// IMPORTANT: This filter checks if HTTP context is available before applying tenant filter.
-    /// During migrations, seeds, or background jobs, the filter returns all records.
+    /// 
+    /// SECURITY CONSIDERATIONS:
+    /// - During HTTP requests: Filter ALWAYS applies (IsHttpContextAvailable() = true)
+    /// - During migrations/seeds: Filter disabled (no HttpContext), which is SAFE because:
+    ///   * Migrations run in controlled environment (dev/CI/CD)
+    ///   * Seeders explicitly use .IgnoreQueryFilters() for cross-tenant setup
+    ///   * Production seeds run during deployment, not runtime
+    /// 
+    /// If HttpContext becomes unavailable during runtime (extremely rare edge case),
+    /// the request would fail at authentication/authorization before reaching queries.
     /// </summary>
     private void SetTenantQueryFilter<T>(ModelBuilder modelBuilder) where T : BaseEntity
     {

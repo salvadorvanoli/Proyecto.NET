@@ -29,7 +29,8 @@ public class TenantProvider : ITenantProvider
         if (httpContext == null)
         {
             // This can happen during migrations, seeds, or background jobs
-            // Return a sentinel value that will be handled by the caller
+            // Throw an exception to indicate that HTTP context is not available
+            // The global query filter in ApplicationDbContext checks IsHttpContextAvailable() to prevent this
             throw new InvalidOperationException("HTTP context is not available. This is expected during migrations, seeds, or background operations.");
         }
 
