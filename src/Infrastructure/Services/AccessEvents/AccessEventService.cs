@@ -95,10 +95,15 @@ public class AccessEventService : IAccessEventService
 
     private static AccessEventResponse MapToResponse(AccessEvent accessEvent)
     {
+        // Asegurar que EventDateTime se especifique como UTC
+        var eventDateTimeUtc = accessEvent.EventDateTime.Kind == DateTimeKind.Utc
+            ? accessEvent.EventDateTime
+            : DateTime.SpecifyKind(accessEvent.EventDateTime, DateTimeKind.Utc);
+        
         return new AccessEventResponse
         {
             Id = accessEvent.Id,
-            EventDateTime = accessEvent.EventDateTime,
+            EventDateTime = eventDateTimeUtc,
             Result = accessEvent.Result.ToString(),
             ControlPoint = new ControlPointResponse
             {

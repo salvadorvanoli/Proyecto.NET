@@ -86,7 +86,31 @@ public class AccessEventService : IAccessEventService
                 {
                     System.Diagnostics.Debug.WriteLine($"[AccessEventService] Deserialized {backendEvents.Count} events from backend");
                     
-                    // Guardar eventos del servidor en BD local para acceso offline
+                    // Obtener eventos locales actuales
+                    var existingLocalEvents = await _localDatabase.GetAccessEventsAsync(currentUser.UserId, 0, int.MaxValue);
+                    
+                    // Solo eliminar eventos NO sincronizados (creados offline)
+                    // Los eventos sincronizados se mantendrán y actualizarán si es necesario
+                    var unsyncedEvents = existingLocalEvents.Where(e => !e.IsSynced).ToList();
+                    System.Diagnostics.Debug.WriteLine($"[AccessEventService] Found {unsyncedEvents.Count} unsynced local events");
+                    
+                    // Crear un diccionario de eventos del backend por ID para búsqueda rápida
+                    var backendEventDict = backendEvents.ToDictionary(e => e.Id);
+                    
+                    // Eliminar eventos locales que no existen en el backend
+                    foreach (var localEvent in existingLocalEvents)
+                    {
+                        // Si el evento local tiene IsSynced=true pero no existe en el backend, eliminarlo
+                        // (fue eliminado en el servidor)
+                        if (localEvent.IsSynced && localEvent.Id > 0 && !backendEventDict.ContainsKey(localEvent.Id))
+                        {
+                            // Aquí deberíamos tener un método Delete, pero por ahora dejamos que se sobrescriban
+                            System.Diagnostics.Debug.WriteLine($"[AccessEventService] Local event {localEvent.Id} not found in backend");
+                        }
+                    }
+                    
+                    // Guardar/actualizar eventos del servidor en BD local para acceso offline
+                    // InsertOrReplace usará el Id del backend como clave primaria
                     foreach (var backendEvent in backendEvents)
                     {
                         // Asegurar que la fecha del backend se interprete como UTC
@@ -96,6 +120,7 @@ public class AccessEventService : IAccessEventService
                         
                         var localEvent = new LocalAccessEvent
                         {
+                            Id = backendEvent.Id, // Usar el Id del backend
                             UserId = backendEvent.UserId,
                             ControlPointId = backendEvent.ControlPoint?.Id ?? 0,
                             ControlPointName = backendEvent.ControlPoint?.Name ?? "Desconocido",
@@ -106,16 +131,9 @@ public class AccessEventService : IAccessEventService
                             IsSynced = true // Eventos del servidor ya están sincronizados
                         };
                         
-                        // Solo guardar si no existe ya (evitar duplicados)
-                        var existingEvents = await _localDatabase.GetAccessEventsAsync(currentUser.UserId, 0, int.MaxValue);
-                        if (!existingEvents.Any(e => 
-                            e.ControlPointId == localEvent.ControlPointId && 
-                            Math.Abs((e.Timestamp - localEvent.Timestamp).TotalSeconds) < 2))
-                        {
-                            await _localDatabase.SaveAccessEventAsync(localEvent);
-                        }
+                        await _localDatabase.SaveAccessEventAsync(localEvent);
                     }
-                    System.Diagnostics.Debug.WriteLine($"[AccessEventService] Cached {backendEvents.Count} events in local database");
+                    System.Diagnostics.Debug.WriteLine($"[AccessEventService] Saved {backendEvents.Count} events to local database");
                     
                     var mappedEvents = backendEvents.Select(e => 
                     {

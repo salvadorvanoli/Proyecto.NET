@@ -437,7 +437,7 @@ public class AccessNfcViewModel : BaseViewModel
                         else
                         {
                             _logger.LogInformation("📱 Sending ACCESS DENIED notification to credential device...");
-                            responseSent = await _nfcService.SendAccessDeniedAsync($"❌ {validationResult.Reason}");
+                            responseSent = await _nfcService.SendAccessDeniedAsync(validationResult.Reason);
                         }
                         
                         if (responseSent)

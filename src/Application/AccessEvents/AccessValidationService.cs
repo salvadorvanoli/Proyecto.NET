@@ -84,7 +84,7 @@ public class AccessValidationService : IAccessValidationService
         {
             _logger.LogWarning("⚠️ TENANT MISMATCH: User TenantId={UserTenantId} vs ControlPoint TenantId={ControlPointTenantId}", 
                 user.TenantId, controlPoint.TenantId);
-            return AccessValidationResultExtensions.Denied(user.Id, userName, controlPoint.Name, "Usuario no autorizado para este tenant");
+            return AccessValidationResultExtensions.Denied(user.Id, userName, controlPoint.Name, "Punto de acceso no válido");
         }
 
         // 4. Cargar las AccessRules para este ControlPoint con sus Roles

@@ -93,16 +93,6 @@
                                    TextColor="{Binding WasGranted, Converter={StaticResource BoolToAccessColorConverter}}"
                                    Margin="0,4,0,0"/>
 
-                            <!-- Denial Reason (if any) -->
-                            <Label Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
-                                   Text="{Binding DenialReason, StringFormat='❌ {0}'}"
-                                   IsVisible="{Binding DenialReason, Converter={StaticResource IsNotNullConverter}}"
-                                   FontSize="12"
-                                   TextColor="#DC3545"
-                                   Margin="0,4,0,0"
-                                   LineBreakMode="WordWrap"
-                                   MaxLines="2"/>
-
                         </Grid>
                     </Frame>
                 </DataTemplate>

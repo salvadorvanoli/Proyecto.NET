@@ -5,7 +5,7 @@ namespace Mobile.Data;
 [Table("AccessEvents")]
 public class LocalAccessEvent
 {
-    [PrimaryKey, AutoIncrement]
+    [PrimaryKey]
     public int Id { get; set; }
     
     public int UserId { get; set; }

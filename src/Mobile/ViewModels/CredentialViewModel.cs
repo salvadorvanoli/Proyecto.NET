@@ -209,9 +209,9 @@ public class CredentialViewModel : BaseViewModel
                 var accessEvent = new AccessEventDto
                 {
                     UserId = UserId ?? 0,
-                    ControlPointId = response.ControlPointId ?? 0, // Si el AccessPoint no envía ID, será 0
-                    ControlPointName = response.ControlPointName ?? "Punto de Control", // Nombre por defecto
-                    SpaceName = "",
+                    ControlPointId = response.ControlPointId ?? 0,
+                    ControlPointName = response.ControlPointName ?? "Punto de Control",
+                    SpaceName = "", // Se actualizar\u00e1 cuando se sincronice con el servidor
                     Timestamp = DateTime.UtcNow,
                     WasGranted = response.AccessGranted,
                     DenialReason = response.AccessGranted ? null : response.Message

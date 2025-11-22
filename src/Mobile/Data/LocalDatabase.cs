@@ -35,14 +35,9 @@ public class LocalDatabase : ILocalDatabase
     {
         await InitializeDatabaseAsync();
         
-        if (accessEvent.Id == 0)
-        {
-            return await _database!.InsertAsync(accessEvent);
-        }
-        else
-        {
-            return await _database!.UpdateAsync(accessEvent);
-        }
+        // InsertOrReplace funciona con la PrimaryKey (Id)
+        // Si existe, actualiza. Si no existe, inserta.
+        return await _database!.InsertOrReplaceAsync(accessEvent);
     }
 
     public async Task<List<LocalAccessEvent>> GetAccessEventsAsync(int userId, int skip = 0, int take = 20)
@@ -85,5 +80,16 @@ public class LocalDatabase : ILocalDatabase
         return await _database!.Table<LocalAccessEvent>()
             .Where(e => e.UserId == userId)
             .CountAsync();
+    }
+
+    public async Task DeleteAllUserAccessEventsAsync(int userId)
+    {
+        await InitializeDatabaseAsync();
+        
+        await _database!.ExecuteAsync(
+            "DELETE FROM LocalAccessEvent WHERE UserId = ?",
+            userId);
+        
+        System.Diagnostics.Debug.WriteLine($"🗑️ Deleted all access events for user {userId}");
     }
 }
