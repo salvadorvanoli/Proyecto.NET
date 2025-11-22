@@ -22,9 +22,9 @@ builder.Services.AddControllers(); // Agregar soporte para API controllers
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/frontoffice/login";
-        options.LogoutPath = "/frontoffice/logout";
-        options.AccessDeniedPath = "/frontoffice/access-denied";
+        options.LoginPath = "/Auth/Login";
+        options.LogoutPath = "/Auth/Logout";
+        options.AccessDeniedPath = "/Auth/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
         options.Cookie.HttpOnly = true;
