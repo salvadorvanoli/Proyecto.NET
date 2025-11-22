@@ -84,33 +84,16 @@ public class AccessEventService : IAccessEventService
                 var backendEvents = await response.Content.ReadFromJsonAsync<List<AccessEventResponseBackend>>();
                 if (backendEvents != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[AccessEventService] Deserialized {backendEvents.Count} events from backend");
+                    System.Diagnostics.Debug.WriteLine($"[AccessEventService] ✅ Deserialized {backendEvents.Count} events from backend");
                     
-                    // Obtener eventos locales actuales
-                    var existingLocalEvents = await _localDatabase.GetAccessEventsAsync(currentUser.UserId, 0, int.MaxValue);
+                    // ESTRATEGIA SIMPLE: Cuando estamos ONLINE, eliminamos TODO lo local
+                    // y guardamos solo lo que viene del backend
+                    System.Diagnostics.Debug.WriteLine($"[AccessEventService] 🗑️ Deleting ALL local events for user {currentUser.UserId}");
+                    await _localDatabase.DeleteAllUserAccessEventsAsync(currentUser.UserId);
                     
-                    // Solo eliminar eventos NO sincronizados (creados offline)
-                    // Los eventos sincronizados se mantendrán y actualizarán si es necesario
-                    var unsyncedEvents = existingLocalEvents.Where(e => !e.IsSynced).ToList();
-                    System.Diagnostics.Debug.WriteLine($"[AccessEventService] Found {unsyncedEvents.Count} unsynced local events");
+                    // Guardar SOLO los eventos del backend usando SQL directo para evitar problemas con IDs
+                    System.Diagnostics.Debug.WriteLine($"[AccessEventService] 💾 Saving {backendEvents.Count} events from backend...");
                     
-                    // Crear un diccionario de eventos del backend por ID para búsqueda rápida
-                    var backendEventDict = backendEvents.ToDictionary(e => e.Id);
-                    
-                    // Eliminar eventos locales que no existen en el backend
-                    foreach (var localEvent in existingLocalEvents)
-                    {
-                        // Si el evento local tiene IsSynced=true pero no existe en el backend, eliminarlo
-                        // (fue eliminado en el servidor)
-                        if (localEvent.IsSynced && localEvent.Id > 0 && !backendEventDict.ContainsKey(localEvent.Id))
-                        {
-                            // Aquí deberíamos tener un método Delete, pero por ahora dejamos que se sobrescriban
-                            System.Diagnostics.Debug.WriteLine($"[AccessEventService] Local event {localEvent.Id} not found in backend");
-                        }
-                    }
-                    
-                    // Guardar/actualizar eventos del servidor en BD local para acceso offline
-                    // InsertOrReplace usará el Id del backend como clave primaria
                     foreach (var backendEvent in backendEvents)
                     {
                         // Asegurar que la fecha del backend se interprete como UTC
@@ -120,7 +103,8 @@ public class AccessEventService : IAccessEventService
                         
                         var localEvent = new LocalAccessEvent
                         {
-                            Id = backendEvent.Id, // Usar el Id del backend
+                            // NO asignamos Id, dejamos que AutoIncrement lo genere
+                            BackendId = backendEvent.Id, // Guardamos el ID del backend en BackendId
                             UserId = backendEvent.UserId,
                             ControlPointId = backendEvent.ControlPoint?.Id ?? 0,
                             ControlPointName = backendEvent.ControlPoint?.Name ?? "Desconocido",
@@ -128,12 +112,14 @@ public class AccessEventService : IAccessEventService
                             Timestamp = utcTimestamp,
                             WasGranted = backendEvent.Result == "Granted",
                             DenialReason = backendEvent.Result != "Granted" ? backendEvent.Result : null,
-                            IsSynced = true // Eventos del servidor ya están sincronizados
+                            IsSynced = true // Viene del backend, está sincronizado
                         };
                         
-                        await _localDatabase.SaveAccessEventAsync(localEvent);
+                        var saved = await _localDatabase.SaveAccessEventAsync(localEvent);
+                        System.Diagnostics.Debug.WriteLine($"[AccessEventService]   - Saved event BackendID {backendEvent.Id}: {backendEvent.ControlPoint?.Name} ({backendEvent.Result}) - Result: {saved}");
                     }
-                    System.Diagnostics.Debug.WriteLine($"[AccessEventService] Saved {backendEvents.Count} events to local database");
+                    
+                    System.Diagnostics.Debug.WriteLine($"[AccessEventService] ✅ Finished saving {backendEvents.Count} events to local database");
                     
                     var mappedEvents = backendEvents.Select(e => 
                     {
@@ -155,7 +141,7 @@ public class AccessEventService : IAccessEventService
                         };
                     }).ToList();
                     
-                    System.Diagnostics.Debug.WriteLine($"[AccessEventService] Returning {mappedEvents.Count} events from server");
+                    System.Diagnostics.Debug.WriteLine($"[AccessEventService] 📤 Returning {mappedEvents.Count} events from server");
                     return mappedEvents;
                 }
             }
@@ -229,22 +215,7 @@ public class AccessEventService : IAccessEventService
         if (currentUser == null)
             return false;
 
-        // Guardar localmente primero
-        var localEvent = new LocalAccessEvent
-        {
-            UserId = currentUser.UserId,
-            ControlPointId = accessEvent.ControlPointId,
-            ControlPointName = accessEvent.ControlPointName,
-            SpaceName = accessEvent.SpaceName,
-            Timestamp = accessEvent.Timestamp,
-            WasGranted = accessEvent.WasGranted,
-            DenialReason = accessEvent.DenialReason,
-            IsSynced = false
-        };
-
-        await _localDatabase.SaveAccessEventAsync(localEvent);
-
-        // Intentar enviar al servidor si hay conexión
+        // Intentar enviar al servidor primero si hay conexión
         try
         {
             var httpClient = _httpClientFactory.CreateClient("AccessEventClient");
@@ -260,16 +231,34 @@ public class AccessEventService : IAccessEventService
             
             if (response.IsSuccessStatusCode)
             {
-                // Marcar como sincronizado
-                await _localDatabase.MarkEventAsSyncedAsync(localEvent.Id);
+                System.Diagnostics.Debug.WriteLine("[AccessEventService] ✅ Event sent to server successfully - NOT saving locally");
+                // Si se envió al servidor exitosamente, NO guardamos nada localmente
+                // Los datos locales se reemplazarán completamente al refrescar el historial
                 return true;
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Could not sync event to server: {ex.Message}");
-            // No es error crítico, el evento se guardó localmente
+            System.Diagnostics.Debug.WriteLine($"[AccessEventService] ⚠️ Could not send event to server: {ex.Message} - Saving locally");
         }
+
+        // Solo guardar localmente si NO se pudo enviar al servidor (offline o error)
+        var localEvent = new LocalAccessEvent
+        {
+            // NO asignamos Id ni BackendId - es un evento solo local
+            UserId = currentUser.UserId,
+            ControlPointId = accessEvent.ControlPointId,
+            ControlPointName = accessEvent.ControlPointName,
+            SpaceName = accessEvent.SpaceName,
+            Timestamp = accessEvent.Timestamp,
+            WasGranted = accessEvent.WasGranted,
+            DenialReason = accessEvent.DenialReason,
+            IsSynced = false,
+            BackendId = null // No tiene ID del backend porque es local
+        };
+
+        await _localDatabase.SaveAccessEventAsync(localEvent);
+        System.Diagnostics.Debug.WriteLine("[AccessEventService] 💾 Event saved locally with IsSynced=false");
 
         return true; // Retornamos true porque se guardó localmente
     }

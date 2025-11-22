@@ -21,9 +21,20 @@ public class LocalDatabase : ILocalDatabase
             var dbPath = Path.Combine(FileSystem.AppDataDirectory, "credenciales.db");
             _database = new SQLiteAsyncConnection(dbPath);
             
+            // Forzar recreación de tabla para agregar BackendId
+            try
+            {
+                await _database.DropTableAsync<LocalAccessEvent>();
+                System.Diagnostics.Debug.WriteLine("🗑️ Dropped old AccessEvents table");
+            }
+            catch
+            {
+                // Si no existe la tabla, no pasa nada
+            }
+            
             await _database.CreateTableAsync<LocalAccessEvent>();
             
-            System.Diagnostics.Debug.WriteLine($"✅ Database initialized at: {dbPath}");
+            System.Diagnostics.Debug.WriteLine($"✅ Database initialized at: {dbPath} with BackendId column");
         }
         finally
         {
@@ -35,9 +46,28 @@ public class LocalDatabase : ILocalDatabase
     {
         await InitializeDatabaseAsync();
         
-        // InsertOrReplace funciona con la PrimaryKey (Id)
-        // Si existe, actualiza. Si no existe, inserta.
-        return await _database!.InsertOrReplaceAsync(accessEvent);
+        try
+        {
+            // Si tiene BackendId, intentar actualizar un evento existente con ese BackendId
+            if (accessEvent.BackendId.HasValue)
+            {
+                // Primero eliminar cualquier evento con el mismo BackendId
+                await _database!.ExecuteAsync(
+                    "DELETE FROM AccessEvents WHERE BackendId = ?",
+                    accessEvent.BackendId.Value);
+            }
+            
+            // Insertar el nuevo evento (AutoIncrement generará el ID)
+            var result = await _database!.InsertAsync(accessEvent);
+            
+            System.Diagnostics.Debug.WriteLine($"💾 SaveAccessEvent: LocalID={accessEvent.Id}, BackendID={accessEvent.BackendId}, ControlPoint={accessEvent.ControlPointName}, Result={result}");
+            return result;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"❌ Error saving event: {ex.Message}");
+            throw;
+        }
     }
 
     public async Task<List<LocalAccessEvent>> GetAccessEventsAsync(int userId, int skip = 0, int take = 20)
@@ -86,10 +116,21 @@ public class LocalDatabase : ILocalDatabase
     {
         await InitializeDatabaseAsync();
         
-        await _database!.ExecuteAsync(
-            "DELETE FROM LocalAccessEvent WHERE UserId = ?",
+        var deletedCount = await _database!.ExecuteAsync(
+            "DELETE FROM AccessEvents WHERE UserId = ?",
             userId);
         
-        System.Diagnostics.Debug.WriteLine($"🗑️ Deleted all access events for user {userId}");
+        System.Diagnostics.Debug.WriteLine($"🗑️ Deleted {deletedCount} access events for user {userId}");
+    }
+
+    public async Task DeleteUnsyncedEventsAsync(int userId)
+    {
+        await InitializeDatabaseAsync();
+        
+        var deletedCount = await _database!.ExecuteAsync(
+            "DELETE FROM LocalAccessEvent WHERE UserId = ? AND IsSynced = ?",
+            userId, false);
+        
+        System.Diagnostics.Debug.WriteLine($"🗑️ Deleted {deletedCount} unsynced events for user {userId}");
     }
 }
