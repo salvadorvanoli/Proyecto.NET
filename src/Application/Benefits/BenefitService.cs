@@ -94,7 +94,7 @@ public class BenefitService : IBenefitService
 
         var benefits = await _context.Benefits
             .Include(b => b.BenefitType)
-            .Where(b => b.TenantId == tenantId)
+            .Where(b => b.TenantId == tenantId && b.Active)
             .ToListAsync(cancellationToken);
 
         return benefits
@@ -122,6 +122,7 @@ public class BenefitService : IBenefitService
         var benefits = await _context.Benefits
             .Include(b => b.BenefitType)
             .Where(b => b.TenantId == tenantId 
+                && b.Active
                 && !claimedBenefitIds.Contains(b.Id)
                 && b.Quotas > 0)  // Filter by quotas > 0 in query
             .ToListAsync(cancellationToken);
@@ -145,13 +146,58 @@ public class BenefitService : IBenefitService
         var usages = await _context.Usages
             .Include(u => u.Benefit)
                 .ThenInclude(b => b.BenefitType)
-            .Where(u => u.UserId == userId && u.Benefit.TenantId == tenantId)
+            .Where(u => u.UserId == userId && u.Benefit.TenantId == tenantId && u.Benefit.Active)
             .ToListAsync(cancellationToken);
 
         return usages
             .Where(u => u.HasAvailableQuantity && u.Benefit.IsValid)
             .Select(MapToRedeemableBenefitResponse)
             .OrderByDescending(b => b.CreatedAt);
+    }
+
+    /// <summary>
+    /// Gets redeemable benefits with consumption history for a user.
+    /// </summary>
+    public async Task<List<BenefitWithHistoryResponse>> GetBenefitsWithHistoryAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        var tenantId = _tenantProvider.GetCurrentTenantId();
+
+        var usages = await _context.Usages
+            .Include(u => u.Benefit)
+                .ThenInclude(b => b.BenefitType)
+            .Include(u => u.Consumptions)
+            .Where(u => u.UserId == userId && u.Benefit.TenantId == tenantId && u.Benefit.Active)
+            .OrderByDescending(u => u.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return usages
+            .Select(u => new BenefitWithHistoryResponse
+            {
+                BenefitId = u.BenefitId,
+                UsageId = u.Id,
+                TenantId = u.TenantId,
+                BenefitTypeId = u.Benefit.BenefitTypeId,
+                BenefitTypeName = u.Benefit.BenefitType.Name,
+                Quantity = u.Quantity,
+                StartDate = u.Benefit.ValidityPeriod?.StartDate.ToString("yyyy-MM-dd"),
+                EndDate = u.Benefit.ValidityPeriod?.EndDate.ToString("yyyy-MM-dd"),
+                IsValid = u.Benefit.IsValid,
+                CanBeConsumed = u.HasAvailableQuantity && u.Benefit.IsValid,
+                IsPermanent = u.Benefit.ValidityPeriod == null,
+                CreatedAt = u.CreatedAt,
+                UpdatedAt = u.UpdatedAt,
+                Consumptions = u.Consumptions
+                    .OrderByDescending(c => c.ConsumptionDateTime)
+                    .Select(c => new ConsumptionHistoryResponse
+                    {
+                        Id = c.Id,
+                        Amount = c.Amount,
+                        ConsumptionDateTime = c.ConsumptionDateTime,
+                        CreatedAt = c.CreatedAt
+                    })
+                    .ToList()
+            })
+            .ToList();
     }
 
     /// <summary>
@@ -317,7 +363,7 @@ public class BenefitService : IBenefitService
     }
 
     /// <summary>
-    /// Deletes a benefit.
+    /// Deletes a benefit (soft delete - marks as inactive).
     /// </summary>
     public async Task<bool> DeleteBenefitAsync(int id, CancellationToken cancellationToken = default)
     {
@@ -329,10 +375,8 @@ public class BenefitService : IBenefitService
         if (benefit == null)
             return false;
 
-        // Note: In a real scenario, you might want to check for Usage records that reference this benefit
-        // For now, we'll allow deletion as the domain model doesn't have a direct Consumption -> Benefit relationship
-
-        _context.Benefits.Remove(benefit);
+        // Soft delete: mark as inactive instead of removing from database
+        benefit.Deactivate();
         await _context.SaveChangesAsync(cancellationToken);
 
         return true;
@@ -415,6 +459,7 @@ public class BenefitService : IBenefitService
             HasAvailableQuotas = benefit.HasAvailableQuotas,
             CanBeConsumed = benefit.CanBeConsumed,
             IsPermanent = benefit.ValidityPeriod == null,
+            Active = benefit.Active,
             CreatedAt = benefit.CreatedAt,
             UpdatedAt = benefit.UpdatedAt
         };

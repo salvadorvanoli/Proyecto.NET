@@ -163,6 +163,26 @@ public class BenefitsController : ControllerBase
     }
 
     /// <summary>
+    /// Gets benefits with consumption history for a user.
+    /// </summary>
+    [HttpGet("history/{userId}")]
+    [ProducesResponseType(typeof(List<BenefitWithHistoryResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<BenefitWithHistoryResponse>>> GetBenefitsWithHistory(int userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var benefits = await _benefitService.GetBenefitsWithHistoryAsync(userId, cancellationToken);
+            _logger.LogInformation("Retrieved {Count} benefits with history for user {UserId}", benefits.Count, userId);
+            return Ok(benefits);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving benefits with history for user {UserId}", userId);
+            return StatusCode(500, "An error occurred while retrieving benefits with history");
+        }
+    }
+
+    /// <summary>
     /// Creates a new benefit.
     /// </summary>
     [HttpPost]
