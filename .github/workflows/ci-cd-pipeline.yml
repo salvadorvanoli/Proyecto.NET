@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -98,7 +98,11 @@ jobs:
         run: |
           if [ -d "test" ] && [ "$(ls -A test 2>/dev/null)" ]; then
             echo "✓ Running tests before deployment..."
-            dotnet test --configuration Release --verbosity normal --logger "trx" --results-directory ./test-results
+            # Explicitly specify test projects to avoid including MAUI projects
+            find test -name "*.csproj" -not -path "*/obj/*" -not -path "*/bin/*" | while read project; do
+              echo "Running tests for: $project"
+              dotnet test "$project" --configuration Release --no-build --verbosity normal --logger "trx" --results-directory ./test-results
+            done
           else
             echo "⚠ No test projects found. Skipping tests."
             exit 0

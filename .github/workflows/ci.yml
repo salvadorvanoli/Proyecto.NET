@@ -9,7 +9,7 @@ on:
       - '*.sln'
       - '.github/workflows/ci.yml'
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
     paths:
       - 'src/**'
       - 'test/**'
@@ -66,7 +66,11 @@ jobs:
       run: |
         if [ -d "test" ] && [ "$(ls -A test 2>/dev/null)" ]; then
           echo "✓ Test projects found. Running tests..."
-          dotnet test --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger "trx" --results-directory ./test-results
+          # Explicitly specify test projects to avoid including MAUI projects
+          find test -name "*.csproj" -not -path "*/obj/*" -not -path "*/bin/*" | while read project; do
+            echo "Running tests for: $project"
+            dotnet test "$project" --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger "trx" --results-directory ./test-results
+          done
         else
           echo "⚠ No test projects found in 'test/' directory."
           echo "Tests will be skipped. Consider adding unit tests to improve code quality."

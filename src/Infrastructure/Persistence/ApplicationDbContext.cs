@@ -74,18 +74,16 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
 
     /// <summary>
     /// Sets up global query filter for tenant isolation.
-    /// IMPORTANT: This filter is only applied when a TenantProvider is available (runtime queries).
-    /// During migrations and seeds, TenantProvider is null, so the filter is not applied.
+    /// IMPORTANT: This filter checks if tenant context is available before applying.
+    /// During migrations and seeds, no tenant context exists, so the filter is not applied.
     /// </summary>
     private void SetTenantQueryFilter<T>(ModelBuilder modelBuilder) where T : BaseEntity
     {
-        // Only apply filter if TenantProvider is available (runtime scenarios)
-        // This allows migrations and seeds to work without issues
-        if (_tenantProvider != null)
-        {
-            modelBuilder.Entity<T>().HasQueryFilter(e => 
-                e.TenantId == _tenantProvider.GetCurrentTenantId());
-        }
+        // Apply filter that checks tenant context availability at query time
+        // This prevents crashes during migrations and seeds when HttpContext is not available
+        modelBuilder.Entity<T>().HasQueryFilter(e => 
+            _tenantProvider == null || 
+            e.TenantId == _tenantProvider.GetCurrentTenantId());
     }
 
     /// <summary>
