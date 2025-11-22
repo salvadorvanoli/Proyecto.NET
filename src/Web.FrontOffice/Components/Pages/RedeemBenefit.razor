@@ -216,25 +216,27 @@
             // Cargar beneficios canjeables (con Quantity del Usage)
             var redeemableBenefits = await BenefitApiService.GetRedeemableBenefitsAsync(currentUserId);
             
-            // Convertir a BenefitResponse para mantener compatibilidad con el código existente
-            beneficiosDisponibles = redeemableBenefits.Select(rb => new BenefitResponse
-            {
-                Id = rb.BenefitId,
-                TenantId = rb.TenantId,
-                BenefitTypeId = rb.BenefitTypeId,
-                BenefitTypeName = rb.BenefitTypeName,
-                Quantity = rb.Quantity,
-                Quotas = 0, // No mostramos quotas en canjeables
-                StartDate = rb.StartDate,
-                EndDate = rb.EndDate,
-                IsValid = rb.IsValid,
-                CanBeConsumed = rb.CanBeConsumed,
-                IsPermanent = rb.IsPermanent,
-                CreatedAt = rb.CreatedAt,
-                UpdatedAt = rb.UpdatedAt
-            }).ToList();
+            // Convertir a BenefitResponse y filtrar solo los beneficios válidos (vigentes)
+            beneficiosDisponibles = redeemableBenefits
+                .Where(rb => rb.IsValid) // Solo beneficios con fecha vigente
+                .Select(rb => new BenefitResponse
+                {
+                    Id = rb.BenefitId,
+                    TenantId = rb.TenantId,
+                    BenefitTypeId = rb.BenefitTypeId,
+                    BenefitTypeName = rb.BenefitTypeName,
+                    Quantity = rb.Quantity,
+                    Quotas = 0, // No mostramos quotas en canjeables
+                    StartDate = rb.StartDate,
+                    EndDate = rb.EndDate,
+                    IsValid = rb.IsValid,
+                    CanBeConsumed = rb.CanBeConsumed,
+                    IsPermanent = rb.IsPermanent,
+                    CreatedAt = rb.CreatedAt,
+                    UpdatedAt = rb.UpdatedAt
+                }).ToList();
 
-            Logger.LogInformation("Beneficios canjeables: {Count}", beneficiosDisponibles.Count);
+            Logger.LogInformation("Beneficios canjeables vigentes: {Count}", beneficiosDisponibles.Count);
         }
         catch (Exception ex)
         {

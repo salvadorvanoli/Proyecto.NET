@@ -28,6 +28,11 @@ public class Benefit : BaseEntity
     /// </summary>
     public int BenefitTypeId { get; protected set; }
 
+    /// <summary>
+    /// Indicates if the benefit is active (for soft delete).
+    /// </summary>
+    public bool Active { get; protected set; }
+
     // Navigation properties
     public virtual BenefitType BenefitType { get; protected set; } = null!;
 
@@ -56,6 +61,7 @@ public class Benefit : BaseEntity
         Quotas = quotas;
         Quantity = quantity;
         ValidityPeriod = validityPeriod;
+        Active = true;
     }
 
     /// <summary>
@@ -139,6 +145,24 @@ public class Benefit : BaseEntity
     /// <summary>
     /// Checks if the benefit can be consumed (is valid and has quotas).
     /// </summary>
-    public bool CanBeConsumed => IsValid && HasAvailableQuotas;
+    public bool CanBeConsumed => IsValid && HasAvailableQuotas && Active;
+
+    /// <summary>
+    /// Deactivates the benefit (soft delete).
+    /// </summary>
+    public void Deactivate()
+    {
+        Active = false;
+        UpdateTimestamp();
+    }
+
+    /// <summary>
+    /// Activates the benefit.
+    /// </summary>
+    public void Activate()
+    {
+        Active = true;
+        UpdateTimestamp();
+    }
 }
 

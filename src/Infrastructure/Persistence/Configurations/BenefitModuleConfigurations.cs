@@ -37,6 +37,7 @@ public class BenefitConfiguration : IEntityTypeConfiguration<Benefit>
         builder.Property(b => b.Quantity).IsRequired();
         builder.Property(b => b.TenantId).IsRequired();
         builder.Property(b => b.BenefitTypeId).IsRequired();
+        builder.Property(b => b.Active).IsRequired().HasDefaultValue(true);
 
         // Ignore the complex property - we'll map it as separate columns
         builder.Ignore(b => b.ValidityPeriod);
