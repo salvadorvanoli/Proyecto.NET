@@ -22,15 +22,16 @@ builder.Services.AddControllers(); // Agregar soporte para API controllers
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/login";
-        options.LogoutPath = "/logout";
-        options.AccessDeniedPath = "/access-denied";
+        options.LoginPath = "/frontoffice/login";
+        options.LogoutPath = "/frontoffice/logout";
+        options.AccessDeniedPath = "/frontoffice/access-denied";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         options.Cookie.Name = ".ProyectoNet.FrontOffice.Auth";
         options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.Path = "/frontoffice/";
     });
 
 builder.Services.AddAuthorization();
