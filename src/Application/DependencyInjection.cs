@@ -7,8 +7,10 @@ using Application.SpaceTypes;
 using Application.Spaces;
 using Application.ControlPoints;
 using Application.AccessRules;
+using Application.AccessEvents;
 using Application.BenefitTypes;
 using Application.Benefits;
+using Application.Notifications.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Application;
@@ -32,8 +34,10 @@ public static class DependencyInjection
         services.AddScoped<ISpaceService, SpaceService>();
         services.AddScoped<IControlPointService, ControlPointService>();
         services.AddScoped<IAccessRuleService, AccessRuleService>();
+        services.AddScoped<IAccessValidationService, AccessValidationService>();
         services.AddScoped<IBenefitTypeService, BenefitTypeService>();
         services.AddScoped<IBenefitService, BenefitService>();
+        services.AddScoped<INotificationService, NotificationService>();
 
         return services;
     }

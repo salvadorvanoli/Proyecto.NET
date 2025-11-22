@@ -22,10 +22,17 @@ public class AuthService : IAuthService
 
     public async Task<LoginResponse?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
-        // Find user by email
+        return await LoginAsync(request, customTokenLifetimeMinutes: null, cancellationToken);
+    }
+
+    public async Task<LoginResponse?> LoginAsync(LoginRequest request, int? customTokenLifetimeMinutes, CancellationToken cancellationToken = default)
+    {
+        // Find user by email (case-insensitive)
+        // IgnoreQueryFilters is required because during login there's no authenticated context yet
         var user = await _context.Users
+            .IgnoreQueryFilters()
             .Include(u => u.Roles)
-            .FirstOrDefaultAsync(u => u.Email == request.Email.ToLower(), cancellationToken);
+            .FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower(), cancellationToken);
 
         if (user == null)
         {
@@ -44,10 +51,11 @@ public class AuthService : IAuthService
 
         try
         {
-            token = _tokenService?.GenerateToken(user.Id, user.Email, user.TenantId, user.Roles.Select(r => r.Name)) ?? null;
-            if (token != null && _tokenService != null)
+            var lifetimeMinutes = customTokenLifetimeMinutes ?? _tokenService?.GetTokenLifetimeMinutes();
+            token = _tokenService?.GenerateToken(user.Id, user.Email, user.TenantId, user.Roles.Select(r => r.Name), customTokenLifetimeMinutes) ?? null;
+            if (token != null && lifetimeMinutes.HasValue)
             {
-                expiresAt = DateTime.UtcNow.AddMinutes(_tokenService.GetTokenLifetimeMinutes());
+                expiresAt = DateTime.UtcNow.AddMinutes(lifetimeMinutes.Value);
             }
         }
         catch
@@ -59,6 +67,7 @@ public class AuthService : IAuthService
         return new LoginResponse
         {
             UserId = user.Id,
+            CredentialId = user.CredentialId,
             Email = user.Email,
             FullName = user.FullName,
             TenantId = user.TenantId,

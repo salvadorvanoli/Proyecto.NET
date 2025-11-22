@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Credencial Digital</string>
+    <string name="servicedesc">Digital Credential Service</string>
+    <string name="aiddescription">Digital Credential Access Control</string>
+</resources>

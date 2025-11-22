@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+	<application android:allowBackup="true" android:icon="@mipmap/appicon" android:roundIcon="@mipmap/appicon_round" android:supportsRtl="true" android:networkSecurityConfig="@xml/network_security_config">
+		
+		<!-- HCE Service for NFC credential emulation -->
+		<service
+			android:name="mobile.credential.platforms.android.services.NfcHostCardEmulationService"
+			android:exported="true"
+			android:enabled="true"
+			android:permission="android.permission.BIND_NFC_SERVICE">
+			<intent-filter>
+				<action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE"/>
+			</intent-filter>
+			<meta-data
+				android:name="android.nfc.cardemulation.host_apdu_service"
+				android:resource="@xml/apduservice"/>
+		</service>
+		
+	</application>
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+	<uses-permission android:name="android.permission.INTERNET" />
+	<uses-permission android:name="android.permission.NFC" />
+	<uses-permission android:name="android.permission.BIND_NFC_SERVICE" />
+	<uses-feature android:name="android.hardware.nfc" android:required="false" />
+	<uses-feature android:name="android.hardware.nfc.hce" android:required="false" />
+</manifest>

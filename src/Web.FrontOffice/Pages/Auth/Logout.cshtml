@@ -1,0 +1,84 @@
+@page
+@model Web.FrontOffice.Pages.Auth.LogoutModel
+@{
+    ViewData["Title"] = "Cerrando Sesión";
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - FrontOffice</title>
+    <base href="~/" />
+    <link rel="stylesheet" href="~/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .logout-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+        }
+
+        .logout-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 3rem;
+            text-align: center;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @@keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            border-width: 0.3rem;
+            color: #667eea;
+            margin-bottom: 1.5rem;
+        }
+
+        h3 {
+            color: #2d3748;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            color: #718096;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="logout-container">
+        <div class="logout-card">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Cerrando sesión...</span>
+            </div>
+            <h3>Cerrando sesión</h3>
+            <p class="text-muted">Por favor espera un momento...</p>
+        </div>
+    </div>
+</body>
+</html>

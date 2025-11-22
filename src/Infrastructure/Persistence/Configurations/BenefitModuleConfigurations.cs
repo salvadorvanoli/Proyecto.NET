@@ -34,6 +34,7 @@ public class BenefitConfiguration : IEntityTypeConfiguration<Benefit>
         builder.Property(b => b.Id).ValueGeneratedOnAdd();
 
         builder.Property(b => b.Quotas).IsRequired();
+        builder.Property(b => b.Quantity).IsRequired();
         builder.Property(b => b.TenantId).IsRequired();
         builder.Property(b => b.BenefitTypeId).IsRequired();
 

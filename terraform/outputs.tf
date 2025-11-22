@@ -13,6 +13,11 @@ output "backoffice_url" {
   value       = "http://${aws_lb.main.dns_name}"
 }
 
+output "frontoffice_url" {
+  description = "URL del FrontOffice"
+  value       = "http://${aws_lb.main.dns_name}/frontoffice"
+}
+
 output "api_url" {
   description = "URL de la API"
   value       = "http://${aws_lb.main.dns_name}/api"
@@ -33,6 +38,11 @@ output "ecr_repository_api_url" {
   value       = aws_ecr_repository.api.repository_url
 }
 
+output "ecr_repository_frontoffice_url" {
+  description = "URL del repositorio ECR para FrontOffice"
+  value       = aws_ecr_repository.frontoffice.repository_url
+}
+
 output "ecs_cluster_name" {
   description = "Nombre del cluster ECS"
   value       = aws_ecs_cluster.main.name
@@ -41,4 +51,45 @@ output "ecs_cluster_name" {
 output "vpc_id" {
   description = "ID de la VPC"
   value       = aws_vpc.main.id
+}
+
+# Security Configuration Outputs
+output "cors_configuration" {
+  description = "Configuración de CORS aplicada"
+  value = {
+    specified_origins = var.cors_allowed_origins
+    effective_origin  = length(var.cors_allowed_origins) > 0 ? join(", ", var.cors_allowed_origins) : "http://${aws_lb.main.dns_name}"
+    note             = "Si no especificas cors_allowed_origins, se usa automáticamente el DNS del ALB"
+  }
+}
+
+output "jwt_configuration" {
+  description = "Configuración de JWT (sin secretos)"
+  value = {
+    issuer           = var.jwt_issuer
+    audience         = var.jwt_audience
+    lifetime_minutes = var.jwt_lifetime_minutes
+  }
+  sensitive = false
+}
+
+output "security_notes" {
+  description = "Notas importantes de seguridad"
+  value = <<-EOT
+    IMPORTANTE - SEGURIDAD:
+
+    1. JWT Secret: Configurado vía variable sensible (no visible en outputs)
+    2. DB Password: Configurado vía variable sensible (no visible en outputs)
+    3. HTTPS: Actualmente usando HTTP. Para producción:
+       - Solicita certificado SSL/TLS en AWS Certificate Manager
+       - Configura listener HTTPS en puerto 443
+       - Habilita redirección HTTP → HTTPS
+    4. CORS: Configurado para: ${length(var.cors_allowed_origins) > 0 ? join(", ", var.cors_allowed_origins) : "ALB DNS (auto)"}
+    5. Rate Limiting: Configurado en la aplicación (5 login/min, 200 req/min)
+    6. Security Headers: Configurados en la aplicación (HSTS, CSP, etc.)
+
+    Para conectar BackOffice/FrontOffice a la API, usa:
+       API URL: http://${aws_lb.main.dns_name}
+       BackOffice URL: http://${aws_lb.main.dns_name}
+  EOT
 }

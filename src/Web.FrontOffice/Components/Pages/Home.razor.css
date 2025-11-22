@@ -1,0 +1,19 @@
+.home-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.page-header-section {
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.section-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.news-section {
+    margin-bottom: 3rem;
+}

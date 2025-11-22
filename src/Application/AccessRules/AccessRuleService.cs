@@ -1,4 +1,5 @@
 using Shared.DTOs.AccessRules;
+using Shared.DTOs;
 using Application.Common.Interfaces;
 using Domain.DataTypes;
 using Domain.Entities;
@@ -26,19 +27,14 @@ public class AccessRuleService : IAccessRuleService
 
         var accessRule = await _context.AccessRules
             .Include(ar => ar.Roles)
+            .Include(ar => ar.ControlPoint)
             .Where(ar => ar.Id == id && ar.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (accessRule == null)
             return null;
 
-        // Get control points that have this access rule
-        var controlPoints = await _context.ControlPoints
-            .Include(cp => cp.AccessRules)
-            .Where(cp => cp.TenantId == tenantId && cp.AccessRules.Any(ar => ar.Id == id))
-            .ToListAsync(cancellationToken);
-
-        return MapToResponse(accessRule, controlPoints);
+        return MapToResponse(accessRule, new List<ControlPoint> { accessRule.ControlPoint });
     }
 
     public async Task<IEnumerable<AccessRuleResponse>> GetAccessRulesByTenantAsync(CancellationToken cancellationToken = default)
@@ -47,20 +43,11 @@ public class AccessRuleService : IAccessRuleService
 
         var accessRules = await _context.AccessRules
             .Include(ar => ar.Roles)
+            .Include(ar => ar.ControlPoint)
             .Where(ar => ar.TenantId == tenantId)
             .ToListAsync(cancellationToken);
 
-        // Get all control points for this tenant
-        var allControlPoints = await _context.ControlPoints
-            .Include(cp => cp.AccessRules)
-            .Where(cp => cp.TenantId == tenantId)
-            .ToListAsync(cancellationToken);
-
-        return accessRules.Select(ar =>
-        {
-            var controlPoints = allControlPoints.Where(cp => cp.AccessRules.Any(rule => rule.Id == ar.Id)).ToList();
-            return MapToResponse(ar, controlPoints);
-        }).ToList();
+        return accessRules.Select(ar => MapToResponse(ar, new List<ControlPoint> { ar.ControlPoint })).ToList();
     }
 
     public async Task<IEnumerable<AccessRuleResponse>> GetAccessRulesByControlPointAsync(int controlPointId, CancellationToken cancellationToken = default)
@@ -85,19 +72,11 @@ public class AccessRuleService : IAccessRuleService
 
         var accessRules = await _context.AccessRules
             .Include(ar => ar.Roles)
+            .Include(ar => ar.ControlPoint)
             .Where(ar => ar.TenantId == tenantId && ar.Roles.Any(r => r.Id == roleId))
             .ToListAsync(cancellationToken);
 
-        var allControlPoints = await _context.ControlPoints
-            .Include(cp => cp.AccessRules)
-            .Where(cp => cp.TenantId == tenantId)
-            .ToListAsync(cancellationToken);
-
-        return accessRules.Select(ar =>
-        {
-            var controlPoints = allControlPoints.Where(cp => cp.AccessRules.Any(rule => rule.Id == ar.Id)).ToList();
-            return MapToResponse(ar, controlPoints);
-        }).ToList();
+        return accessRules.Select(ar => MapToResponse(ar, new List<ControlPoint> { ar.ControlPoint })).ToList();
     }
 
     public async Task<AccessRuleResponse> CreateAccessRuleAsync(AccessRuleRequest request, CancellationToken cancellationToken = default)
@@ -138,8 +117,9 @@ public class AccessRuleService : IAccessRuleService
             dateRange = new DateRange(request.StartDate.Value, request.EndDate.Value);
         }
 
-        // Create the access rule
-        var accessRule = new AccessRule(tenantId, timeRange, dateRange);
+        // Create one access rule for the first control point (one-to-many relationship)
+        var firstControlPoint = controlPoints.First();
+        var accessRule = new AccessRule(tenantId, firstControlPoint.Id, timeRange, dateRange);
 
         // Add roles
         foreach (var role in roles)
@@ -150,17 +130,28 @@ public class AccessRuleService : IAccessRuleService
         _context.AccessRules.Add(accessRule);
         await _context.SaveChangesAsync(cancellationToken);
 
-        // Add to control points
-        foreach (var controlPoint in controlPoints)
+        // For additional control points, create separate access rules
+        if (controlPoints.Count > 1)
         {
-            controlPoint.AccessRules.Add(accessRule);
+            foreach (var cp in controlPoints.Skip(1))
+            {
+                var additionalRule = new AccessRule(tenantId, cp.Id, timeRange, dateRange);
+                foreach (var role in roles)
+                {
+                    additionalRule.AddRole(role);
+                }
+                _context.AccessRules.Add(additionalRule);
+            }
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        // Reload to get updated data with navigation properties
+        var createdRule = await _context.AccessRules
+            .Include(ar => ar.Roles)
+            .Include(ar => ar.ControlPoint)
+            .FirstOrDefaultAsync(ar => ar.Id == accessRule.Id, cancellationToken);
 
-        // Reload to get updated data
-        var createdRule = await GetAccessRuleByIdAsync(accessRule.Id, cancellationToken);
-        return createdRule!;
+        return MapToResponse(createdRule!, new List<ControlPoint> { createdRule!.ControlPoint });
     }
 
     public async Task<AccessRuleResponse> UpdateAccessRuleAsync(int id, AccessRuleRequest request, CancellationToken cancellationToken = default)
@@ -169,6 +160,7 @@ public class AccessRuleService : IAccessRuleService
 
         var accessRule = await _context.AccessRules
             .Include(ar => ar.Roles)
+            .Include(ar => ar.ControlPoint)
             .Where(ar => ar.Id == id && ar.TenantId == tenantId)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -187,9 +179,8 @@ public class AccessRuleService : IAccessRuleService
             throw new InvalidOperationException("One or more roles not found or do not belong to the current tenant.");
         }
 
-        // Validate control points exist and belong to tenant
+        // Validate control points exist and belong to tenant (one-to-many: only first CP is used)
         var controlPoints = await _context.ControlPoints
-            .Include(cp => cp.AccessRules)
             .Where(cp => request.ControlPointIds.Contains(cp.Id) && cp.TenantId == tenantId)
             .ToListAsync(cancellationToken);
 
@@ -225,27 +216,9 @@ public class AccessRuleService : IAccessRuleService
             accessRule.AddRole(role);
         }
 
-        // Update control points - remove from old ones and add to new ones
-        var allControlPoints = await _context.ControlPoints
-            .Include(cp => cp.AccessRules)
-            .Where(cp => cp.TenantId == tenantId)
-            .ToListAsync(cancellationToken);
-
-        foreach (var cp in allControlPoints)
-        {
-            var hasRule = cp.AccessRules.Any(ar => ar.Id == id);
-            var shouldHaveRule = request.ControlPointIds.Contains(cp.Id);
-
-            if (hasRule && !shouldHaveRule)
-            {
-                cp.AccessRules.Remove(accessRule);
-            }
-            else if (!hasRule && shouldHaveRule)
-            {
-                cp.AccessRules.Add(accessRule);
-            }
-        }
-
+        // Note: With one-to-many, we can't reassign ControlPointId after creation
+        // The AccessRule is bound to its ControlPoint. To change it, delete and recreate.
+        
         await _context.SaveChangesAsync(cancellationToken);
 
         // Reload to get updated data
@@ -305,5 +278,67 @@ public class AccessRuleService : IAccessRuleService
             Is24x7 = !accessRule.TimeRange.HasValue,
             IsPermanent = !accessRule.ValidityPeriod.HasValue
         };
+    }
+
+    public async Task<List<AccessRuleDto>> GetAllActiveRulesAsync(CancellationToken cancellationToken = default)
+    {
+        var tenantId = _tenantProvider.GetCurrentTenantId();
+        
+        // Get all access rules (simplified - no date filtering for now)
+        var accessRules = await _context.AccessRules
+            .Include(ar => ar.Roles)
+            .Include(ar => ar.ControlPoint)
+            .Where(ar => ar.TenantId == tenantId)
+            .ToListAsync(cancellationToken);
+
+        // Get all users with their roles
+        var users = await _context.Users
+            .Include(u => u.Roles)
+            .Where(u => u.TenantId == tenantId)
+            .ToListAsync(cancellationToken);
+
+        var rules = new List<AccessRuleDto>();
+
+        foreach (var accessRule in accessRules)
+        {
+            if (accessRule.ControlPoint == null) continue; // Skip if no control point
+            
+            // Get role IDs from this access rule
+            var ruleRoleIds = accessRule.Roles.Select(r => r.Id).ToHashSet();
+            
+            // Find users that have any of these roles
+            var usersWithAccess = users.Where(u => u.Roles.Any(r => ruleRoleIds.Contains(r.Id)));
+
+            foreach (var user in usersWithAccess)
+            {
+                // For now, allow all days (future: implement DaysOfWeek logic)
+                string allowedDays = "0,1,2,3,4,5,6"; // All days
+
+                // Determine time range
+                string startTime = "00:00";
+                string endTime = "23:59";
+                
+                if (accessRule.TimeRange.HasValue)
+                {
+                    var start = accessRule.TimeRange.Value.StartTime;
+                    var end = accessRule.TimeRange.Value.EndTime;
+                    startTime = $"{start.Hour:D2}:{start.Minute:D2}";
+                    endTime = $"{end.Hour:D2}:{end.Minute:D2}";
+                }
+
+                rules.Add(new AccessRuleDto
+                {
+                    UserId = user.Id,
+                    ControlPointId = accessRule.ControlPointId,
+                    SpaceId = accessRule.ControlPoint.SpaceId,
+                    AllowedDays = allowedDays,
+                    StartTime = startTime,
+                    EndTime = endTime,
+                    IsActive = true
+                });
+            }
+        }
+
+        return rules;
     }
 }

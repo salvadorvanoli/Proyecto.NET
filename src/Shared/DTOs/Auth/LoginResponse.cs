@@ -6,6 +6,7 @@ namespace Shared.DTOs.Auth;
 public class LoginResponse
 {
     public int UserId { get; set; }
+    public int? CredentialId { get; set; }
     public string Email { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public int TenantId { get; set; }

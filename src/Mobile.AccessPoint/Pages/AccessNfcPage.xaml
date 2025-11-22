@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:Mobile.AccessPoint.ViewModels"
+             x:Class="Mobile.AccessPoint.Pages.AccessNfcPage"
+             x:DataType="vm:AccessNfcViewModel"
+             Title="{Binding Title}">
+    
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="20">
+            
+            <!-- Header -->
+            <Label Text="Control de Acceso NFC"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"/>
+
+            <!-- Control Point Selection -->
+            <Frame BorderColor="{StaticResource Primary}" 
+                   Padding="15" 
+                   CornerRadius="10"
+                   BackgroundColor="{StaticResource Gray100}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="📍 Punto de Control"
+                           FontSize="18"
+                           FontAttributes="Bold"/>
+                    <HorizontalStackLayout Spacing="10">
+                        <Label Text="ID del Punto:" 
+                               VerticalOptions="Center"
+                               WidthRequest="100"/>
+                        <Entry Text="{Binding ControlPointId}" 
+                               Placeholder="Ej: 1"
+                               Keyboard="Numeric"
+                               HorizontalOptions="FillAndExpand"
+                               VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+                    <Label Text="Este ID simula la ubicación del punto de control para probar diferentes permisos de acceso."
+                           FontSize="12"
+                           TextColor="{StaticResource Gray600}"
+                           LineBreakMode="WordWrap"/>
+                </VerticalStackLayout>
+            </Frame>
+            
+            <!-- NFC Status -->
+            <Frame BorderColor="LightGray" Padding="15" CornerRadius="10">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Estado del Dispositivo"
+                           FontSize="18"
+                           FontAttributes="Bold"/>
+                    <HorizontalStackLayout Spacing="10">
+                        <Label Text="NFC Disponible:"/>
+                        <Label Text="{Binding NfcAvailableText}" 
+                               TextColor="{Binding NfcAvailableColor}"
+                               FontAttributes="Bold"/>
+                    </HorizontalStackLayout>
+                    <HorizontalStackLayout Spacing="10">
+                        <Label Text="NFC Habilitado:"/>
+                        <Label Text="{Binding NfcEnabledText}" 
+                               TextColor="{Binding NfcEnabledColor}"
+                               FontAttributes="Bold"/>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Scan Area -->
+            <Frame BorderColor="Gray"
+                   BackgroundColor="{Binding ScanFrameColor}"
+                   Padding="40"
+                   CornerRadius="20"
+                   HasShadow="True">
+                <VerticalStackLayout Spacing="15">
+                    
+                    <!-- NFC Icon -->
+                    <Label Text="📡"
+                           FontSize="64"
+                           HorizontalOptions="Center"/>
+                    
+                    <Label Text="{Binding StatusText}"
+                           FontSize="20"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center"/>
+                    
+                    <Label Text="{Binding InstructionText}"
+                           FontSize="14"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center"/>
+                    
+                    <!-- Activity Indicator -->
+                    <ActivityIndicator IsRunning="{Binding IsValidating}"
+                                     Color="Blue"
+                                     HeightRequest="40"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Control Point Info -->
+            <Frame IsVisible="{Binding ShowControlPoint}"
+                   BorderColor="LightGray"
+                   Padding="15"
+                   CornerRadius="10">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Punto de Acceso Detectado"
+                           FontSize="16"
+                           FontAttributes="Bold"/>
+                    <Label Text="{Binding ControlPointText}"
+                           FontSize="14"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Result Frame -->
+            <Frame IsVisible="{Binding ShowResult}"
+                   BorderColor="{Binding ResultFrameBorderColor}"
+                   Padding="20"
+                   CornerRadius="10"
+                   HasShadow="True">
+                <VerticalStackLayout Spacing="15">
+                    <Label Text="{Binding ResultIcon}"
+                           TextColor="{Binding ResultIconColor}"
+                           FontSize="48"
+                           HorizontalOptions="Center"/>
+                    
+                    <Label Text="{Binding ResultTitle}"
+                           TextColor="{Binding ResultTitleColor}"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           HorizontalOptions="Center"/>
+                    
+                    <Label Text="{Binding ResultMessage}"
+                           FontSize="16"
+                           HorizontalOptions="Center"
+                           HorizontalTextAlignment="Center"/>
+                    
+                    <BoxView HeightRequest="1" Color="LightGray" Margin="0,10"/>
+                    
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <Label Grid.Row="0" Grid.Column="0" Text="Usuario:" FontAttributes="Bold"/>
+                        <Label Grid.Row="0" Grid.Column="1" Text="{Binding UserText}"/>
+                        
+                        <Label Grid.Row="1" Grid.Column="0" Text="Punto de Acceso:" FontAttributes="Bold"/>
+                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding LocationText}"/>
+                        
+                        <Label Grid.Row="2" Grid.Column="0" Text="Fecha y Hora:" FontAttributes="Bold"/>
+                        <Label Grid.Row="2" Grid.Column="1" Text="{Binding DateTimeText}"/>
+                        
+                        <Label Grid.Row="3" Grid.Column="0" Text="Tag ID:" FontAttributes="Bold"/>
+                        <Label Grid.Row="3" Grid.Column="1" Text="{Binding TagIdText}"/>
+                    </Grid>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Buttons -->
+            <Button Text="Iniciar Escucha NFC"
+                    Command="{Binding StartListeningCommand}"
+                    IsVisible="{Binding StartButtonVisible}"
+                    BackgroundColor="Green"
+                    TextColor="White"/>
+            
+            <Button Text="Detener Escucha"
+                    Command="{Binding StopListeningCommand}"
+                    IsVisible="{Binding StopButtonVisible}"
+                    BackgroundColor="Red"
+                    TextColor="White"/>
+            
+            <Button Text="Ver Historial"
+                    Command="{Binding ViewHistoryCommand}"
+                    BackgroundColor="Gray"
+                    TextColor="White"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
+

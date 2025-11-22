@@ -1,0 +1,215 @@
+@* Campana de notificaciones con dropdown *@
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using Application.Notifications.DTOs
+@using Web.FrontOffice.Services.Interfaces
+@using Web.FrontOffice.Services
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject INotificationApiService NotificationApiService
+@inject SignalRService SignalRService
+@implements IAsyncDisposable
+
+@if (isLoggedIn)
+{
+    <div class="notification-bell">
+        <div class="dropdown">
+            <button class="btn btn-link notification-button" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-bell"></i>
+                @if (unreadCount > 0)
+                {
+                    <span class="notification-badge">@unreadCount</span>
+                }
+            </button>
+            <div class="dropdown-menu dropdown-menu-end notification-dropdown" aria-labelledby="notificationDropdown">
+                <div class="dropdown-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Notificaciones</h6>
+                    @if (notifications.Any(n => !n.IsRead))
+                    {
+                        <button class="btn btn-link btn-sm p-0" @onclick="MarkAllAsRead">Marcar todas como leídas</button>
+                    }
+                </div>
+                <div class="notification-list">
+                    @if (isLoadingNotifications)
+                    {
+                        <div class="dropdown-item-text text-center py-4">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (notifications.Any())
+                    {
+                        @foreach (var notification in notifications)
+                        {
+                            <div class="dropdown-item notification-item @(notification.IsRead ? "read" : "unread")" 
+                                 @onclick="() => MarkAsRead(notification.Id)">
+                                <div class="notification-icon">
+                                    <i class="bi bi-bell-fill"></i>
+                                </div>
+                                <div class="notification-content">
+                                    <div class="notification-title">@notification.Title</div>
+                                    <div class="notification-message">@notification.Message</div>
+                                    <div class="notification-time">@GetTimeAgo(notification.SentDateTime)</div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="dropdown-item-text text-center text-muted py-4">
+                            No tienes notificaciones
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoggedIn = false;
+    private bool isLoadingNotifications = false;
+    private int userId = 0;
+    private int unreadCount => notifications.Count(n => !n.IsRead);
+    private List<NotificationResponseDto> notifications = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await CheckAuthenticationState();
+            if (isLoggedIn && userId > 0)
+            {
+                await LoadNotifications();
+                
+                // Conectar a SignalR
+                SignalRService.OnNotificationReceived += OnNewNotification;
+                await SignalRService.StartConnectionAsync(userId);
+            }
+            StateHasChanged();
+        }
+    }
+
+    private void OnNewNotification(int notificationId, string title, string message, int id)
+    {
+        // Agregar la nueva notificación al principio de la lista
+        var newNotification = new NotificationResponseDto
+        {
+            Id = notificationId,
+            Title = title,
+            Message = message,
+            SentDateTime = DateTime.UtcNow,
+            IsRead = false,
+            UserId = userId,
+            UserEmail = "",
+            UserFullName = "",
+            TenantId = 0,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        
+        // Usar InvokeAsync para asegurar que la actualización ocurra en el contexto correcto de Blazor
+        InvokeAsync(() =>
+        {
+            notifications.Insert(0, newNotification);
+            StateHasChanged();
+        });
+    }
+
+    private async Task CheckAuthenticationState()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            isLoggedIn = user?.Identity?.IsAuthenticated ?? false;
+            
+            if (isLoggedIn)
+            {
+                var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim != null && int.TryParse(userIdClaim.Value, out var id))
+                {
+                    userId = id;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            isLoggedIn = false;
+        }
+    }
+
+    private async Task LoadNotifications()
+    {
+        if (userId <= 0) return;
+        
+        isLoadingNotifications = true;
+        try
+        {
+            var notificationsList = await NotificationApiService.GetUserNotificationsAsync(userId);
+            notifications = notificationsList?.ToList() ?? new List<NotificationResponseDto>();
+        }
+        catch (Exception ex)
+        {
+            notifications = new List<NotificationResponseDto>();
+        }
+        finally
+        {
+            isLoadingNotifications = false;
+        }
+    }
+
+    private async Task MarkAsRead(int notificationId)
+    {
+        var notification = notifications.FirstOrDefault(n => n.Id == notificationId);
+        if (notification != null && !notification.IsRead)
+        {
+            var result = await NotificationApiService.MarkAsReadAsync(notificationId);
+            if (result != null)
+            {
+                notification.IsRead = true;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task MarkAllAsRead()
+    {
+        if (userId <= 0) return;
+        
+        var count = await NotificationApiService.MarkAllAsReadAsync(userId);
+        if (count > 0)
+        {
+            foreach (var notification in notifications)
+            {
+                notification.IsRead = true;
+            }
+            StateHasChanged();
+        }
+    }
+
+    private string GetTimeAgo(DateTime sentDateTime)
+    {
+        var timeSpan = DateTime.UtcNow - sentDateTime;
+
+        if (timeSpan.TotalMinutes < 1)
+            return "Justo ahora";
+        if (timeSpan.TotalMinutes < 60)
+            return $"Hace {(int)timeSpan.TotalMinutes} min";
+        if (timeSpan.TotalHours < 24)
+            return $"Hace {(int)timeSpan.TotalHours} hora{((int)timeSpan.TotalHours != 1 ? "s" : "")}";
+        if (timeSpan.TotalDays < 30)
+            return $"Hace {(int)timeSpan.TotalDays} día{((int)timeSpan.TotalDays != 1 ? "s" : "")}";
+        
+        return sentDateTime.ToString("dd/MM/yyyy");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        // Solo desuscribirse del evento, NO desconectar (el servicio es Singleton)
+        SignalRService.OnNotificationReceived -= OnNewNotification;
+        await Task.CompletedTask;
+    }
+}

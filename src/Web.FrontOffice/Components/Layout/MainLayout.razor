@@ -1,4 +1,10 @@
 ﻿@inherits LayoutComponentBase
+@using Web.FrontOffice.Components.Shared
+@using Microsoft.AspNetCore.Components.Authorization
+@using Web.FrontOffice.Services
+@using System.Text.Json
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject TenantThemeService ThemeService
 
 <div class="page">
     <div class="sidebar">
@@ -6,13 +12,39 @@
     </div>
 
     <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
+        <Header />
 
         <article class="content px-4">
             @Body
         </article>
+
+        <footer class="footer" style="background-color: @primaryColor">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h5>Portal de Acceso</h5>
+                    <p>Sistema integrado de gestión de accesos y beneficios</p>
+                </div>
+                <div class="footer-section">
+                    <h6>Enlaces rápidos</h6>
+                    <ul class="footer-links">
+                        <li><a href="/access-nfc">Acceso NFC</a></li>
+                        <li><a href="/benefits">Beneficios</a></li>
+                        <li><a href="/profile">Mi Perfil</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h6>Soporte</h6>
+                    <ul class="footer-links">
+                        <li><a href="#">Ayuda</a></li>
+                        <li><a href="#">Contacto</a></li>
+                        <li><a href="#">Términos de uso</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <p class="footer-copyright">© 2025 Portal de Acceso. Todos los derechos reservados.</p>
+                </div>
+            </div>
+        </footer>
     </main>
 </div>
 
@@ -21,3 +53,41 @@
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+@code {
+    private string primaryColor = "#0A3D62";
+    private string secondaryColor = "#1976D2";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadTenantTheme();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadTenantTheme()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user?.Identity?.IsAuthenticated == true)
+            {
+                var tenantIdClaim = user.FindFirst("TenantId");
+                if (tenantIdClaim != null && int.TryParse(tenantIdClaim.Value, out var tenantId))
+                {
+                    await ThemeService.LoadThemeAsync(tenantId);
+                    primaryColor = ThemeService.GetPrimaryColor();
+                    secondaryColor = ThemeService.GetSecondaryColor();
+                }
+            }
+        }
+        catch
+        {
+            // Usar colores por defecto
+        }
+    }
+}

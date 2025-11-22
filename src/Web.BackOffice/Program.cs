@@ -65,9 +65,12 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<TenantHeaderHandler>();
+builder.Services.AddTransient<JwtTokenHandler>();
 
-// Obtener la URL del API desde variable de entorno o usar localhost para desarrollo
-var apiBaseUrl = builder.Configuration["API_BASE_URL"] ?? Environment.GetEnvironmentVariable("API_BASE_URL") ?? "http://localhost:5236/";
+// Obtener la URL del API desde variable de entorno
+var apiBaseUrl = builder.Configuration["API_BASE_URL"] 
+                 ?? Environment.GetEnvironmentVariable("API_BASE_URL") 
+                 ?? "http://localhost:5000";
 Console.WriteLine($"Configuring BackOffice to use API at: {apiBaseUrl}");
 
 builder.Services.AddHttpClient<IUserApiService, UserApiService>(client =>
@@ -75,63 +78,63 @@ builder.Services.AddHttpClient<IUserApiService, UserApiService>(client =>
     client.BaseAddress = new Uri(apiBaseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
-.AddHttpMessageHandler<TenantHeaderHandler>();
+.AddHttpMessageHandler<JwtTokenHandler>();
 
 builder.Services.AddHttpClient<IRoleApiService, RoleApiService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
-.AddHttpMessageHandler<TenantHeaderHandler>();
+.AddHttpMessageHandler<JwtTokenHandler>();
 
 builder.Services.AddHttpClient<INewsApiService, NewsApiService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
-.AddHttpMessageHandler<TenantHeaderHandler>();
+.AddHttpMessageHandler<JwtTokenHandler>();
 
 builder.Services.AddHttpClient<ISpaceTypeApiService, SpaceTypeApiService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
-.AddHttpMessageHandler<TenantHeaderHandler>();
+.AddHttpMessageHandler<JwtTokenHandler>();
 
 builder.Services.AddHttpClient<ISpaceApiService, SpaceApiService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
-.AddHttpMessageHandler<TenantHeaderHandler>();
+.AddHttpMessageHandler<JwtTokenHandler>();
 
 builder.Services.AddHttpClient<IControlPointApiService, ControlPointApiService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
-.AddHttpMessageHandler<TenantHeaderHandler>();
+.AddHttpMessageHandler<JwtTokenHandler>();
 
 builder.Services.AddHttpClient<IAccessRuleApiService, AccessRuleApiService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
-.AddHttpMessageHandler<TenantHeaderHandler>();
+.AddHttpMessageHandler<JwtTokenHandler>();
 
 builder.Services.AddHttpClient<IBenefitTypeApiService, BenefitTypeApiService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
-.AddHttpMessageHandler<TenantHeaderHandler>();
+.AddHttpMessageHandler<JwtTokenHandler>();
 
 builder.Services.AddHttpClient<IBenefitApiService, BenefitApiService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 })
-.AddHttpMessageHandler<TenantHeaderHandler>();
+.AddHttpMessageHandler<JwtTokenHandler>();
 
 builder.Services.AddHttpClient<IAuthApiService, AuthApiService>(client =>
 {

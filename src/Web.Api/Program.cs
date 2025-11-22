@@ -1,12 +1,16 @@
 using Application;
+using Application.Common.Interfaces;
 using Infrastructure;
 using Infrastructure.Data;
 using Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Web.Api.HealthChecks;
 using Web.Api.Configuration;
 using Web.Api.Middleware;
 using Web.Api.Filters;
+using Web.Api.Hubs;
+using Web.Api.Services;
 using Serilog;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -53,11 +57,11 @@ try
         hostOptions.ShutdownTimeout = TimeSpan.FromSeconds(30);
     });
 
-    builder.Services.AddControllers(options =>
-    {
-        // Agregar filtro de autorización por tenant a todos los controladores
-        options.Filters.Add<TenantAuthorizationFilter>();
-    });
+    builder.Services.AddControllers();
+    builder.Services.AddSignalR();
+
+    // Registrar TenantAuthorizationFilter como servicio para uso con atributos
+    builder.Services.AddScoped<TenantAuthorizationFilter>();
 
     // ========================================
     // SEGURIDAD: Configurar JWT Authentication
@@ -95,7 +99,7 @@ try
                 },
                 OnTokenValidated = context =>
                 {
-                    var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+                    var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value
                                  ?? context.Principal?.FindFirst("sub")?.Value;
                     if (userId != null)
                     {
@@ -157,22 +161,32 @@ try
         {
             if (builder.Environment.IsDevelopment())
             {
-                policy.WithOrigins(
-                        "http://localhost:5001",
-                        "https://localhost:5001",
-                        "http://localhost:5002",
-                        "https://localhost:5002",
-                        "http://localhost:5000",
-                        "https://localhost:5000"
-                    )
+                policy.AllowAnyOrigin()
                     .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowCredentials();
+                    .AllowAnyHeader();
             }
             else
             {
-                var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-                                    ?? Array.Empty<string>();
+                // Soporta dos formatos:
+                // 1. String separado por comas: CORS_ALLOWED_ORIGINS=http://localhost:4200,http://127.0.0.1:4200
+                // 2. Array en appsettings.json: Cors:AllowedOrigins
+                var corsOriginsString = builder.Configuration["CORS_ALLOWED_ORIGINS"];
+                string[] allowedOrigins;
+
+                if (!string.IsNullOrWhiteSpace(corsOriginsString))
+                {
+                    // Formato 1: String separado por comas
+                    allowedOrigins = corsOriginsString
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Where(origin => !string.IsNullOrWhiteSpace(origin))
+                        .ToArray();
+                }
+                else
+                {
+                    // Formato 2: Array en appsettings.json
+                    allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                                        ?? Array.Empty<string>();
+                }
 
                 if (allowedOrigins.Length > 0)
                 {
@@ -187,11 +201,38 @@ try
 
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
+
+    // Override the default NotificationHubService with SignalR implementation
+    // Usar Singleton para que sea compatible con IHubContext que es Singleton
+    builder.Services.AddSingleton<INotificationHubService, SignalRNotificationHubService>();
+
     builder.Services.AddApiHealthChecks(builder.Configuration);
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
 
     var app = builder.Build();
+
+    // ========================================
+    // CONFIGURACIÓN PARA PROXY/ALB: PathBase y Forwarded Headers
+    // ========================================
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor
+                         | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+                         | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedHost
+    });
+
+    // Configurar PathBase si la API está detrás de un ALB/proxy con ruta /api
+    var pathBase = builder.Configuration.GetValue<string>("PathBase");
+    if (!string.IsNullOrEmpty(pathBase))
+    {
+        app.UsePathBase(pathBase);
+        app.Use((context, next) =>
+        {
+            context.Request.PathBase = pathBase;
+            return next();
+        });
+    }
 
     using (var scope = app.Services.CreateScope())
     {
@@ -221,12 +262,21 @@ try
             var dbSeeder = services.GetRequiredService<DbSeeder>();
             await dbSeeder.MigrateAsync();
 
+            // Crear las tablas si no existen (para cuando no hay migraciones)
+            var context = services.GetRequiredService<ApplicationDbContext>();
+            await context.Database.EnsureCreatedAsync();
+
+            // Alternativamente, se puede usar MigrateAsync() en lugar de EnsureCreatedAsync()
+            // await context.Database.MigrateAsync();
+
+            logger.LogInformation("Database schema ensured.");
+
             // Ejecutar el seed si está habilitado
             var seedDatabase = builder.Configuration.GetValue<bool>("SEED_DATABASE", false);
             if (seedDatabase || app.Environment.IsDevelopment())
             {
                 logger.LogInformation("Seeding database...");
-                await dbSeeder.SeedAsync();
+                await DatabaseSeeder.SeedAsync(services, app.Environment);
             }
 
             logger.LogInformation("Database initialization completed successfully!");
@@ -270,7 +320,7 @@ try
         context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
 
         // Content Security Policy - ajustar según necesidades
-        context.Response.Headers.Append("Content-Security-Policy", 
+        context.Response.Headers.Append("Content-Security-Policy",
             "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'");
 
         // Referrer Policy
@@ -311,16 +361,21 @@ try
     });
 
     app.UseHttpsRedirection();
+
+    // IMPORTANTE: CORS debe ir ANTES de MapHub para SignalR
     app.UseCors("AllowWebApps");
-    
+
     // ========================================
     // SEGURIDAD: Authentication & Authorization
     // ========================================
     app.UseAuthentication();
     app.UseAuthorization();
-    
+
     app.MapApiHealthChecks();
     app.MapControllers();
+
+    // Mapear SignalR Hub
+    app.MapHub<NotificationHub>("/notificationHub");
 
     Log.Information("✅ API iniciado correctamente en {Environment}", app.Environment.EnvironmentName);
 

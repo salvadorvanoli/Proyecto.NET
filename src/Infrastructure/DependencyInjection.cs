@@ -30,6 +30,10 @@ public static class DependencyInjection
             var connectionString = configuration.GetConnectionString("DefaultConnection");
             options.UseSqlServer(connectionString);
 
+            // Suppress pending model changes warning - interface changes don't affect database schema
+            options.ConfigureWarnings(warnings =>
+                warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+
             // Enable sensitive data logging in development
             #if DEBUG
                 options.EnableSensitiveDataLogging();
@@ -42,12 +46,16 @@ public static class DependencyInjection
 
         // Register infrastructure services
         services.AddScoped<ITenantProvider, TenantProvider>();
+        services.AddScoped<ITenantService, TenantService>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
+        services.AddScoped<Application.Benefits.Services.IBenefitService, Services.Benefits.BenefitService>();
+        services.AddScoped<Application.AccessEvents.Services.IAccessEventService, Services.AccessEvents.AccessEventService>();
         // Token service for JWT generation
         services.AddSingleton<ITokenService, TokenService>();
 
         // Register database seeder
         services.AddScoped<DbSeeder>();
+        services.AddScoped<INotificationHubService, NotificationHubService>();
 
         // Add Redis caching
         AddRedisCaching(services, configuration);

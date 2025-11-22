@@ -165,6 +165,45 @@ public class UserService : IUserService
         return true;
     }
 
+    public async Task AssignCredentialToUserAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _context.Users
+            .Include(u => u.Credential)
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+
+        if (user == null)
+        {
+            throw new InvalidOperationException($"User with ID {userId} not found");
+        }
+
+        // If user already has an active credential, return
+        if (user.CredentialId.HasValue)
+        {
+            var existingCredential = await _context.Credentials
+                .FirstOrDefaultAsync(c => c.Id == user.CredentialId.Value, cancellationToken);
+            
+            if (existingCredential != null && existingCredential.IsActive)
+            {
+                return; // User already has an active credential
+            }
+        }
+
+        // Create new credential
+        var credential = new Credential(
+            tenantId: user.TenantId,
+            userId: user.Id,
+            issueDate: DateTime.UtcNow,
+            isActive: true
+        );
+
+        _context.Credentials.Add(credential);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // Assign credential to user
+        user.AssignCredential(credential.Id);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
     private static UserResponse MapToResponse(User user)
     {
         return new UserResponse

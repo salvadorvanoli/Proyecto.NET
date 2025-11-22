@@ -1,4 +1,5 @@
 using Shared.DTOs.AccessRules;
+using Shared.DTOs;
 
 namespace Application.AccessRules;
 
@@ -14,4 +15,9 @@ public interface IAccessRuleService
     Task<AccessRuleResponse> CreateAccessRuleAsync(AccessRuleRequest request, CancellationToken cancellationToken = default);
     Task<AccessRuleResponse> UpdateAccessRuleAsync(int id, AccessRuleRequest request, CancellationToken cancellationToken = default);
     Task<bool> DeleteAccessRuleAsync(int id, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Gets all active access rules for offline sync
+    /// </summary>
+    Task<List<AccessRuleDto>> GetAllActiveRulesAsync(CancellationToken cancellationToken = default);
 }

@@ -1,0 +1,20 @@
+@* Componente reutilizable para botones secundarios *@
+<button class="secondary-button @AdditionalClass" @onclick="HandleClick" type="button">
+    <span>@Text</span>
+</button>
+
+@code {
+    [Parameter]
+    public string Text { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+
+    [Parameter]
+    public string AdditionalClass { get; set; } = string.Empty;
+
+    private Task HandleClick()
+    {
+        return OnClick.InvokeAsync(null);
+    }
+}

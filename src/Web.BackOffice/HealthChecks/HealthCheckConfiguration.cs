@@ -22,7 +22,7 @@ public static class HealthCheckConfiguration
                 tags: new[] { "db", "sql", "sqlserver" });
         }
 
-        var apiBaseUrl = configuration["ApiSettings:BaseUrl"];
+        var apiBaseUrl = configuration["API_BASE_URL"];
         if (!string.IsNullOrEmpty(apiBaseUrl))
         {
             healthChecksBuilder.AddUrlGroup(

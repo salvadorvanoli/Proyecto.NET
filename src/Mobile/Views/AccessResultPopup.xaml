@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<toolkit:Popup xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+               xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+               x:Class="Mobile.Views.AccessResultPopup"
+               CanBeDismissedByTappingOutsideOfPopup="True"
+               Color="Transparent">
+    
+    <Frame BackgroundColor="White"
+           Padding="30"
+           CornerRadius="25"
+           HasShadow="True"
+           WidthRequest="320"
+           HeightRequest="400">
+        
+        <VerticalStackLayout Spacing="20" VerticalOptions="Center">
+            
+            <!-- Icon animado -->
+            <Frame x:Name="IconFrame"
+                   BackgroundColor="{Binding BackgroundColor}"
+                   WidthRequest="120"
+                   HeightRequest="120"
+                   CornerRadius="60"
+                   HasShadow="False"
+                   HorizontalOptions="Center"
+                   Padding="0">
+                <Label x:Name="IconLabel"
+                       Text="{Binding Icon}"
+                       FontSize="60"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"/>
+            </Frame>
+            
+            <!-- Título -->
+            <Label x:Name="TitleLabel"
+                   Text="{Binding Title}"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"
+                   TextColor="{Binding TitleColor}"/>
+            
+            <!-- Mensaje -->
+            <Label x:Name="MessageLabel"
+                   Text="{Binding Message}"
+                   FontSize="16"
+                   HorizontalOptions="Center"
+                   HorizontalTextAlignment="Center"
+                   TextColor="{StaticResource Gray600}"
+                   LineBreakMode="WordWrap"/>
+            
+            <!-- Botón de cerrar -->
+            <Button Text="Cerrar"
+                    BackgroundColor="{Binding BackgroundColor}"
+                    TextColor="White"
+                    FontSize="18"
+                    FontAttributes="Bold"
+                    CornerRadius="15"
+                    HeightRequest="50"
+                    Clicked="OnCloseClicked"
+                    Margin="0,10,0,0"/>
+            
+        </VerticalStackLayout>
+        
+    </Frame>
+    
+</toolkit:Popup>

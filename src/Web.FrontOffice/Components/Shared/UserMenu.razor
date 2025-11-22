@@ -1,0 +1,93 @@
+@* Menú de usuario con dropdown para login/logout *@
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@implements IDisposable
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILogger<UserMenu> Logger
+
+@if (isLoggedIn)
+{
+    <div class="user-menu">
+        <span class="user-name me-3 d-none d-md-inline">@userName</span>
+        <button class="btn btn-danger" @onclick="NavigateToLogout">
+            <i class="bi bi-box-arrow-right"></i>
+            <span class="d-none d-md-inline ms-1">Cerrar Sesión</span>
+        </button>
+    </div>
+}
+else
+{
+    <div class="user-menu">
+        <button class="btn btn-primary" @onclick="NavigateToLogin">
+            <i class="bi bi-box-arrow-in-right"></i>
+            <span class="d-none d-md-inline ms-1">Iniciar Sesión</span>
+        </button>
+    </div>
+}
+
+@code {
+    private bool isLoggedIn = false;
+    private string userName = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Suscribirse a cambios de autenticación
+        AuthenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        await CheckAuthenticationState();
+    }
+
+    private async void OnAuthenticationStateChanged(Task<Microsoft.AspNetCore.Components.Authorization.AuthenticationState> task)
+    {
+        await CheckAuthenticationState();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        Logger.LogInformation("UserMenu OnAfterRenderAsync - firstRender: {FirstRender}", firstRender);
+        if (firstRender)
+        {
+            await CheckAuthenticationState();
+            Logger.LogInformation("UserMenu after CheckAuthenticationState - isLoggedIn: {IsLoggedIn}, userName: {UserName}", isLoggedIn, userName);
+            StateHasChanged();
+        }
+    }
+
+    private async Task CheckAuthenticationState()
+    {
+        try
+        {
+            Logger.LogInformation("UserMenu CheckAuthenticationState - START");
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            isLoggedIn = user?.Identity?.IsAuthenticated ?? false;
+            userName = user?.Identity?.Name ?? string.Empty;
+            Logger.LogInformation("UserMenu CheckAuthenticationState - User: {User}, IsAuthenticated: {IsAuth}", 
+                userName, isLoggedIn);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "UserMenu CheckAuthenticationState - ERROR");
+            isLoggedIn = false;
+            userName = string.Empty;
+        }
+    }
+
+    private void NavigateToLogin()
+    {
+        Navigation.NavigateTo("/Auth/Login", forceLoad: true);
+    }
+
+    private void NavigateToLogout()
+    {
+        Navigation.NavigateTo("/Auth/Logout", forceLoad: true);
+    }
+}
+

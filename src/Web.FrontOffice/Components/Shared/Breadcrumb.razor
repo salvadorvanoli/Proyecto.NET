@@ -1,0 +1,14 @@
+@* Componente de navegación con breadcrumbs *@
+<nav class="breadcrumb-nav">
+    <a href="/" class="breadcrumb-item">Inicio</a>
+    @if (!string.IsNullOrEmpty(CurrentPage))
+    {
+        <span class="breadcrumb-separator">›</span>
+        <span class="breadcrumb-current">@CurrentPage</span>
+    }
+</nav>
+
+@code {
+    [Parameter]
+    public string CurrentPage { get; set; } = string.Empty;
+}

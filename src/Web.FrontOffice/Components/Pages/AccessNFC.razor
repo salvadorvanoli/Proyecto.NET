@@ -1,0 +1,384 @@
+@page "/acceso-nfc"
+@using Web.FrontOffice.Components.Shared
+@using Web.FrontOffice.Services.Interfaces
+@using Microsoft.AspNetCore.WebUtilities
+@inject IAccessEventApiService AccessEventApiService
+@inject NavigationManager Navigation
+@inject ILogger<AccessNFC> Logger
+@rendermode InteractiveServer
+
+<Microsoft.AspNetCore.Components.Web.PageTitle>Acceso NFC</Microsoft.AspNetCore.Components.Web.PageTitle>
+
+<div class="access-container">
+    <PageHeader Title="Control de Acceso" Subtitle="Valida tu credencial NFC para ingresar" />
+
+    @if (!validacionIniciada)
+    {
+        <!-- Estado inicial - Esperando validación -->
+        <Card>
+            @if (currentUserId == 0)
+            {
+                <div class="alert alert-warning">
+                    <p><strong>⚠️ Para testing:</strong> Accede a <code>/acceso-nfc?devUserId=1</code> para probar con el usuario ID 1.</p>
+                </div>
+            }
+            else
+            {
+                <div class="nfc-ready-state">
+                    <div class="nfc-icon-container">
+                        <div class="nfc-waves">
+                            <div class="wave wave-1"></div>
+                            <div class="wave wave-2"></div>
+                            <div class="wave wave-3"></div>
+                        </div>
+                        <div class="nfc-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 8.32a3.84 3.84 0 0 1 0 7.36M9.5 7a7.86 7.86 0 0 1 0 10M13 5.68a11.88 11.88 0 0 1 0 12.64"></path>
+                                <circle cx="12" cy="12" r="2"></circle>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <h2>Listo para Escanear</h2>
+                    <p class="instruction-text">Acerca tu credencial o dispositivo al lector NFC. El sistema detectará automáticamente el punto de acceso y validará tus permisos.</p>
+
+
+                    <div class="form-actions">
+                        <PrimaryButton Text="Iniciar Validación NFC" OnClick="IniciarValidacionNFC" />
+                    </div>
+                </div>
+            }
+        </Card>
+    }
+    else if (procesandoValidacion)
+    {
+        <!-- Procesando validación NFC -->
+        <Card>
+            <div class="nfc-processing-state">
+                <div class="nfc-scanning">
+                    <div class="scan-circle"></div>
+                    <div class="nfc-icon-small">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 8.32a3.84 3.84 0 0 1 0 7.36M9.5 7a7.86 7.86 0 0 1 0 10M13 5.68a11.88 11.88 0 0 1 0 12.64"></path>
+                            <circle cx="12" cy="12" r="2"></circle>
+                        </svg>
+                    </div>
+                </div>
+                
+                <h2>Validando Credencial...</h2>
+                <p class="instruction-text">Mantén tu credencial cerca del lector hasta que se complete la validación.</p>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+
+                <div class="validation-info">
+                    <InfoField Label="Punto de Acceso Detectado" Value="@puntoAccesoDetectado" />
+                    <InfoField Label="Estado" Value="Procesando..." />
+                </div>
+            </div>
+        </Card>
+    }
+    else if (resultadoAcceso != null)
+    {
+        <!-- Resultado de la validación -->
+        <Card>
+            <div class="access-result-container">
+                @if (resultadoAcceso.Permitido)
+                {
+                    <div class="access-granted">
+                        <div class="result-icon success">
+                            <span>✓</span>
+                        </div>
+                        <h2>Acceso Permitido</h2>
+                        <p class="result-message">Bienvenido/a. Puedes ingresar.</p>
+                        
+                        <div class="access-details">
+                            <InfoField Label="Usuario" Value="@resultadoAcceso.NombreUsuario" />
+                            <InfoField Label="Punto de Acceso" Value="@resultadoAcceso.PuntoAcceso" />
+                            <InfoField Label="Fecha y Hora" Value="@resultadoAcceso.FechaHora.ToString("dd/MM/yyyy HH:mm:ss")" />
+                            <InfoField Label="Credencial" Value="@resultadoAcceso.NumeroCredencial" />
+                        </div>
+
+                        @if (resultadoAcceso.Roles.Any())
+                        {
+                            <div class="user-roles">
+                                <span class="roles-label">Roles Activos:</span>
+                                <div class="roles-list">
+                                    @foreach (var rol in resultadoAcceso.Roles)
+                                    {
+                                        <Badge Text="@rol" Type="success" />
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="access-denied">
+                        <div class="result-icon error">
+                            <span>✗</span>
+                        </div>
+                        <h2>Acceso Denegado</h2>
+                        <p class="result-message">@resultadoAcceso.MensajeError</p>
+                        
+                        <div class="access-details">
+                            <InfoField Label="Punto de Acceso" Value="@resultadoAcceso.PuntoAcceso" />
+                            <InfoField Label="Fecha y Hora" Value="@resultadoAcceso.FechaHora.ToString("dd/MM/yyyy HH:mm:ss")" />
+                            <InfoField Label="Razón" Value="@resultadoAcceso.RazonDenegacion" />
+                        </div>
+
+                        <div class="help-section">
+                            <p class="help-text">Si crees que esto es un error, contacta al administrador del sistema.</p>
+                        </div>
+                    </div>
+                }
+
+                <div class="form-actions">
+                    <PrimaryButton Text="Nueva Validación" OnClick="NuevaValidacion" />
+                    @if (currentUserId > 0)
+                    {
+                        <a href="/historial-accesos?devUserId=@currentUserId" class="action-link">
+                            <SecondaryButton Text="Ver Historial" />
+                        </a>
+                    }
+                </div>
+            </div>
+        </Card>
+    }
+
+    <!-- Historial reciente (siempre visible) -->
+    <div class="recent-history">
+        <SectionTitle Title="Intentos Recientes" />
+        <Card>
+            @if (historialReciente.Any())
+            {
+                <div class="history-list">
+                    @foreach (var evento in historialReciente.Take(5))
+                    {
+                        <div class="history-item @(evento.Permitido ? "access-allowed" : "access-denied")">
+                            <div class="history-info">
+                                <div class="history-icon">
+                                    <span>@(evento.Permitido ? "✓" : "✗")</span>
+                                </div>
+                                <div class="history-content">
+                                    <span class="history-location">@evento.PuntoAcceso</span>
+                                    <span class="history-datetime">@evento.FechaHora.ToString("dd/MM/yyyy HH:mm")</span>
+                                </div>
+                            </div>
+                            <Badge Text="@(evento.Permitido ? "PERMITIDO" : "DENEGADO")"
+                                   Type="@(evento.Permitido ? "success" : "danger")" />
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="no-data">No hay registros de acceso recientes.</p>
+            }
+        </Card>
+    </div>
+</div>
+
+@code {
+    private int currentUserId = 0;
+    private List<int> controlPointIds = new List<int> { 1, 2, 3, 4, 5, 6 }; // IDs hardcodeados de control points del seeder
+    private Dictionary<int, string> controlPointNames = new Dictionary<int, string>
+    {
+        { 1, "Entrada Principal" },
+        { 2, "Salida Principal" },
+        { 3, "Entrada Estacionamiento" },
+        { 4, "Salida Estacionamiento" },
+        { 5, "Área Restringida" },
+        { 6, "Entrada Principal" }
+    };
+
+    private int puntoAccesoDetectadoId = 0;
+    private string puntoAccesoDetectado = string.Empty;
+    private bool validacionIniciada = false;
+    private bool procesandoValidacion = false;
+    private ResultadoAcceso? resultadoAcceso;
+
+    private List<EventoAcceso> historialReciente = new List<EventoAcceso>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // TESTING: Obtener userId desde query parameter
+        var uri = new Uri(Navigation.Uri);
+        var query = QueryHelpers.ParseQuery(uri.Query);
+        
+        if (query.TryGetValue("devUserId", out var devIdValues) && int.TryParse(devIdValues.FirstOrDefault(), out var devUserId))
+        {
+            currentUserId = devUserId;
+            Logger.LogInformation("Modo dev: usando userId {UserId}", currentUserId);
+            await CargarHistorialReciente();
+        }
+        else
+        {
+            Logger.LogWarning("No se encontró parámetro devUserId en la URL");
+        }
+    }
+
+    private async Task CargarHistorialReciente()
+    {
+        try
+        {
+            if (currentUserId == 0) return;
+
+            var eventos = await AccessEventApiService.GetUserAccessEventsAsync(currentUserId);
+            
+            historialReciente = eventos.Take(5).Select(e => new EventoAcceso
+            {
+                PuntoAcceso = e.ControlPoint.Name,
+                FechaHora = e.EventDateTime,
+                Permitido = e.Result == "Granted"
+            }).ToList();
+
+            Logger.LogInformation("Cargados {Count} eventos recientes", historialReciente.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al cargar historial reciente");
+        }
+    }
+
+    private async Task IniciarValidacionNFC()
+    {
+        if (currentUserId == 0)
+        {
+            Logger.LogWarning("No se puede iniciar validación sin userId");
+            return;
+        }
+
+        validacionIniciada = true;
+        procesandoValidacion = true;
+        
+        // Simular detección automática del punto de acceso
+        var random = new Random();
+        puntoAccesoDetectadoId = controlPointIds[random.Next(controlPointIds.Count)];
+        puntoAccesoDetectado = controlPointNames.GetValueOrDefault(puntoAccesoDetectadoId, "Punto de Acceso");
+        
+        StateHasChanged();
+
+        // Simular proceso de validación NFC
+        await Task.Delay(2500);
+
+        // Simular resultado (85% de éxito para testing)
+        var exitoso = random.Next(100) < 85;
+        var accessResult = exitoso ? "Granted" : "Denied";
+
+        try
+        {
+            // Crear el evento de acceso en el backend
+            var request = new CreateAccessEventRequest
+            {
+                UserId = currentUserId,
+                ControlPointId = puntoAccesoDetectadoId,
+                Result = accessResult,
+                EventDateTime = DateTime.UtcNow
+            };
+
+            var accessEvent = await AccessEventApiService.CreateAccessEventAsync(request);
+            
+            Logger.LogInformation("Evento de acceso creado: {EventId}, Resultado: {Result}", 
+                accessEvent.Id, accessEvent.Result);
+
+            procesandoValidacion = false;
+
+            if (accessEvent.Result == "Granted")
+            {
+                resultadoAcceso = new ResultadoAcceso
+                {
+                    Permitido = true,
+                    NombreUsuario = $"Usuario {currentUserId}",
+                    PuntoAcceso = accessEvent.ControlPoint.Name,
+                    FechaHora = accessEvent.EventDateTime,
+                    NumeroCredencial = $"CRED-{currentUserId:0000}",
+                    Roles = new List<string> { "Usuario" }
+                };
+
+                // Agregar al historial local
+                historialReciente.Insert(0, new EventoAcceso
+                {
+                    PuntoAcceso = resultadoAcceso.PuntoAcceso,
+                    FechaHora = resultadoAcceso.FechaHora,
+                    Permitido = true
+                });
+            }
+            else
+            {
+                var razones = new[]
+                {
+                    ("Credencial Inactiva", "Tu credencial ha sido desactivada temporalmente"),
+                    ("Fuera de Horario", "No tienes permisos para acceder en este horario"),
+                    ("Área Restringida", "No tienes autorización para acceder a esta área"),
+                    ("Credencial Vencida", "Tu credencial ha expirado")
+                };
+
+                var razonSeleccionada = razones[random.Next(razones.Length)];
+
+                resultadoAcceso = new ResultadoAcceso
+                {
+                    Permitido = false,
+                    PuntoAcceso = accessEvent.ControlPoint.Name,
+                    FechaHora = accessEvent.EventDateTime,
+                    RazonDenegacion = razonSeleccionada.Item1,
+                    MensajeError = razonSeleccionada.Item2
+                };
+
+                // Agregar al historial local
+                historialReciente.Insert(0, new EventoAcceso
+                {
+                    PuntoAcceso = resultadoAcceso.PuntoAcceso,
+                    FechaHora = resultadoAcceso.FechaHora,
+                    Permitido = false
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al crear evento de acceso");
+            procesandoValidacion = false;
+            
+            resultadoAcceso = new ResultadoAcceso
+            {
+                Permitido = false,
+                PuntoAcceso = puntoAccesoDetectado,
+                FechaHora = DateTime.Now,
+                RazonDenegacion = "Error del Sistema",
+                MensajeError = $"Error al validar acceso: {ex.Message}"
+            };
+        }
+
+        StateHasChanged();
+    }
+
+    private void NuevaValidacion()
+    {
+        validacionIniciada = false;
+        procesandoValidacion = false;
+        resultadoAcceso = null;
+        puntoAccesoDetectado = string.Empty;
+        puntoAccesoDetectadoId = 0;
+    }
+
+    public class ResultadoAcceso
+    {
+        public bool Permitido { get; set; }
+        public string NombreUsuario { get; set; } = string.Empty;
+        public string PuntoAcceso { get; set; } = string.Empty;
+        public DateTime FechaHora { get; set; }
+        public string NumeroCredencial { get; set; } = string.Empty;
+        public List<string> Roles { get; set; } = new();
+        public string RazonDenegacion { get; set; } = string.Empty;
+        public string MensajeError { get; set; } = string.Empty;
+    }
+
+    public class EventoAcceso
+    {
+        public string PuntoAcceso { get; set; } = string.Empty;
+        public DateTime FechaHora { get; set; }
+        public bool Permitido { get; set; }
+    }
+}

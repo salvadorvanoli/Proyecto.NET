@@ -1,0 +1,347 @@
+@page "/canjear-beneficio"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using Web.FrontOffice.Components.Shared
+@using Web.FrontOffice.Services
+@using Web.FrontOffice.Services.Interfaces
+@using Microsoft.AspNetCore.Components.Authorization
+@using BenefitResponse = global::Shared.DTOs.Benefits.BenefitResponse
+@using RedeemBenefitRequest = global::Shared.DTOs.Benefits.RedeemBenefitRequest
+@inject IBenefitApiService BenefitApiService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject ILogger<RedeemBenefit> Logger
+
+<Microsoft.AspNetCore.Components.Web.PageTitle>Canjear Beneficio</Microsoft.AspNetCore.Components.Web.PageTitle>
+
+<div class="redeem-container">
+    <PageHeader Title="Canjear Beneficio" Subtitle="Selecciona y confirma el beneficio que deseas canjear" />
+
+    @if (beneficioSeleccionado == null)
+    {
+        <!-- Selección de beneficio -->
+        <Card Title="Selecciona el Beneficio a Canjear">
+            @if (isLoading)
+            {
+                <div class="loading">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Cargando beneficios...</span>
+                    </div>
+                    <p class="mt-2">Cargando beneficios...</p>
+                </div>
+            }
+            else if (error != null)
+            {
+                <div class="alert alert-danger">
+                    <p>@error</p>
+                </div>
+            }
+            else if (beneficiosDisponibles.Any())
+            {
+                <div class="benefits-selection-grid">
+                    @foreach (var beneficio in beneficiosDisponibles)
+                    {
+                        <div class="benefit-card @(beneficio.Id == beneficioTemporal?.Id ? "selected" : "")"
+                             @onclick="() => SeleccionarBeneficio(beneficio)">
+                            <div class="benefit-card-content">
+                                <h4 class="benefit-name">@beneficio.BenefitTypeName</h4>
+                                <div class="benefit-info">
+                                    <InfoField Label="Consumiciones Disponibles" Value="@beneficio.Quantity.ToString()" />
+                                    @if (!beneficio.IsPermanent)
+                                    {
+                                        <InfoField Label="Vigente Hasta" Value="@beneficio.EndDate" />
+                                    }
+                                    else
+                                    {
+                                        <InfoField Label="Vigencia" Value="Permanente" />
+                                    }
+                                </div>
+                            </div>
+                            @if (beneficio.Id == beneficioTemporal?.Id)
+                            {
+                                <div class="selected-indicator">
+                                    <span>✓</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="form-actions">
+                    <PrimaryButton Text="Continuar" OnClick="ConfirmarSeleccion" AdditionalClass="@(beneficioTemporal == null ? "disabled" : "")" />
+                    <a href="/mis-beneficios" class="action-link">
+                        <SecondaryButton Text="Cancelar" />
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="no-benefits">
+                    <p class="no-data">No tienes beneficios disponibles para canjear en este momento.</p>
+                    <div class="back-action">
+                        <a href="/mis-beneficios" class="action-link">
+                            <PrimaryButton Text="Ver Mis Beneficios" />
+                        </a>
+                    </div>
+                </div>
+            }
+        </Card>
+    }
+    else if (!confirmacionCanje)
+    {
+        <!-- Modal de Confirmación -->
+        <Card Title="Confirmar Canje">
+            <div class="password-container">
+                <div class="benefit-summary">
+                    <h4>Beneficio Seleccionado</h4>
+                    <div class="summary-content">
+                        <InfoField Label="Nombre" Value="@beneficioSeleccionado.BenefitTypeName" />
+                        <InfoField Label="Consumiciones Disponibles" Value="@beneficioSeleccionado.Quantity.ToString()" />
+                        <InfoField Label="Cantidad a Canjear" Value="1" />
+                    </div>
+                </div>
+
+                <div class="password-section">
+                    @if (!procesandoCanje)
+                    {
+                        <div class="password-prompt">
+                            <h3>Confirmar Canje</h3>
+                            <p>¿Estás seguro de que deseas canjear una consumición de este beneficio?</p>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <PrimaryButton Text="Confirmar Canje" OnClick="ProcesarCanje" />
+                            <SecondaryButton Text="Volver" OnClick="VolverSeleccion" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="processing-validation">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Procesando canje...</span>
+                            </div>
+                            <h3>Procesando Canje...</h3>
+                            <p>Por favor, espera un momento.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </Card>
+    }
+    else if (canjeExitoso.HasValue)
+    {
+        <!-- Resultado del canje -->
+        <Card>
+            <div class="result-container">
+                @if (canjeExitoso.Value)
+                {
+                    <div class="success-result">
+                        <div class="result-icon success">
+                            <span>✓</span>
+                        </div>
+                        <h2>¡Canje Exitoso!</h2>
+                        <p>@mensajeExito</p>
+                        
+                        <div class="result-details">
+                            <InfoField Label="Beneficio" Value="@beneficioSeleccionado.BenefitTypeName" />
+                            <InfoField Label="Consumiciones Restantes" Value="@consumicionesRestantesUsage.ToString()" />
+                            <InfoField Label="Fecha y Hora" Value="@fechaCanje?.ToString("dd/MM/yyyy HH:mm:ss")" />
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="error-result">
+                        <div class="result-icon error">
+                            <span>✗</span>
+                        </div>
+                        <h2>Canje Fallido</h2>
+                        <p>@mensajeError</p>
+                    </div>
+                }
+
+                <div class="form-actions">
+                    <PrimaryButton Text="Canjear Otro Beneficio" OnClick="ReiniciarCanje" />
+                    <a href="/mis-beneficios" class="action-link">
+                        <SecondaryButton Text="Ver Mis Beneficios" />
+                    </a>
+                </div>
+            </div>
+        </Card>
+    }
+</div>
+
+@code {
+    private List<BenefitResponse> beneficiosDisponibles = new();
+    private BenefitResponse? beneficioTemporal;
+    private BenefitResponse? beneficioSeleccionado;
+    private bool isLoading = true;
+    private string? error = null;
+    private bool confirmacionCanje = false;
+    private bool procesandoCanje = false;
+    private bool? canjeExitoso;
+    private string mensajeError = string.Empty;
+    private string mensajeExito = string.Empty;
+    private int consumicionesRestantesUsage = 0;
+    private int cuposRestantesBenefit = 0;
+    private bool esNuevoUsage = false;
+    private DateTime? fechaCanje;
+    private int currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarBeneficios();
+    }
+
+    private async Task CargarBeneficios()
+    {
+        try
+        {
+            isLoading = true;
+            error = null;
+
+            // Obtener userId desde los claims del usuario autenticado
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out currentUserId))
+            {
+                error = "Error al obtener el ID del usuario.";
+                Logger.LogError("NameIdentifier claim not found or invalid");
+                return;
+            }
+
+            Logger.LogInformation("Cargando beneficios canjeables del usuario {UserId}", currentUserId);
+
+            // Cargar beneficios canjeables (con Quantity del Usage)
+            var redeemableBenefits = await BenefitApiService.GetRedeemableBenefitsAsync(currentUserId);
+            
+            // Convertir a BenefitResponse para mantener compatibilidad con el código existente
+            beneficiosDisponibles = redeemableBenefits.Select(rb => new BenefitResponse
+            {
+                Id = rb.BenefitId,
+                TenantId = rb.TenantId,
+                BenefitTypeId = rb.BenefitTypeId,
+                BenefitTypeName = rb.BenefitTypeName,
+                Quantity = rb.Quantity,
+                Quotas = 0, // No mostramos quotas en canjeables
+                StartDate = rb.StartDate,
+                EndDate = rb.EndDate,
+                IsValid = rb.IsValid,
+                CanBeConsumed = rb.CanBeConsumed,
+                IsPermanent = rb.IsPermanent,
+                CreatedAt = rb.CreatedAt,
+                UpdatedAt = rb.UpdatedAt
+            }).ToList();
+
+            Logger.LogInformation("Beneficios canjeables: {Count}", beneficiosDisponibles.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al cargar beneficios canjeables");
+            error = $"Error al cargar los beneficios: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SeleccionarBeneficio(BenefitResponse beneficio)
+    {
+        beneficioTemporal = beneficio;
+    }
+
+    private void ConfirmarSeleccion()
+    {
+        if (beneficioTemporal != null)
+        {
+            beneficioSeleccionado = beneficioTemporal;
+            beneficioTemporal = null;
+        }
+    }
+
+    private void VolverSeleccion()
+    {
+        beneficioSeleccionado = null;
+        confirmacionCanje = false;
+        procesandoCanje = false;
+        canjeExitoso = null;
+    }
+
+    private async Task ProcesarCanje()
+    {
+        if (beneficioSeleccionado == null)
+        {
+            return;
+        }
+
+        procesandoCanje = true;
+        StateHasChanged();
+
+        try
+        {
+            Logger.LogInformation("Iniciando canje de beneficio {BenefitId} para usuario {UserId}",
+                beneficioSeleccionado.Id, currentUserId);
+
+            var request = new RedeemBenefitRequest
+            {
+                BenefitId = beneficioSeleccionado.Id,
+                UserId = currentUserId
+            };
+
+            var response = await BenefitApiService.RedeemBenefitAsync(request);
+
+            // Guardar información del canje exitoso
+            mensajeExito = response.Message;
+            consumicionesRestantesUsage = response.RemainingUsageQuantity;
+            cuposRestantesBenefit = response.RemainingBenefitQuotas;
+            esNuevoUsage = response.IsNewUsage;
+            fechaCanje = response.RedeemedAt;
+
+            canjeExitoso = true;
+            confirmacionCanje = true;
+
+            Logger.LogInformation("Canje exitoso: {Message}", response.Message);
+        }
+        catch (HttpRequestException ex)
+        {
+            Logger.LogError(ex, "Error HTTP al canjear beneficio");
+            canjeExitoso = false;
+            confirmacionCanje = true;
+            mensajeError = ex.Message.Contains("Error al canjear") 
+                ? ex.Message 
+                : "Error de conexión con el servidor. Por favor, intenta nuevamente.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error inesperado al canjear beneficio");
+            canjeExitoso = false;
+            confirmacionCanje = true;
+            mensajeError = "Ocurrió un error inesperado al procesar el canje. Por favor, intenta nuevamente.";
+        }
+        finally
+        {
+            procesandoCanje = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ReiniciarCanje()
+    {
+        beneficioSeleccionado = null;
+        beneficioTemporal = null;
+        confirmacionCanje = false;
+        procesandoCanje = false;
+        canjeExitoso = null;
+        mensajeError = string.Empty;
+        mensajeExito = string.Empty;
+        consumicionesRestantesUsage = 0;
+        cuposRestantesBenefit = 0;
+        esNuevoUsage = false;
+        fechaCanje = null;
+
+        // Recargar los beneficios para reflejar los cambios
+        await CargarBeneficios();
+    }
+}

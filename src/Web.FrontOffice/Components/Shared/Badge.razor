@@ -1,0 +1,10 @@
+@* Componente reutilizable para badges/etiquetas *@
+<span class="badge badge-@Type">@Text</span>
+
+@code {
+    [Parameter]
+    public string Text { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Type { get; set; } = "default"; // default, success, danger, warning, info
+}

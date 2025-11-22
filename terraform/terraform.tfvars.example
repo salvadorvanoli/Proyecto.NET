@@ -80,6 +80,28 @@ jwt_audience = "ProyectoNetClients"
 jwt_lifetime_minutes = 60
 
 # ===================================
+# Configuración de CORS
+# ===================================
+
+# Orígenes permitidos para CORS
+# IMPORTANTE: Puedes dejarlo vacío [] para usar automáticamente el DNS del ALB
+# Esto es útil cuando cada desarrollador despliega en su propia cuenta AWS
+# 
+# Opción 1 - Auto (Recomendado para dev/test): Deja el array vacío
+# cors_allowed_origins = []
+# → Se usará automáticamente: http://tu-alb-dns-generado.us-east-1.elb.amazonaws.com
+#
+# Opción 2 - Dominios personalizados (Para producción):
+# cors_allowed_origins = [
+#   "https://backoffice.tudominio.com",
+#   "https://app.tudominio.com",
+#   "https://www.tudominio.com"
+# ]
+#
+# Nota: Terraform usa formato de array. En docker-compose se usa formato de string separado por comas.
+cors_allowed_origins = []
+
+# ===================================
 # Configuración de Red (opcional)
 # ===================================
 

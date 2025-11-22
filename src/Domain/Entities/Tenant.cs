@@ -19,6 +19,26 @@ public class Tenant
     public string Name { get; protected set; }
 
     /// <summary>
+    /// Primary brand color in hex format (e.g., #007bff).
+    /// </summary>
+    public string PrimaryColor { get; protected set; }
+
+    /// <summary>
+    /// Secondary brand color in hex format (e.g., #6c757d).
+    /// </summary>
+    public string SecondaryColor { get; protected set; }
+
+    /// <summary>
+    /// Accent brand color in hex format (e.g., #ffc107).
+    /// </summary>
+    public string AccentColor { get; protected set; }
+
+    /// <summary>
+    /// Logo file path or URL.
+    /// </summary>
+    public string? Logo { get; protected set; }
+
+    /// <summary>
     /// Timestamp when the tenant was created.
     /// </summary>
     public DateTime CreatedAt { get; protected set; }
@@ -34,6 +54,10 @@ public class Tenant
     protected Tenant()
     {
         Name = string.Empty;
+        PrimaryColor = "#007bff";
+        SecondaryColor = "#6c757d";
+        AccentColor = "#ffc107";
+        Logo = null;
         CreatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
@@ -60,6 +84,32 @@ public class Tenant
         Name = trimmedName;
     }
 
+    public Tenant(string name, string primaryColor, string secondaryColor, string accentColor, string? logo = null) : this(name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.CannotBeNullOrEmpty, "Nombre"),
+                nameof(name));
+
+        var trimmedName = name.Trim();
+
+        if (trimmedName.Length < DomainConstants.StringLengths.NameMinLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MinLengthRequired, "Nombre", DomainConstants.StringLengths.NameMinLength),
+                nameof(name));
+
+        if (trimmedName.Length > DomainConstants.StringLengths.NameMaxLength)
+            throw new ArgumentException(
+                string.Format(DomainConstants.ErrorMessages.MaxLengthExceeded, "Nombre", DomainConstants.StringLengths.NameMaxLength),
+                nameof(name));
+
+        Name = trimmedName;
+        PrimaryColor = primaryColor;
+        SecondaryColor = secondaryColor;
+        AccentColor = accentColor;
+        Logo = logo;
+    }
+
     /// <summary>
     /// Updates the tenant name.
     /// </summary>
@@ -83,6 +133,18 @@ public class Tenant
                 nameof(name));
 
         Name = trimmedName;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Updates the tenant branding colors.
+    /// </summary>
+    public void UpdateBranding(string primaryColor, string secondaryColor, string accentColor, string? logo = null)
+    {
+        PrimaryColor = primaryColor;
+        SecondaryColor = secondaryColor;
+        AccentColor = accentColor;
+        Logo = logo;
         UpdatedAt = DateTime.UtcNow;
     }
 

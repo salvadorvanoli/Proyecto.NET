@@ -1,0 +1,158 @@
+@page "/beneficios-disponibles"
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@using Web.FrontOffice.Components.Shared
+@using Web.FrontOffice.Services
+@using Web.FrontOffice.Services.Interfaces
+@using Microsoft.AspNetCore.Components.Authorization
+@using BenefitResponse = global::Shared.DTOs.Benefits.BenefitResponse
+@inject IBenefitApiService BenefitApiService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager Navigation
+@inject ILogger<AvailableBenefits> Logger
+
+<Microsoft.AspNetCore.Components.Web.PageTitle>Beneficios Disponibles</Microsoft.AspNetCore.Components.Web.PageTitle>
+
+<div class="redeem-container">
+    <PageHeader Title="Beneficios Disponibles" Subtitle="Selecciona el beneficio que deseas reclamar" />
+
+    @if (beneficioSeleccionado == null)
+    {
+        <!-- Selección de beneficio -->
+        <Card Title="Selecciona el Beneficio a Reclamar">
+            @if (isLoading)
+            {
+                <div class="loading">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Cargando beneficios...</span>
+                    </div>
+                    <p class="mt-2">Cargando beneficios...</p>
+                </div>
+            }
+            else if (error != null)
+            {
+                <div class="alert alert-danger">
+                    <p>@error</p>
+                </div>
+            }
+            else if (beneficiosDisponibles.Any())
+            {
+                <div class="benefits-selection-grid">
+                    @foreach (var beneficio in beneficiosDisponibles)
+                    {
+                        <div class="benefit-card @(beneficio.Id == beneficioTemporal?.Id ? "selected" : "")"
+                             @onclick="() => SeleccionarBeneficio(beneficio)">
+                            <div class="benefit-card-content">
+                                <h4 class="benefit-name">@beneficio.BenefitTypeName</h4>
+                                <div class="benefit-info">
+                                    <InfoField Label="Consumiciones Disponibles" Value="@beneficio.Quantity.ToString()" />
+                                    <InfoField Label="Cupos Globales" Value="@beneficio.Quotas.ToString()" />
+                                    @if (!beneficio.IsPermanent)
+                                    {
+                                        <InfoField Label="Vigente Hasta" Value="@beneficio.EndDate" />
+                                    }
+                                    else
+                                    {
+                                        <InfoField Label="Vigencia" Value="Permanente" />
+                                    }
+                                </div>
+                            </div>
+                            @if (beneficio.Id == beneficioTemporal?.Id)
+                            {
+                                <div class="selected-indicator">
+                                    <span>✓</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="form-actions">
+                    <PrimaryButton Text="Continuar" OnClick="IrAReclamar" AdditionalClass="@(beneficioTemporal == null ? "disabled" : "")" />
+                    <a href="/mis-beneficios" class="action-link">
+                        <SecondaryButton Text="Cancelar" />
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="no-benefits">
+                    <p class="no-data">No tienes beneficios disponibles para reclamar en este momento.</p>
+                    <div class="back-action">
+                        <a href="/mis-beneficios" class="action-link">
+                            <PrimaryButton Text="Ver Mis Beneficios" />
+                        </a>
+                    </div>
+                </div>
+            }
+        </Card>
+    }
+</div>
+
+@code {
+    private List<BenefitResponse> beneficiosDisponibles = new();
+    private BenefitResponse? beneficioTemporal;
+    private BenefitResponse? beneficioSeleccionado;
+    private bool isLoading = true;
+    private string? error = null;
+    private int currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarBeneficios();
+    }
+
+    private async Task CargarBeneficios()
+    {
+        try
+        {
+            isLoading = true;
+            error = null;
+
+            // Obtener userId desde los claims del usuario autenticado
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out currentUserId))
+            {
+                error = "Error al obtener el ID del usuario.";
+                Logger.LogError("NameIdentifier claim not found or invalid");
+                return;
+            }
+
+            Logger.LogInformation("Cargando beneficios disponibles para reclamar del usuario {UserId}", currentUserId);
+
+            // Cargar todos los beneficios del usuario
+            var allBenefits = await BenefitApiService.GetUserBenefitsAsync(currentUserId);
+            
+            // Filtrar solo los beneficios que se pueden canjear
+            beneficiosDisponibles = allBenefits
+                .Where(b => b.CanBeConsumed)
+                .ToList();
+
+            Logger.LogInformation("Beneficios disponibles para reclamar: {Count}", beneficiosDisponibles.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al cargar beneficios disponibles");
+            error = $"Error al cargar los beneficios: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SeleccionarBeneficio(BenefitResponse beneficio)
+    {
+        beneficioTemporal = beneficio;
+    }
+
+    private void IrAReclamar()
+    {
+        if (beneficioTemporal != null)
+        {
+            Navigation.NavigateTo($"/reclamar-beneficio?benefitId={beneficioTemporal.Id}");
+        }
+    }
+}

@@ -111,6 +111,21 @@ public class LoginModel : PageModel
                 ExpiresUtc = DateTimeOffset.UtcNow.AddHours(Input.RememberMe ? 24 : 8)
             };
 
+            // Almacenar el token JWT para usarlo en llamadas a la API
+            authProperties.StoreTokens(new[]
+            {
+                new AuthenticationToken
+                {
+                    Name = "access_token",
+                    Value = response.Token
+                },
+                new AuthenticationToken
+                {
+                    Name = "expires_at",
+                    Value = response.ExpiresAtUtc?.ToString("O") ?? DateTime.UtcNow.AddHours(8).ToString("O")
+                }
+            });
+
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 new ClaimsPrincipal(claimsIdentity),

@@ -57,15 +57,6 @@ public class ControlPointConfiguration : IEntityTypeConfiguration<ControlPoint>
 
         builder.HasOne(cp => cp.Tenant).WithMany().HasForeignKey(cp => cp.TenantId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(cp => cp.Space).WithMany(s => s.ControlPoints).HasForeignKey(cp => cp.SpaceId).OnDelete(DeleteBehavior.Cascade);
-        
-        // Many-to-many relationship with AccessRule (unidirectional from ControlPoint)
-        builder.HasMany(cp => cp.AccessRules)
-            .WithMany()
-            .UsingEntity(
-                "AccessRuleControlPoints",
-                l => l.HasOne(typeof(AccessRule)).WithMany().HasForeignKey("AccessRuleId"),
-                r => r.HasOne(typeof(ControlPoint)).WithMany().HasForeignKey("ControlPointId"),
-                j => j.HasKey("ControlPointId", "AccessRuleId"));
 
         builder.HasIndex(cp => cp.TenantId);
         builder.HasIndex(cp => cp.SpaceId);

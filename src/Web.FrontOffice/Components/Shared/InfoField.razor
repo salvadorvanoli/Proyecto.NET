@@ -1,0 +1,13 @@
+@* Componente reutilizable para mostrar campos de información *@
+<div class="info-field">
+    <span class="info-label">@Label:</span>
+    <span class="info-value">@Value</span>
+</div>
+
+@code {
+    [Parameter]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Value { get; set; } = string.Empty;
+}

@@ -210,4 +210,27 @@ public class UsersController : ControllerBase
             return StatusCode(500, new { error = "An error occurred while deleting the user." });
         }
     }
+
+    /// <summary>
+    /// Assigns a credential to a user (creates a new credential if needed).
+    /// </summary>
+    /// <param name="id">The user ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Success status.</returns>
+    [HttpPost("{id}/assign-credential")]
+    [Authorize(Roles = "AdministradorBackoffice")]
+    public async Task<IActionResult> AssignCredential(int id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _userService.AssignCredentialToUserAsync(id, cancellationToken);
+            _logger.LogInformation("Credential assigned to user {UserId}", id);
+            return Ok(new { message = "Credential assigned successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error assigning credential to user {UserId}", id);
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
 }
