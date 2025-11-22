@@ -99,6 +99,25 @@ variable "backoffice_desired_count" {
   default     = 1
 }
 
+# ECS Configuration - FrontOffice
+variable "frontoffice_cpu" {
+  description = "CPU para el contenedor FrontOffice (1024 = 1 vCPU)"
+  type        = string
+  default     = "256"
+}
+
+variable "frontoffice_memory" {
+  description = "Memoria para el contenedor FrontOffice en MB"
+  type        = string
+  default     = "512"
+}
+
+variable "frontoffice_desired_count" {
+  description = "Número deseado de tareas FrontOffice"
+  type        = number
+  default     = 1
+}
+
 # JWT Configuration
 variable "jwt_secret" {
   description = "Secret key para firmar JWT tokens (mínimo 32 caracteres)"
@@ -137,4 +156,3 @@ variable "cors_allow_credentials" {
   type        = bool
   default     = true
 }
-
