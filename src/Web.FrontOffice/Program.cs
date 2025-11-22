@@ -92,8 +92,12 @@ builder.Services.AddScoped<JwtTokenHandler>();
 // Add HttpClient factory for Blazor components
 builder.Services.AddHttpClient();
 
-// Configure API Base URL from configuration
-var apiBaseUrl = builder.Configuration.GetValue<string>("ApiSettings:BaseUrl") ?? "http://localhost:5236/";
+// Configure API Base URL from environment variable (same as BackOffice)
+var apiBaseUrl = builder.Configuration["API_BASE_URL"]
+                 ?? Environment.GetEnvironmentVariable("API_BASE_URL")
+                 ?? builder.Configuration.GetValue<string>("ApiSettings:BaseUrl")
+                 ?? "http://localhost:5236/";
+Console.WriteLine($"Configuring FrontOffice to use API at: {apiBaseUrl}");
 
 // Configure HttpClient for Auth API
 builder.Services.AddHttpClient<IAuthApiService, AuthApiService>(client =>
@@ -174,6 +178,17 @@ if (!app.Environment.IsDevelopment())
 }
 
 // ========================================
+// CONFIGURACIÓN: Path Base para ALB
+// ========================================
+// Cuando el FrontOffice está detrás de un ALB con path /frontoffice, necesitamos configurar el path base
+var pathBase = builder.Configuration["PathBase"] ?? Environment.GetEnvironmentVariable("PATH_BASE");
+if (!string.IsNullOrEmpty(pathBase))
+{
+    app.UsePathBase(pathBase);
+    Console.WriteLine($"FrontOffice configured to use path base: {pathBase}");
+}
+
+// ========================================
 // SEGURIDAD: Security Headers
 // ========================================
 app.Use(async (context, next) =>
@@ -194,7 +209,7 @@ app.Use(async (context, next) =>
     context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
 
     // Content Security Policy - ajustado para Blazor Server
-    context.Response.Headers.Append("Content-Security-Policy", 
+    context.Response.Headers.Append("Content-Security-Policy",
         "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net; connect-src 'self' ws: wss:; frame-ancestors 'self'");
 
     // Referrer Policy

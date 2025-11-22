@@ -311,8 +311,8 @@ jobs:
           aws --version
           rm -rf awscliv2.zip aws/
 
-      - name: Get ALB DNS and produce deploy URL
-        id: get_url
+      - name: Get ALB DNS and produce deploy URLs
+        id: get_urls
         run: |
           set -euo pipefail
           ALB_NAME="proyectonet-alb"
@@ -326,42 +326,80 @@ jobs:
           fi
 
           if [ -n "$dns" ] && [ "$dns" != "None" ]; then
-            url="http://$dns"
             echo "Found ALB DNS: $dns"
-            echo "Deployment URL: $url"
-            echo "deploy_url=$url" >> $GITHUB_OUTPUT
+            backoffice_url="http://$dns"
+            frontoffice_url="http://$dns/frontoffice"
+            api_url="http://$dns/api"
+
+            echo "=================================================="
+            echo "🎉 DEPLOYMENT SUCCESSFUL!"
+            echo "=================================================="
+            echo "📍 BackOffice URL:  $backoffice_url"
+            echo "📍 FrontOffice URL: $frontoffice_url"
+            echo "📍 API URL:         $api_url"
+            echo "=================================================="
+
+            echo "backoffice_url=$backoffice_url" >> $GITHUB_OUTPUT
+            echo "frontoffice_url=$frontoffice_url" >> $GITHUB_OUTPUT
+            echo "api_url=$api_url" >> $GITHUB_OUTPUT
           else
             echo "No ALB DNS found via AWS CLI. Trying terraform state file as fallback..."
             if [ -f terraform/terraform.tfstate ]; then
-              url=$(jq -r '.outputs.backoffice_url.value' terraform/terraform.tfstate 2>/dev/null || true)
-              if [ -n "$url" ] && [ "$url" != "null" ]; then
-                echo "Found URL in terraform.tfstate: $url"
-                echo "deploy_url=$url" >> $GITHUB_OUTPUT
+              backoffice_url=$(jq -r '.outputs.backoffice_url.value' terraform/terraform.tfstate 2>/dev/null || echo "NOT_FOUND")
+              frontoffice_url=$(jq -r '.outputs.frontoffice_url.value' terraform/terraform.tfstate 2>/dev/null || echo "NOT_FOUND")
+              api_url=$(jq -r '.outputs.api_url.value' terraform/terraform.tfstate 2>/dev/null || echo "NOT_FOUND")
+
+              if [ "$backoffice_url" != "NOT_FOUND" ] && [ "$backoffice_url" != "null" ]; then
+                echo "=================================================="
+                echo "🎉 DEPLOYMENT SUCCESSFUL!"
+                echo "=================================================="
+                echo "📍 BackOffice URL:  $backoffice_url"
+                echo "📍 FrontOffice URL: $frontoffice_url"
+                echo "📍 API URL:         $api_url"
+                echo "=================================================="
+
+                echo "backoffice_url=$backoffice_url" >> $GITHUB_OUTPUT
+                echo "frontoffice_url=$frontoffice_url" >> $GITHUB_OUTPUT
+                echo "api_url=$api_url" >> $GITHUB_OUTPUT
               else
-                echo "No backoffice_url in terraform.tfstate"
-                echo "deploy_url=NOT_FOUND" >> $GITHUB_OUTPUT
+                echo "No URLs found in terraform.tfstate"
+                echo "backoffice_url=NOT_FOUND" >> $GITHUB_OUTPUT
+                echo "frontoffice_url=NOT_FOUND" >> $GITHUB_OUTPUT
+                echo "api_url=NOT_FOUND" >> $GITHUB_OUTPUT
               fi
             else
               echo "terraform.tfstate not present in repository"
-              echo "deploy_url=NOT_FOUND" >> $GITHUB_OUTPUT
+              echo "backoffice_url=NOT_FOUND" >> $GITHUB_OUTPUT
+              echo "frontoffice_url=NOT_FOUND" >> $GITHUB_OUTPUT
+              echo "api_url=NOT_FOUND" >> $GITHUB_OUTPUT
             fi
           fi
 
-      - name: Show final URL
+      - name: Show final URLs
         run: |
-          echo "Final deploy URL: ${{ steps.get_url.outputs.deploy_url }}"
+          echo "=================================================="
+          echo "📋 DEPLOYMENT SUMMARY"
+          echo "=================================================="
+          echo "BackOffice URL:  ${{ steps.get_urls.outputs.backoffice_url }}"
+          echo "FrontOffice URL: ${{ steps.get_urls.outputs.frontoffice_url }}"
+          echo "API URL:         ${{ steps.get_urls.outputs.api_url }}"
+          echo "=================================================="
 
-      - name: Write deploy URL to file
+      - name: Write deploy URLs to file
         if: always()
         run: |
-          echo "${{ steps.get_url.outputs.deploy_url }}" > deploy-url.txt
+          echo "BackOffice URL: ${{ steps.get_urls.outputs.backoffice_url }}" > deploy-urls.txt
+          echo "FrontOffice URL: ${{ steps.get_urls.outputs.frontoffice_url }}" >> deploy-urls.txt
+          echo "API URL: ${{ steps.get_urls.outputs.api_url }}" >> deploy-urls.txt
 
-      - name: Upload deploy URL artifact
+      - name: Upload deploy URLs artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: deploy-url
-          path: deploy-url.txt
+          name: deploy-urls
+          path: deploy-urls.txt
 
     outputs:
-      deploy_url: ${{ steps.get_url.outputs.deploy_url }}
+      backoffice_url: ${{ steps.get_urls.outputs.backoffice_url }}
+      frontoffice_url: ${{ steps.get_urls.outputs.frontoffice_url }}
+      api_url: ${{ steps.get_urls.outputs.api_url }}
