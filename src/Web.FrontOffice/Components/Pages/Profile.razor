@@ -28,7 +28,7 @@
                 @if (errorMessage.Contains("iniciar sesión"))
                 {
                     <hr />
-                    <a href="/login" class="btn btn-primary">Iniciar Sesión</a>
+                    <a href="Auth/Login" class="btn btn-primary">Iniciar Sesión</a>
                 }
             }
             else
@@ -75,7 +75,7 @@
                                    @bind="editModel.DateOfBirth"
                                    @bind:format="yyyy-MM-dd" />
                         </div>
-                        
+
                         @if (!string.IsNullOrEmpty(errorMessage))
                         {
                             <div class="alert alert-danger mt-3">@errorMessage</div>
@@ -84,7 +84,7 @@
                         {
                             <div class="alert alert-success mt-3">@successMessage</div>
                         }
-                        
+
                         <div class="form-actions">
                             <button class="primary-button" @onclick="GuardarCambios" type="button" disabled="@isSaving">
                                 @if (isSaving)
@@ -134,14 +134,14 @@
     private bool isLoading = true;
     private bool modoEdicion = false;
     private bool isSaving = false;
-    
+
     // Mensajes
     private string errorMessage = string.Empty;
     private string successMessage = string.Empty;
 
     // Datos del usuario desde el backend
     private UserResponse? usuario;
-    
+
     // Modelo de edición
     private UpdateUserRequest editModel = new();
 
@@ -160,7 +160,7 @@
             // Obtener userId desde los claims del usuario autenticado
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
-            
+
             var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
             if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
             {
@@ -213,7 +213,7 @@
         modoEdicion = true;
         errorMessage = string.Empty;
         successMessage = string.Empty;
-        
+
         // Reinicializar modelo de edición
         editModel = new UpdateUserRequest
         {
@@ -239,7 +239,7 @@
 
             // Actualizar datos locales con la respuesta del backend
             usuario = usuarioActualizado;
-            
+
             successMessage = "Perfil actualizado correctamente.";
             modoEdicion = false;
 
@@ -248,7 +248,7 @@
         catch (HttpRequestException ex)
         {
             Logger.LogError(ex, "Error HTTP al actualizar usuario: {StatusCode}", ex.StatusCode);
-            
+
             if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
                 errorMessage = "Sesión expirada. Por favor, inicia sesión nuevamente.";
@@ -280,7 +280,7 @@
         modoEdicion = false;
         errorMessage = string.Empty;
         successMessage = string.Empty;
-        
+
         // Restaurar datos originales (ya están en 'usuario')
     }
 }
