@@ -6,6 +6,8 @@
 @using Web.FrontOffice.Services.Interfaces
 @using Microsoft.AspNetCore.Components.Authorization
 @using BenefitResponse = global::Shared.DTOs.Benefits.BenefitResponse
+@using BenefitWithHistoryResponse = global::Shared.DTOs.Benefits.BenefitWithHistoryResponse
+@using ConsumptionHistoryResponse = global::Shared.DTOs.Benefits.ConsumptionHistoryResponse
 @inject IBenefitApiService BenefitApiService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager Navigation
@@ -14,28 +16,7 @@
 <Microsoft.AspNetCore.Components.Web.PageTitle>Mis Beneficios</Microsoft.AspNetCore.Components.Web.PageTitle>
 
 <div class="benefits-container">
-    <PageHeader Title="Mis Beneficios" Subtitle="Beneficios disponibles y consumidos" />
-
-    <!-- Barra de búsqueda -->
-    <div class="search-container mb-3">
-        <div class="input-group">
-            <input type="text" 
-                   class="form-control" 
-                   placeholder="Buscar beneficios..." 
-                   @bind="searchTerm" 
-                   @bind:event="oninput"
-                   @onkeyup="OnSearchKeyUp" />
-            <button class="btn btn-primary" @onclick="BuscarBeneficios">
-                <span class="oi oi-magnifying-glass"></span> Buscar
-            </button>
-            @if (!string.IsNullOrWhiteSpace(searchTerm))
-            {
-                <button class="btn btn-secondary" @onclick="LimpiarBusqueda">
-                    <span class="oi oi-x"></span>
-                </button>
-            }
-        </div>
-    </div>
+    <PageHeader Title="Mis Beneficios" Subtitle="Beneficios reclamados" />
 
     @if (isLoading)
     {
@@ -60,30 +41,18 @@
     else if (!benefits.Any())
     {
         <div class="no-data alert alert-info">
-            @if (!string.IsNullOrWhiteSpace(searchTerm))
-            {
-                <p>No se encontraron beneficios que coincidan con "<strong>@searchTerm</strong>".</p>
-            }
-            else
-            {
-                <p>No hay beneficios disponibles en este momento.</p>
-            }
+            <p>No tienes beneficios reclamados en este momento.</p>
         </div>
     }
     else
     {
         <!-- Info de resultados -->
         <div class="results-info mb-3">
-            <p>Mostrando @benefits.Count de @totalCount beneficios
-                @if (!string.IsNullOrWhiteSpace(searchTerm))
-                {
-                    <span> - Búsqueda: "<strong>@searchTerm</strong>"</span>
-                }
-            </p>
+            <p>Mostrando @beneficiosPaginados.Count() de @benefits.Count beneficios</p>
         </div>
 
         <div class="benefits-grid">
-            @foreach (var benefit in benefits)
+            @foreach (var benefit in beneficiosPaginados)
             {
                 <Card Title="@benefit.BenefitTypeName">
                     <div class="benefit-content">
@@ -99,7 +68,6 @@
                                 <InfoField Label="Vigencia" Value="Permanente" />
                             }
                             <InfoField Label="Consumiciones Disponibles" Value="@benefit.Quantity.ToString()" />
-                            <InfoField Label="Cupos Globales" Value="@benefit.Quotas.ToString()" />
                         </div>
 
                         <div class="benefit-status">
@@ -111,18 +79,28 @@
                             {
                                 <span class="badge badge-warning">Expirado</span>
                             }
-                            else if (!benefit.HasAvailableQuotas)
-                            {
-                                <span class="badge badge-danger">Sin Cupos</span>
-                            }
                         </div>
+
+                        @if (benefit.Consumptions.Any())
+                        {
+                            <div class="consumptions">
+                                <h4>Historial de Canjes</h4>
+                                @foreach (var consumption in benefit.Consumptions)
+                                {
+                                    <div class="consumption-item">
+                                        <span>Cantidad: @consumption.Amount</span>
+                                        <span>@consumption.ConsumptionDateTime.ToString("dd/MM/yyyy HH:mm")</span>
+                                    </div>
+                                }
+                            </div>
+                        }
                     </div>
                 </Card>
             }
         </div>
 
         <!-- Controles de paginación -->
-        @if (totalCount > pageSize)
+        @if (benefits.Count > pageSize)
         {
             <div class="pagination-controls mt-4">
                 <nav aria-label="Paginación de beneficios">
@@ -173,18 +151,17 @@
 </div>
 
 @code {
-    private List<BenefitResponse> benefits = new();
+    private List<BenefitWithHistoryResponse> benefits = new();
     private bool isLoading = true;
     private string? error = null;
+    private int currentUserId;
     
     // Paginación
     private int currentPage = 1;
     private int pageSize = 10;
-    private int totalCount = 0;
-    private int totalPages => (int)Math.Ceiling((double)totalCount / pageSize);
-    
-    // Búsqueda
-    private string searchTerm = string.Empty;
+    private int totalPages => (int)Math.Ceiling((double)benefits.Count / pageSize);
+    private IEnumerable<BenefitWithHistoryResponse> beneficiosPaginados => 
+        benefits.Skip((currentPage - 1) * pageSize).Take(pageSize);
 
     protected override async Task OnInitializedAsync()
     {
@@ -203,34 +180,23 @@
             var user = authState.User;
             
             var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out currentUserId))
             {
                 error = "Error al obtener el ID del usuario.";
                 Logger.LogError("NameIdentifier claim not found or invalid");
                 return;
             }
 
-            Logger.LogInformation("Cargando beneficios del usuario {UserId}, página {Page}, búsqueda: '{Search}'", 
-                userId, currentPage, searchTerm);
+            Logger.LogInformation("Cargando beneficios reclamados del usuario {UserId}", currentUserId);
 
-            // Calcular skip
-            var skip = (currentPage - 1) * pageSize;
+            // Cargar beneficios con historial
+            benefits = await BenefitApiService.GetBenefitsWithHistoryAsync(currentUserId);
 
-            // Cargar beneficios paginados
-            var result = await BenefitApiService.GetUserBenefitsPagedAsync(
-                userId, 
-                skip, 
-                pageSize, 
-                string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm);
-
-            benefits = result.Benefits;
-            totalCount = result.TotalCount;
-
-            Logger.LogInformation("Beneficios cargados: {Count} de {Total}", benefits.Count, totalCount);
+            Logger.LogInformation("Beneficios reclamados cargados: {Count}", benefits.Count);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error al cargar beneficios");
+            Logger.LogError(ex, "Error al cargar beneficios reclamados");
             error = $"Error al cargar los beneficios: {ex.Message}";
         }
         finally
@@ -239,38 +205,9 @@
         }
     }
 
-    private async Task BuscarBeneficios()
-    {
-        currentPage = 1; // Reset a primera página al buscar
-        await CargarBeneficios();
-    }
-
-    private async Task LimpiarBusqueda()
-    {
-        searchTerm = string.Empty;
-        currentPage = 1;
-        await CargarBeneficios();
-    }
-
-    private async Task OnSearchKeyUp(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter")
-        {
-            await BuscarBeneficios();
-        }
-    }
-
-    private async Task IrAPagina(int page)
-    {
-        if (page < 1 || page > totalPages || page == currentPage)
-            return;
-
-        currentPage = page;
-        await CargarBeneficios();
-    }
-
-    private Task PaginaAnterior() => IrAPagina(currentPage - 1);
-    private Task PaginaSiguiente() => IrAPagina(currentPage + 1);
-    private Task PrimeraPagina() => IrAPagina(1);
-    private Task UltimaPagina() => IrAPagina(totalPages);
+    private void PrimeraPagina() => currentPage = 1;
+    private void UltimaPagina() => currentPage = totalPages;
+    private void PaginaAnterior() { if (currentPage > 1) currentPage--; }
+    private void PaginaSiguiente() { if (currentPage < totalPages) currentPage++; }
+    private void IrAPagina(int page) => currentPage = page;
 }

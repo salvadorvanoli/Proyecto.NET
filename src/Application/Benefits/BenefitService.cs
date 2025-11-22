@@ -156,6 +156,51 @@ public class BenefitService : IBenefitService
     }
 
     /// <summary>
+    /// Gets redeemable benefits with consumption history for a user.
+    /// </summary>
+    public async Task<List<BenefitWithHistoryResponse>> GetBenefitsWithHistoryAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        var tenantId = _tenantProvider.GetCurrentTenantId();
+
+        var usages = await _context.Usages
+            .Include(u => u.Benefit)
+                .ThenInclude(b => b.BenefitType)
+            .Include(u => u.Consumptions)
+            .Where(u => u.UserId == userId && u.Benefit.TenantId == tenantId && u.Benefit.Active)
+            .OrderByDescending(u => u.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return usages
+            .Select(u => new BenefitWithHistoryResponse
+            {
+                BenefitId = u.BenefitId,
+                UsageId = u.Id,
+                TenantId = u.TenantId,
+                BenefitTypeId = u.Benefit.BenefitTypeId,
+                BenefitTypeName = u.Benefit.BenefitType.Name,
+                Quantity = u.Quantity,
+                StartDate = u.Benefit.ValidityPeriod?.StartDate.ToString("yyyy-MM-dd"),
+                EndDate = u.Benefit.ValidityPeriod?.EndDate.ToString("yyyy-MM-dd"),
+                IsValid = u.Benefit.IsValid,
+                CanBeConsumed = u.HasAvailableQuantity && u.Benefit.IsValid,
+                IsPermanent = u.Benefit.ValidityPeriod == null,
+                CreatedAt = u.CreatedAt,
+                UpdatedAt = u.UpdatedAt,
+                Consumptions = u.Consumptions
+                    .OrderByDescending(c => c.ConsumptionDateTime)
+                    .Select(c => new ConsumptionHistoryResponse
+                    {
+                        Id = c.Id,
+                        Amount = c.Amount,
+                        ConsumptionDateTime = c.ConsumptionDateTime,
+                        CreatedAt = c.CreatedAt
+                    })
+                    .ToList()
+            })
+            .ToList();
+    }
+
+    /// <summary>
     /// Creates a new benefit.
     /// </summary>
     public async Task<BenefitResponse> CreateBenefitAsync(BenefitRequest request, CancellationToken cancellationToken = default)

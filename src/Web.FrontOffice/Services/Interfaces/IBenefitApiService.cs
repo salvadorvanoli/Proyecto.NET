@@ -64,6 +64,13 @@ public interface IBenefitApiService
     Task<BenefitDto?> GetBenefitByIdAsync(int benefitId);
 
     /// <summary>
+    /// Gets benefits with consumption history for a user.
+    /// </summary>
+    /// <param name="userId">The ID of the user.</param>
+    /// <returns>A list of benefits with consumption history.</returns>
+    Task<List<BenefitWithHistoryResponse>> GetBenefitsWithHistoryAsync(int userId);
+
+    /// <summary>
     /// Redeems a benefit for a user.
     /// </summary>
     /// <param name="request">The redeem benefit request.</param>
