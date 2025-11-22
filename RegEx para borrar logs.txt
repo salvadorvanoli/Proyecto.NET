@@ -1,0 +1,37 @@
+1. Logs de Debug innecesarios:
+System\.Diagnostics\.Debug\.WriteLine\([^)]*\);?
+
+2. Logs con emojis de debugging:
+(System\.Diagnostics\.Debug\.WriteLine|_logger\.Log(Information|Debug|Trace))\s*\(\s*[^)]*[📬📢💾🗑️✅❌🔔📥📤📊🔍💡⚠️🎨🔧][^)]*\);?
+
+3. Comentarios de línea con TODO/FIXME/HACK:
+//\s*(TODO|FIXME|HACK|NOTE|XXX):.*$
+
+4. Comentarios de debugging temporales:
+//\s*(Debug|Test|Testing|Temporal|Remove|Delete|Para pruebas).*$
+
+5. Comentarios excesivos (3+ líneas seguidas):
+(^\s*//.*$\n){3,}
+
+6. Bloques de comentarios vacíos:
+/\*\*?\s*\*/
+
+7. Console.WriteLine (no debería estar en producción):
+Console\.WriteLine\([^)]*\);?
+
+Qué logs/comentarios MANTENER:
+
+✅ MANTENER:
+
+_logger.LogError - Errores críticos
+_logger.LogWarning - Advertencias importantes
+_logger.LogInformation en operaciones críticas (login, acceso, sync)
+Comentarios XML para documentación (/// <summary>)
+Comentarios que explican lógica compleja de negocio
+
+❌ ELIMINAR:
+
+Debug.WriteLine con emojis de prueba
+Logs temporales de debugging ("🔔 MENSAJE RECIBIDO", "📬 ENVIANDO")
+Comentarios tipo "// Esto funciona", "// Para pruebas"
+Console.WriteLine en cualquier lugar
