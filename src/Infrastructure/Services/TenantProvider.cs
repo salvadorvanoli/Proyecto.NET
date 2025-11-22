@@ -65,4 +65,9 @@ public class TenantProvider : ITenantProvider
     {
         _currentTenantId = tenantId;
     }
+
+    public bool IsHttpContextAvailable()
+    {
+        return _httpContextAccessor.HttpContext != null;
+    }
 }

@@ -74,15 +74,17 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
 
     /// <summary>
     /// Sets up global query filter for tenant isolation.
-    /// IMPORTANT: This filter checks if tenant context is available before applying.
-    /// During migrations and seeds, no tenant context exists, so the filter is not applied.
+    /// IMPORTANT: This filter checks if HTTP context is available before applying tenant filter.
+    /// During migrations, seeds, or background jobs, the filter returns all records.
     /// </summary>
     private void SetTenantQueryFilter<T>(ModelBuilder modelBuilder) where T : BaseEntity
     {
-        // Apply filter that checks tenant context availability at query time
+        // Apply filter that checks HTTP context availability at query time
         // This prevents crashes during migrations and seeds when HttpContext is not available
+        // but ITenantProvider is still injected by DI
         modelBuilder.Entity<T>().HasQueryFilter(e => 
             _tenantProvider == null || 
+            !_tenantProvider.IsHttpContextAvailable() ||
             e.TenantId == _tenantProvider.GetCurrentTenantId());
     }
 
