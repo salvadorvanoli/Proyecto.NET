@@ -57,10 +57,14 @@ try
         hostOptions.ShutdownTimeout = TimeSpan.FromSeconds(30);
     });
 
-    builder.Services.AddControllers();
+    builder.Services.AddControllers(options =>
+    {
+        // Aplicar TenantAuthorizationFilter globalmente a todos los endpoints autenticados
+        options.Filters.Add<TenantAuthorizationFilter>();
+    });
     builder.Services.AddSignalR();
-
-    // Registrar TenantAuthorizationFilter como servicio para uso con atributos
+    
+    // Registrar TenantAuthorizationFilter como servicio
     builder.Services.AddScoped<TenantAuthorizationFilter>();
 
     // ========================================
