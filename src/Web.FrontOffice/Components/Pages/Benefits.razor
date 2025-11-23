@@ -16,7 +16,7 @@
 <Microsoft.AspNetCore.Components.Web.PageTitle>Mis Beneficios</Microsoft.AspNetCore.Components.Web.PageTitle>
 
 <div class="benefits-container">
-    <PageHeader Title="Mis Beneficios" Subtitle="Beneficios reclamados" />
+    <PageHeader Title="Mis Beneficios" Subtitle="Beneficios disponibles para canjear" />
 
     @if (isLoading)
     {
@@ -41,7 +41,7 @@
     else if (!benefits.Any())
     {
         <div class="no-data alert alert-info">
-            <p>No tienes beneficios reclamados en este momento.</p>
+            <p>No tienes beneficios disponibles en este momento.</p>
         </div>
     }
     else
@@ -190,9 +190,12 @@
             Logger.LogInformation("Cargando beneficios reclamados del usuario {UserId}", currentUserId);
 
             // Cargar beneficios con historial
-            benefits = await BenefitApiService.GetBenefitsWithHistoryAsync(currentUserId);
+            var allBenefits = await BenefitApiService.GetBenefitsWithHistoryAsync(currentUserId);
+            
+            // Filtrar solo beneficios disponibles (con consumiciones disponibles)
+            benefits = allBenefits.Where(b => b.CanBeConsumed && b.Quantity > 0).ToList();
 
-            Logger.LogInformation("Beneficios reclamados cargados: {Count}", benefits.Count);
+            Logger.LogInformation("Beneficios disponibles cargados: {Count}", benefits.Count);
         }
         catch (Exception ex)
         {
