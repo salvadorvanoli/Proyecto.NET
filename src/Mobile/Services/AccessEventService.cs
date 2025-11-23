@@ -162,16 +162,24 @@ public class AccessEventService : IAccessEventService
         var localEvents = await _localDatabase.GetAccessEventsAsync(currentUser.UserId, skip, take);
         System.Diagnostics.Debug.WriteLine($"[AccessEventService] Found {localEvents.Count} events in local database");
         
-        return localEvents.Select(e => new AccessEventDto
+        return localEvents.Select(e => 
         {
-            Id = e.Id,
-            UserId = e.UserId,
-            ControlPointId = e.ControlPointId,
-            ControlPointName = e.ControlPointName,
-            SpaceName = e.SpaceName,
-            Timestamp = e.Timestamp,
-            WasGranted = e.WasGranted,
-            DenialReason = e.DenialReason
+            // SQLite no preserva DateTimeKind, así que forzamos UTC
+            var utcTimestamp = e.Timestamp.Kind == DateTimeKind.Utc
+                ? e.Timestamp
+                : DateTime.SpecifyKind(e.Timestamp, DateTimeKind.Utc);
+            
+            return new AccessEventDto
+            {
+                Id = e.Id,
+                UserId = e.UserId,
+                ControlPointId = e.ControlPointId,
+                ControlPointName = e.ControlPointName,
+                SpaceName = e.SpaceName,
+                Timestamp = utcTimestamp,
+                WasGranted = e.WasGranted,
+                DenialReason = e.DenialReason
+            };
         }).ToList();
     }
 

@@ -432,12 +432,16 @@ public class AccessNfcViewModel : BaseViewModel
                         if (validationResult.IsGranted)
                         {
                             _logger.LogInformation("📱 Sending ACCESS GRANTED notification to credential device...");
-                            responseSent = await _nfcService.SendAccessGrantedAsync("✅ Acceso concedido");
+                            // Formato: "MENSAJE|CONTROL_POINT_NAME|SPACE_NAME"
+                            string message = $"✅ Acceso concedido|{validationResult.ControlPointName}|{validationResult.SpaceName}";
+                            responseSent = await _nfcService.SendAccessGrantedAsync(message);
                         }
                         else
                         {
                             _logger.LogInformation("📱 Sending ACCESS DENIED notification to credential device...");
-                            responseSent = await _nfcService.SendAccessDeniedAsync(validationResult.Reason);
+                            // Formato: "MENSAJE|CONTROL_POINT_NAME|SPACE_NAME"
+                            string message = $"{validationResult.Reason}|{validationResult.ControlPointName}|{validationResult.SpaceName}";
+                            responseSent = await _nfcService.SendAccessDeniedAsync(message);
                         }
                         
                         if (responseSent)

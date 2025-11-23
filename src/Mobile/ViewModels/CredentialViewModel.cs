@@ -213,7 +213,7 @@ public class CredentialViewModel : BaseViewModel
                     UserId = UserId ?? 0,
                     ControlPointId = response.ControlPointId ?? 0,
                     ControlPointName = response.ControlPointName ?? "Punto de Control",
-                    SpaceName = "", // Se actualizar\u00e1 cuando se sincronice con el servidor
+                    SpaceName = response.SpaceName ?? "",
                     Timestamp = DateTime.UtcNow,
                     WasGranted = response.AccessGranted,
                     DenialReason = response.AccessGranted ? null : response.Message
