@@ -73,6 +73,22 @@ output "jwt_configuration" {
   sensitive = false
 }
 
+output "redis_endpoint" {
+  description = "Endpoint de ElastiCache Redis"
+  value       = var.redis_enabled ? aws_elasticache_cluster.redis[0].cache_nodes[0].address : "Redis deshabilitado"
+}
+
+output "redis_configuration" {
+  description = "Configuración de Redis/ElastiCache"
+  value = {
+    enabled              = var.redis_enabled
+    endpoint             = var.redis_enabled ? "${aws_elasticache_cluster.redis[0].cache_nodes[0].address}:6379" : "N/A"
+    node_type            = var.redis_node_type
+    default_ttl_minutes  = var.redis_default_ttl_minutes
+    note                 = var.redis_enabled ? "ElastiCache habilitado y configurado" : "ElastiCache deshabilitado - usando memoria local"
+  }
+}
+
 output "security_notes" {
   description = "Notas importantes de seguridad"
   value = <<-EOT
@@ -80,13 +96,14 @@ output "security_notes" {
 
     1. JWT Secret: Configurado vía variable sensible (no visible en outputs)
     2. DB Password: Configurado vía variable sensible (no visible en outputs)
-    3. HTTPS: Actualmente usando HTTP. Para producción:
+    3. Redis: ${var.redis_enabled ? "ElastiCache habilitado" : "Deshabilitado (usando memoria local)"}
+    4. HTTPS: Actualmente usando HTTP. Para producción:
        - Solicita certificado SSL/TLS en AWS Certificate Manager
        - Configura listener HTTPS en puerto 443
        - Habilita redirección HTTP → HTTPS
-    4. CORS: Configurado para: ${length(var.cors_allowed_origins) > 0 ? join(", ", var.cors_allowed_origins) : "ALB DNS (auto)"}
-    5. Rate Limiting: Configurado en la aplicación (5 login/min, 200 req/min)
-    6. Security Headers: Configurados en la aplicación (HSTS, CSP, etc.)
+    5. CORS: Configurado para: ${length(var.cors_allowed_origins) > 0 ? join(", ", var.cors_allowed_origins) : "ALB DNS (auto)"}
+    6. Rate Limiting: Configurado en la aplicación (5 login/min, 200 req/min)
+    7. Security Headers: Configurados en la aplicación (HSTS, CSP, etc.)
 
     Para conectar BackOffice/FrontOffice a la API, usa:
        API URL: http://${aws_lb.main.dns_name}

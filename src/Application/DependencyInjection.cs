@@ -33,11 +33,29 @@ public static class DependencyInjection
         services.AddScoped<ISpaceTypeService, SpaceTypeService>();
         services.AddScoped<ISpaceService, SpaceService>();
         services.AddScoped<IControlPointService, ControlPointService>();
-        services.AddScoped<IAccessRuleService, AccessRuleService>();
         services.AddScoped<IAccessValidationService, AccessValidationService>();
         services.AddScoped<IBenefitTypeService, BenefitTypeService>();
-        services.AddScoped<IBenefitService, BenefitService>();
         services.AddScoped<INotificationService, NotificationService>();
+
+        // Register services with caching decorators
+        // The decorator pattern allows us to add caching behavior without modifying the original services
+        services.AddScoped<BenefitService>(); // Register the concrete implementation
+        services.AddScoped<IBenefitService>(provider =>
+        {
+            var innerService = provider.GetRequiredService<BenefitService>();
+            var cacheService = provider.GetRequiredService<ICacheService>();
+            var tenantProvider = provider.GetRequiredService<ITenantProvider>();
+            return new CachedBenefitService(innerService, cacheService, tenantProvider);
+        });
+
+        services.AddScoped<AccessRuleService>(); // Register the concrete implementation
+        services.AddScoped<IAccessRuleService>(provider =>
+        {
+            var innerService = provider.GetRequiredService<AccessRuleService>();
+            var cacheService = provider.GetRequiredService<ICacheService>();
+            var tenantProvider = provider.GetRequiredService<ITenantProvider>();
+            return new CachedAccessRuleService(innerService, cacheService, tenantProvider);
+        });
 
         return services;
     }

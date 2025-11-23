@@ -102,6 +102,28 @@ jwt_lifetime_minutes = 60
 cors_allowed_origins = []
 
 # ===================================
+# Configuración de Redis/ElastiCache
+# ===================================
+
+# Habilitar ElastiCache Redis para caching distribuido
+# NOTA: ElastiCache tiene costo adicional en AWS
+# Para Learner Lab con presupuesto limitado, puedes dejar en false
+# La aplicación usará memoria local en su lugar (menos eficiente pero sin costo)
+redis_enabled = true
+
+# Tipo de nodo de ElastiCache
+# Opciones comunes para Learner Lab:
+# - cache.t3.micro (0.5 GB RAM) - Más económico
+# - cache.t3.small (1.37 GB RAM) - Recomendado
+# - cache.t3.medium (3.09 GB RAM) - Mayor capacidad
+redis_node_type = "cache.t3.micro"
+
+# TTL por defecto para items en cache (en minutos)
+# Beneficios activos: 30 min
+# Reglas de acceso: 60 min  
+redis_default_ttl_minutes = 30
+
+# ===================================
 # Configuración de Red (opcional)
 # ===================================
 

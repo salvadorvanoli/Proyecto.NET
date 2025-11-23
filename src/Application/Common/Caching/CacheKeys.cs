@@ -1,15 +1,9 @@
-// NOTE: This file is deprecated. Use Application.Common.Caching.CacheKeys instead.
-// Kept for backward compatibility only.
-
-using Application.Common.Caching;
-
-namespace Infrastructure.Services.Caching;
+namespace Application.Common.Caching;
 
 /// <summary>
 /// Constants for cache keys and patterns.
-/// DEPRECATED: Use Application.Common.Caching.CacheKeys instead.
+/// Centralized cache key generation to ensure consistency across the application.
 /// </summary>
-[Obsolete("Use Application.Common.Caching.CacheKeys instead")]
 public static class CacheKeys
 {
     // TTL configurations (in minutes)

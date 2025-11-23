@@ -156,3 +156,22 @@ variable "cors_allow_credentials" {
   type        = bool
   default     = true
 }
+
+# Redis/ElastiCache Configuration
+variable "redis_node_type" {
+  description = "Tipo de nodo para ElastiCache Redis"
+  type        = string
+  default     = "cache.t3.micro"
+}
+
+variable "redis_enabled" {
+  description = "Habilitar Redis cache"
+  type        = bool
+  default     = true
+}
+
+variable "redis_default_ttl_minutes" {
+  description = "TTL por defecto para items en cache (en minutos)"
+  type        = number
+  default     = 30
+}
