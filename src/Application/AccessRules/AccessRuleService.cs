@@ -14,13 +14,11 @@ public class AccessRuleService : IAccessRuleService
 {
     private readonly IApplicationDbContext _context;
     private readonly ITenantProvider _tenantProvider;
-    private readonly DbContext _dbContext;
 
     public AccessRuleService(IApplicationDbContext context, ITenantProvider tenantProvider)
     {
         _context = context;
         _tenantProvider = tenantProvider;
-        _dbContext = (DbContext)context; // Cast to access Entry() for shadow properties
     }
 
     public async Task<AccessRuleResponse?> GetAccessRuleByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -268,69 +266,27 @@ public class AccessRuleService : IAccessRuleService
     {
         var now = DateTime.Now;
         
-        // Read shadow properties for TimeRange
-        var timeRangeStartTime = _dbContext.Entry(accessRule).Property<TimeOnly?>("TimeRangeStartTime").CurrentValue;
-        var timeRangeEndTime = _dbContext.Entry(accessRule).Property<TimeOnly?>("TimeRangeEndTime").CurrentValue;
-        
-        // Read shadow properties for ValidityPeriod
-        var validityStartDate = _dbContext.Entry(accessRule).Property<DateOnly?>("ValidityStartDate").CurrentValue;
-        var validityEndDate = _dbContext.Entry(accessRule).Property<DateOnly?>("ValidityEndDate").CurrentValue;
+        // Hydrate properties from shadow properties
+        _context.HydrateAccessRuleProperties(accessRule);
         
         return new AccessRuleResponse
         {
             Id = accessRule.Id,
             TenantId = accessRule.TenantId,
-            StartTime = timeRangeStartTime?.ToString("HH:mm"),
-            EndTime = timeRangeEndTime?.ToString("HH:mm"),
-            StartDate = validityStartDate?.ToDateTime(TimeOnly.MinValue),
-            EndDate = validityEndDate?.ToDateTime(TimeOnly.MinValue),
+            StartTime = accessRule.TimeRange?.StartTime.ToString("HH:mm"),
+            EndTime = accessRule.TimeRange?.EndTime.ToString("HH:mm"),
+            StartDate = accessRule.ValidityPeriod?.StartDate.ToDateTime(TimeOnly.MinValue),
+            EndDate = accessRule.ValidityPeriod?.EndDate.ToDateTime(TimeOnly.MinValue),
             RoleIds = accessRule.Roles.Select(r => r.Id).ToList(),
             RoleNames = accessRule.Roles.Select(r => r.Name).ToList(),
             ControlPointIds = controlPoints.Select(cp => cp.Id).ToList(),
             ControlPointNames = controlPoints.Select(cp => cp.Name).ToList(),
             CreatedAt = accessRule.CreatedAt,
             UpdatedAt = accessRule.UpdatedAt,
-            IsActive = IsRuleActiveAt(accessRule, now),
-            Is24x7 = !timeRangeStartTime.HasValue && !timeRangeEndTime.HasValue,
-            IsPermanent = !validityStartDate.HasValue && !validityEndDate.HasValue
+            IsActive = accessRule.IsActiveAt(now),
+            Is24x7 = !accessRule.TimeRange.HasValue,
+            IsPermanent = !accessRule.ValidityPeriod.HasValue
         };
-    }
-
-    private bool IsRuleActiveAt(AccessRule accessRule, DateTime dateTime)
-    {
-        // Read shadow properties
-        var timeRangeStartTime = _dbContext.Entry(accessRule).Property<TimeOnly?>("TimeRangeStartTime").CurrentValue;
-        var timeRangeEndTime = _dbContext.Entry(accessRule).Property<TimeOnly?>("TimeRangeEndTime").CurrentValue;
-        var validityStartDate = _dbContext.Entry(accessRule).Property<DateOnly?>("ValidityStartDate").CurrentValue;
-        var validityEndDate = _dbContext.Entry(accessRule).Property<DateOnly?>("ValidityEndDate").CurrentValue;
-
-        // Check date validity
-        if (validityStartDate.HasValue && validityEndDate.HasValue)
-        {
-            var dateOnly = DateOnly.FromDateTime(dateTime);
-            if (dateOnly < validityStartDate.Value || dateOnly > validityEndDate.Value)
-                return false;
-        }
-
-        // Check time range
-        if (timeRangeStartTime.HasValue && timeRangeEndTime.HasValue)
-        {
-            var timeOnly = TimeOnly.FromDateTime(dateTime);
-            var startTime = timeRangeStartTime.Value;
-            var endTime = timeRangeEndTime.Value;
-            
-            // Handle ranges that cross midnight
-            if (endTime < startTime)
-            {
-                return timeOnly >= startTime || timeOnly <= endTime;
-            }
-            else
-            {
-                return timeOnly >= startTime && timeOnly <= endTime;
-            }
-        }
-
-        return true;
     }
 
     public async Task<List<AccessRuleDto>> GetAllActiveRulesAsync(CancellationToken cancellationToken = default)
@@ -364,6 +320,9 @@ public class AccessRuleService : IAccessRuleService
 
             foreach (var user in usersWithAccess)
             {
+                // Hydrate properties
+                _context.HydrateAccessRuleProperties(accessRule);
+                
                 // For now, allow all days (future: implement DaysOfWeek logic)
                 string allowedDays = "0,1,2,3,4,5,6"; // All days
 
@@ -371,14 +330,10 @@ public class AccessRuleService : IAccessRuleService
                 string startTime = "00:00";
                 string endTime = "23:59";
                 
-                // Read shadow properties for TimeRange
-                var timeRangeStartTime = _dbContext.Entry(accessRule).Property<TimeOnly?>("TimeRangeStartTime").CurrentValue;
-                var timeRangeEndTime = _dbContext.Entry(accessRule).Property<TimeOnly?>("TimeRangeEndTime").CurrentValue;
-                
-                if (timeRangeStartTime.HasValue && timeRangeEndTime.HasValue)
+                if (accessRule.TimeRange.HasValue)
                 {
-                    var start = timeRangeStartTime.Value;
-                    var end = timeRangeEndTime.Value;
+                    var start = accessRule.TimeRange.Value.StartTime;
+                    var end = accessRule.TimeRange.Value.EndTime;
                     startTime = $"{start.Hour:D2}:{start.Minute:D2}";
                     endTime = $"{end.Hour:D2}:{end.Minute:D2}";
                 }

@@ -201,12 +201,30 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
         {
             var startDate = entry.Property("ValidityStartDate").CurrentValue as DateOnly?;
             var endDate = entry.Property("ValidityEndDate").CurrentValue as DateOnly?;
+            var startTime = entry.Property("TimeRangeStartTime").CurrentValue as TimeOnly?;
+            var endTime = entry.Property("TimeRangeEndTime").CurrentValue as TimeOnly?;
 
             if (startDate.HasValue && endDate.HasValue)
             {
                 var validityPeriodProperty = typeof(AccessRule).GetProperty("ValidityPeriod");
                 validityPeriodProperty?.SetValue(accessRule, new DateRange(startDate.Value, endDate.Value));
             }
+            
+            if (startTime.HasValue && endTime.HasValue)
+            {
+                var timeRangeProperty = typeof(AccessRule).GetProperty("TimeRange");
+                timeRangeProperty?.SetValue(accessRule, new TimeRange(startTime.Value, endTime.Value));
+            }
         }
+    }
+
+    /// <summary>
+    /// Public method to hydrate AccessRule properties from shadow properties.
+    /// Used by Application layer when needed.
+    /// </summary>
+    public void HydrateAccessRuleProperties(AccessRule accessRule)
+    {
+        var entry = Entry(accessRule);
+        ReconstructValidityPeriod(entry);
     }
 }

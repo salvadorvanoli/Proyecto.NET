@@ -94,6 +94,16 @@ public class AccessValidationService : IAccessValidationService
             .Where(ar => ar.ControlPointId == controlPointId)
             .ToListAsync(cancellationToken);
 
+        // Hydrate TimeRange and ValidityPeriod from shadow properties
+        foreach (var rule in accessRules)
+        {
+            _context.HydrateAccessRuleProperties(rule);
+            _logger.LogInformation("🔍 AccessRule {RuleId} - TimeRange: {TimeRange}, ValidityPeriod: {ValidityPeriod}", 
+                rule.Id, 
+                rule.TimeRange.HasValue ? $"{rule.TimeRange.Value.StartTime}-{rule.TimeRange.Value.EndTime}" : "24/7",
+                rule.ValidityPeriod.HasValue ? $"{rule.ValidityPeriod.Value.StartDate}-{rule.ValidityPeriod.Value.EndDate}" : "Permanent");
+        }
+
         // 4. Verificar que el usuario tiene una credencial activa
         if (!user.HasActiveCredential)
         {
@@ -117,14 +127,21 @@ public class AccessValidationService : IAccessValidationService
         }
 
         // 7. Validar acceso según las reglas
-        var now = DateTime.UtcNow;
+        // Usar hora local de Argentina (UTC-3)
+        var argentinaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Argentina Standard Time");
+        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, argentinaTimeZone);
+        
+        _logger.LogInformation("🕐 Validating access at Argentina time: {Time} (UTC: {UtcTime})", 
+            now, DateTime.UtcNow);
         
         foreach (var accessRule in accessRules)
         {
             // Verificar si la regla está activa en este momento (horario y fecha)
             if (!accessRule.IsActiveAt(now))
             {
-                _logger.LogDebug("Access rule {RuleId} is not active at {DateTime}", accessRule.Id, now);
+                _logger.LogDebug("Access rule {RuleId} is not active at {DateTime} (Argentina time). TimeRange: {TimeRange}, ValidityPeriod: {ValidityPeriod}", 
+                    accessRule.Id, now, accessRule.TimeRange?.ToString() ?? "24/7", 
+                    accessRule.ValidityPeriod.HasValue ? $"{accessRule.ValidityPeriod.Value.StartDate} - {accessRule.ValidityPeriod.Value.EndDate}" : "Permanent");
                 continue;
             }
 
