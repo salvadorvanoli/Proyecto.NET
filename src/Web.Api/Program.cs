@@ -4,7 +4,6 @@ using Infrastructure;
 using Infrastructure.Data;
 using Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using Web.Api.HealthChecks;
 using Web.Api.Configuration;
 using Web.Api.Middleware;
@@ -12,7 +11,6 @@ using Web.Api.Filters;
 using Web.Api.Hubs;
 using Web.Api.Services;
 using Serilog;
-using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -252,9 +250,9 @@ try
                 await EnsureDatabaseExistsAsync(connectionString, logger);
             }
 
-            // Obtener el DbSeeder y ejecutar migraciones
-            var dbSeeder = services.GetRequiredService<DbSeeder>();
-            await dbSeeder.MigrateAsync();
+            // Obtener el MigrationRunner y ejecutar migraciones
+            var migrationRunner = services.GetRequiredService<MigrationRunner>();
+            await migrationRunner.MigrateAsync();
 
             // Crear las tablas si no existen (para cuando no hay migraciones)
             var context = services.GetRequiredService<ApplicationDbContext>();
