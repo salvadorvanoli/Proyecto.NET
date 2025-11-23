@@ -232,17 +232,53 @@ jobs:
           # Update the environment variables in the task definition
           echo "🔄 Updating environment variables..."
           new_task_def=$(echo "$current_task_def" | jq --arg api_url "$api_base_url" '
-            .containerDefinitions[0].environment = (
-              .containerDefinitions[0].environment // []
-              | map(select(.name != "ApiSettings__BaseUrl"))
-              + [{"name": "ApiSettings__BaseUrl", "value": $api_url}]
-            )
-            | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)
+            {
+              family: .family,
+              taskRoleArn: .taskRoleArn,
+              executionRoleArn: .executionRoleArn,
+              networkMode: .networkMode,
+              containerDefinitions: [
+                .containerDefinitions[0] | {
+                  name: .name,
+                  image: .image,
+                  cpu: .cpu,
+                  memory: .memory,
+                  portMappings: .portMappings,
+                  essential: .essential,
+                  environment: (
+                    (.environment // [])
+                    | map(select(.name != "ApiSettings__BaseUrl" and .name != "ApiBaseUrl"))
+                    + [{"name": "ApiSettings__BaseUrl", "value": $api_url}]
+                  ),
+                  mountPoints: .mountPoints,
+                  volumesFrom: .volumesFrom,
+                  logConfiguration: .logConfiguration
+                }
+              ],
+              requiresCompatibilities: .requiresCompatibilities,
+              cpu: .cpu,
+              memory: .memory,
+              volumes: (.volumes // [])
+            }
           ')
+
+          # Save to temporary file for debugging
+          echo "$new_task_def" > /tmp/task-def.json
+          echo "📄 Task definition preview:"
+          cat /tmp/task-def.json | jq -C '.' || cat /tmp/task-def.json
 
           # Register new task definition
           echo "📝 Registering new task definition..."
-          new_task_def_arn=$(echo "$new_task_def" | jq -c '.' | aws ecs register-task-definition --cli-input-json file:///dev/stdin --region "$AWS_REGION" --query 'taskDefinition.taskDefinitionArn' --output text)
+          new_task_def_arn=$(aws ecs register-task-definition \
+            --cli-input-json file:///tmp/task-def.json \
+            --region "$AWS_REGION" \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          if [ -z "$new_task_def_arn" ]; then
+            echo "❌ Failed to register new task definition"
+            exit 1
+          fi
 
           echo "✅ New task definition registered: $new_task_def_arn"
           echo "FRONTOFFICE_TASK_DEF_ARN=$new_task_def_arn" >> $GITHUB_ENV
