@@ -200,6 +200,53 @@ jobs:
           # cleanup
           rm -rf awscliv2.zip aws/
 
+      - name: Update FrontOffice task definition with ALB URL
+        if: ${{ github.event.inputs.deploy_frontoffice != 'false' }}
+        run: |
+          set -euo pipefail
+          echo "🔧 Updating FrontOffice task definition with correct ALB URL..."
+
+          # Get ALB DNS
+          alb_dns=$(aws elbv2 describe-load-balancers --region "$AWS_REGION" --query 'LoadBalancers[?contains(LoadBalancerName, `proyectonet`)].DNSName' --output text)
+
+          if [ -z "$alb_dns" ]; then
+            echo "❌ ALB DNS not found. Skipping task definition update."
+            exit 0
+          fi
+
+          echo "✅ ALB DNS: $alb_dns"
+          api_base_url="http://${alb_dns}/api"
+          echo "✅ API Base URL: $api_base_url"
+
+          # Get current task definition for FrontOffice
+          task_family="proyectonet-frontoffice"
+          echo "📋 Getting current task definition for family: $task_family"
+
+          current_task_def=$(aws ecs describe-task-definition --task-definition "$task_family" --region "$AWS_REGION" --query 'taskDefinition' --output json)
+
+          if [ -z "$current_task_def" ] || [ "$current_task_def" = "null" ]; then
+            echo "⚠️ Task definition not found. It will be created by Terraform on first deployment."
+            exit 0
+          fi
+
+          # Update the environment variables in the task definition
+          echo "🔄 Updating environment variables..."
+          new_task_def=$(echo "$current_task_def" | jq --arg api_url "$api_base_url" '
+            .containerDefinitions[0].environment = (
+              .containerDefinitions[0].environment // []
+              | map(select(.name != "ApiSettings__BaseUrl"))
+              + [{"name": "ApiSettings__BaseUrl", "value": $api_url}]
+            )
+            | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)
+          ')
+
+          # Register new task definition
+          echo "📝 Registering new task definition..."
+          new_task_def_arn=$(echo "$new_task_def" | jq -c '.' | aws ecs register-task-definition --cli-input-json file:///dev/stdin --region "$AWS_REGION" --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          echo "✅ New task definition registered: $new_task_def_arn"
+          echo "FRONTOFFICE_TASK_DEF_ARN=$new_task_def_arn" >> $GITHUB_ENV
+
       - name: Update ECS services to force new deployment
         run: |
           set -euo pipefail
@@ -222,7 +269,14 @@ jobs:
             echo "Checking service: $svcName"
             if echo "$svcName" | grep -qi "backoffice" || echo "$svcName" | grep -qi "api" || echo "$svcName" | grep -qi "frontoffice"; then
               echo "Forcing new deployment for $svcName"
-              aws ecs update-service --cluster "$clusterName" --service "$svcName" --force-new-deployment --region "$AWS_REGION"
+
+              # Si es FrontOffice y tenemos una nueva task definition, usarla
+              if echo "$svcName" | grep -qi "frontoffice" && [ -n "${FRONTOFFICE_TASK_DEF_ARN:-}" ]; then
+                echo "Using new task definition: $FRONTOFFICE_TASK_DEF_ARN"
+                aws ecs update-service --cluster "$clusterName" --service "$svcName" --task-definition "$FRONTOFFICE_TASK_DEF_ARN" --force-new-deployment --region "$AWS_REGION"
+              else
+                aws ecs update-service --cluster "$clusterName" --service "$svcName" --force-new-deployment --region "$AWS_REGION"
+              fi
             else
               echo "Skipping $svcName"
             fi
