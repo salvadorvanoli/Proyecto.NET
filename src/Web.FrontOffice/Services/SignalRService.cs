@@ -50,7 +50,9 @@ public class SignalRService : IAsyncDisposable
             _currentUserId = userId;
 
             // Construir la URL del hub con el userId como query parameter
-            var hubUrl = $"{_apiUrl.TrimEnd('/')}/notificationHub?userId={userId}";
+            // IMPORTANTE: Incluir /api porque el hub está en la API que está detrás de /api en el ALB
+            var apiBaseUrl = _apiUrl.TrimEnd('/');
+            var hubUrl = $"{apiBaseUrl}/notificationHub?userId={userId}";
 
             _logger.LogInformation("Intentando conectar a SignalR: {HubUrl}", hubUrl);
 
@@ -63,18 +65,22 @@ public class SignalRService : IAsyncDisposable
                                         HttpTransportType.ServerSentEvents |
                                         HttpTransportType.LongPolling;
 
-                    // Configurar timeouts
+                    // Configurar timeouts más largos para conexiones a través de ALB
                     options.CloseTimeout = TimeSpan.FromSeconds(60);
 
-                    // Habilitar cookies para sticky sessions
+                    // Habilitar cookies para sticky sessions del ALB
                     options.HttpMessageHandlerFactory = (handler) =>
                     {
                         if (handler is HttpClientHandler clientHandler)
                         {
                             clientHandler.UseCookies = true;
+                            clientHandler.UseDefaultCredentials = false;
                         }
                         return handler;
                     };
+
+                    // Agregar headers adicionales si es necesario
+                    options.Headers["X-Requested-With"] = "SignalR";
                 })
                 .WithAutomaticReconnect(new[]
                 {
@@ -83,6 +89,10 @@ public class SignalRService : IAsyncDisposable
                     TimeSpan.FromSeconds(5),
                     TimeSpan.FromSeconds(10),
                     TimeSpan.FromSeconds(30)
+                })
+                .ConfigureLogging(logging =>
+                {
+                    logging.SetMinimumLevel(LogLevel.Information);
                 })
                 .Build();
 

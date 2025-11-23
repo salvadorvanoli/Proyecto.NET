@@ -3,6 +3,7 @@ using Shared.DTOs.News;
 using Microsoft.EntityFrameworkCore;
 using DomainNews = Domain.Entities.News;
 using Domain.Entities;
+using Microsoft.Extensions.Logging;
 
 namespace Application.News;
 
@@ -14,20 +15,25 @@ public class NewsService : INewsService
     private readonly IApplicationDbContext _context;
     private readonly ITenantProvider _tenantProvider;
     private readonly INotificationHubService _notificationHubService;
+    private readonly ILogger<NewsService> _logger;
 
     public NewsService(
         IApplicationDbContext context,
         ITenantProvider tenantProvider,
-        INotificationHubService notificationHubService)
+        INotificationHubService notificationHubService,
+        ILogger<NewsService> logger)
     {
         _context = context;
         _tenantProvider = tenantProvider;
         _notificationHubService = notificationHubService;
+        _logger = logger;
     }
 
     public async Task<NewsResponse> CreateNewsAsync(NewsRequest request, CancellationToken cancellationToken = default)
     {
         var tenantId = _tenantProvider.GetCurrentTenantId();
+
+        _logger.LogInformation("📰 Creando noticia para tenant {TenantId}: {Title}", tenantId, request.Title);
 
         // Verify tenant exists
         var tenantExists = await _context.Tenants
@@ -50,14 +56,18 @@ public class NewsService : INewsService
         _context.News.Add(news);
         await _context.SaveChangesAsync(cancellationToken);
 
+        _logger.LogInformation("✅ Noticia creada con ID {NewsId}", news.Id);
+
         // Create notifications for all users in the tenant
         var users = await _context.Users
             .Where(u => u.TenantId == tenantId)
             .ToListAsync(cancellationToken);
 
+        _logger.LogInformation("👥 Encontrados {UserCount} usuarios para notificar", users.Count);
+
         var notificationTitle = $"Nueva noticia: {news.Title}";
         var notificationMessage = $"Se ha publicado una nueva noticia. {news.Content.Substring(0, Math.Min(100, news.Content.Length))}...";
-        
+
         var notifications = new List<Notification>();
         foreach (var user in users)
         {
@@ -74,11 +84,17 @@ public class NewsService : INewsService
 
         await _context.SaveChangesAsync(cancellationToken);
 
+        _logger.LogInformation("💾 {NotificationCount} notificaciones guardadas en BD", notifications.Count);
+
         // Send real-time notifications via SignalR (best effort - no bloquea si falla)
         try
         {
+            _logger.LogInformation("📡 Enviando notificaciones en tiempo real via SignalR...");
+
             foreach (var notification in notifications)
             {
+                _logger.LogInformation("📤 Enviando notificación a userId {UserId}", notification.UserId);
+
                 await _notificationHubService.SendNotificationToUserAsync(
                     notification.UserId,
                     notification.Title,
@@ -86,11 +102,14 @@ public class NewsService : INewsService
                     notification.Id
                 );
             }
+
+            _logger.LogInformation("✅ Todas las notificaciones SignalR enviadas exitosamente");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Log silently - SignalR notifications are best effort
             // La notificación ya está guardada en la BD, el usuario la verá eventualmente
+            _logger.LogError(ex, "❌ Error al enviar notificaciones via SignalR");
         }
 
         return MapToResponse(news);

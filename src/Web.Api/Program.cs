@@ -200,6 +200,15 @@ try
                     policy.WithOrigins(allowedOrigins)
                         .AllowAnyMethod()
                         .AllowAnyHeader()
+                        .AllowCredentials(); // Necesario para SignalR
+                }
+                else
+                {
+                    // Si no hay orígenes configurados, permitir cualquier origen pero sin credenciales
+                    // Esto es útil para cuando las apps están detrás del mismo ALB
+                    policy.SetIsOriginAllowed(_ => true)
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
                         .AllowCredentials();
                 }
             }
