@@ -319,6 +319,10 @@ public class BenefitService : IBenefitService
         if (benefit == null)
             throw new InvalidOperationException($"El beneficio con ID {request.BenefitId} no existe.");
 
+        // Validate benefit is active
+        if (!benefit.Active)
+            throw new InvalidOperationException("El beneficio está inactivo y no se puede reclamar.");
+
         // Validate user exists and belongs to tenant
         var userExists = await _context.Users
             .AnyAsync(u => u.Id == request.UserId && u.TenantId == tenantId, cancellationToken);
@@ -395,6 +399,10 @@ public class BenefitService : IBenefitService
 
         if (benefit == null)
             throw new InvalidOperationException($"El beneficio con ID {request.BenefitId} no existe.");
+
+        // Validate benefit is active
+        if (!benefit.Active)
+            throw new InvalidOperationException("El beneficio está inactivo y no se puede canjear.");
 
         // Validate user exists and belongs to tenant
         var userExists = await _context.Users
