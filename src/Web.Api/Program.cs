@@ -57,14 +57,17 @@ try
         hostOptions.ShutdownTimeout = TimeSpan.FromSeconds(30);
     });
 
-    builder.Services.AddControllers(options =>
+    builder.Services.AddControllers();
+    builder.Services.AddSignalR(options =>
     {
-        // Aplicar TenantAuthorizationFilter globalmente a todos los endpoints autenticados
-        options.Filters.Add<TenantAuthorizationFilter>();
+        // Configurar para trabajar mejor con ALB de AWS
+        options.EnableDetailedErrors = true;
+        options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+        options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
+        options.HandshakeTimeout = TimeSpan.FromSeconds(15);
     });
-    builder.Services.AddSignalR();
-    
-    // Registrar TenantAuthorizationFilter como servicio
+
+    // Registrar TenantAuthorizationFilter como servicio para uso con atributos
     builder.Services.AddScoped<TenantAuthorizationFilter>();
 
     // ========================================
@@ -197,6 +200,15 @@ try
                     policy.WithOrigins(allowedOrigins)
                         .AllowAnyMethod()
                         .AllowAnyHeader()
+                        .AllowCredentials(); // Necesario para SignalR
+                }
+                else
+                {
+                    // Si no hay orígenes configurados, permitir cualquier origen pero sin credenciales
+                    // Esto es útil para cuando las apps están detrás del mismo ALB
+                    policy.SetIsOriginAllowed(_ => true)
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
                         .AllowCredentials();
                 }
             }
@@ -215,28 +227,6 @@ try
     builder.Services.AddSwaggerGen();
 
     var app = builder.Build();
-
-    // ========================================
-    // CONFIGURACIÓN PARA PROXY/ALB: PathBase y Forwarded Headers
-    // ========================================
-    app.UseForwardedHeaders(new ForwardedHeadersOptions
-    {
-        ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor
-                         | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
-                         | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedHost
-    });
-
-    // Configurar PathBase si la API está detrás de un ALB/proxy con ruta /api
-    var pathBase = builder.Configuration.GetValue<string>("PathBase");
-    if (!string.IsNullOrEmpty(pathBase))
-    {
-        app.UsePathBase(pathBase);
-        app.Use((context, next) =>
-        {
-            context.Request.PathBase = pathBase;
-            return next();
-        });
-    }
 
     using (var scope = app.Services.CreateScope())
     {
@@ -262,23 +252,12 @@ try
                 await EnsureDatabaseExistsAsync(connectionString, logger);
             }
 
-            // Aplicar migraciones pendientes
-            var context = services.GetRequiredService<ApplicationDbContext>();
-            logger.LogInformation("Checking for pending migrations...");
-            var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
-            
-            if (pendingMigrations.Any())
-            {
-                logger.LogInformation("Applying {Count} pending migrations", pendingMigrations.Count());
-                await context.Database.MigrateAsync();
-                logger.LogInformation("Migrations applied successfully");
-            }
-            else
-            {
-                logger.LogInformation("Database is up to date. No migrations needed.");
-            }
+            // Obtener el DbSeeder y ejecutar migraciones
+            var dbSeeder = services.GetRequiredService<DbSeeder>();
+            await dbSeeder.MigrateAsync();
 
             // Crear las tablas si no existen (para cuando no hay migraciones)
+            var context = services.GetRequiredService<ApplicationDbContext>();
             await context.Database.EnsureCreatedAsync();
 
             // Alternativamente, se puede usar MigrateAsync() en lugar de EnsureCreatedAsync()
@@ -307,6 +286,17 @@ try
     {
         app.UseSwagger();
         app.UseSwaggerUI();
+    }
+
+    // ========================================
+    // CONFIGURACIÓN: Path Base para ALB
+    // ========================================
+    // Cuando la API está detrás de un ALB con path /api, necesitamos configurar el path base
+    var pathBase = builder.Configuration["PathBase"] ?? Environment.GetEnvironmentVariable("PATH_BASE");
+    if (!string.IsNullOrEmpty(pathBase))
+    {
+        app.UsePathBase(pathBase);
+        Log.Information($"API configured to use path base: {pathBase}");
     }
 
     // ========================================

@@ -42,7 +42,7 @@
                     {
                         @foreach (var notification in notifications)
                         {
-                            <div class="dropdown-item notification-item @(notification.IsRead ? "read" : "unread")" 
+                            <div class="dropdown-item notification-item @(notification.IsRead ? "read" : "unread")"
                                  @onclick="() => MarkAsRead(notification.Id)">
                                 <div class="notification-icon">
                                     <i class="bi bi-bell-fill"></i>
@@ -82,9 +82,12 @@
             if (isLoggedIn && userId > 0)
             {
                 await LoadNotifications();
-                
-                // Conectar a SignalR
+
+                // Suscribirse al evento de notificaciones del servicio SignalR
                 SignalRService.OnNotificationReceived += OnNewNotification;
+
+                // La conexión ya debería estar establecida por el SignalRInitializer
+                // Pero por seguridad, intentar conectar si no está conectado
                 await SignalRService.StartConnectionAsync(userId);
             }
             StateHasChanged();
@@ -108,7 +111,7 @@
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
-        
+
         // Usar InvokeAsync para asegurar que la actualización ocurra en el contexto correcto de Blazor
         InvokeAsync(() =>
         {
@@ -123,9 +126,9 @@
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
-            
+
             isLoggedIn = user?.Identity?.IsAuthenticated ?? false;
-            
+
             if (isLoggedIn)
             {
                 var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
@@ -144,7 +147,7 @@
     private async Task LoadNotifications()
     {
         if (userId <= 0) return;
-        
+
         isLoadingNotifications = true;
         try
         {
@@ -178,7 +181,7 @@
     private async Task MarkAllAsRead()
     {
         if (userId <= 0) return;
-        
+
         var count = await NotificationApiService.MarkAllAsReadAsync(userId);
         if (count > 0)
         {
@@ -202,7 +205,7 @@
             return $"Hace {(int)timeSpan.TotalHours} hora{((int)timeSpan.TotalHours != 1 ? "s" : "")}";
         if (timeSpan.TotalDays < 30)
             return $"Hace {(int)timeSpan.TotalDays} día{((int)timeSpan.TotalDays != 1 ? "s" : "")}";
-        
+
         return sentDateTime.ToString("dd/MM/yyyy");
     }
 

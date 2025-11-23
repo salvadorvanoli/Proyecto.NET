@@ -87,207 +87,6 @@ jobs:
           TF_VAR_db_username: ${{ secrets.TF_VAR_db_username }}
         run: terraform init -input=false
 
-      - name: Clean Terraform state conflicts
-        working-directory: terraform
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-        run: |
-          echo "Cleaning conflicting resources from Terraform state..."
-
-          # Remove all resources from state to start fresh with imports
-          terraform state rm aws_vpc.main 2>/dev/null || true
-          terraform state rm aws_internet_gateway.main 2>/dev/null || true
-          terraform state rm 'aws_subnet.public[0]' 2>/dev/null || true
-          terraform state rm 'aws_subnet.public[1]' 2>/dev/null || true
-          terraform state rm 'aws_subnet.private[0]' 2>/dev/null || true
-          terraform state rm 'aws_subnet.private[1]' 2>/dev/null || true
-          terraform state rm aws_route_table.public 2>/dev/null || true
-          terraform state rm aws_route_table.private 2>/dev/null || true
-          terraform state rm 'aws_route_table_association.public[0]' 2>/dev/null || true
-          terraform state rm 'aws_route_table_association.public[1]' 2>/dev/null || true
-          terraform state rm 'aws_route_table_association.private[0]' 2>/dev/null || true
-          terraform state rm 'aws_route_table_association.private[1]' 2>/dev/null || true
-          terraform state rm aws_security_group.alb 2>/dev/null || true
-          terraform state rm aws_security_group.ecs_tasks 2>/dev/null || true
-          terraform state rm aws_security_group.rds 2>/dev/null || true
-          terraform state rm aws_lb.main 2>/dev/null || true
-          terraform state rm aws_lb_target_group.api 2>/dev/null || true
-          terraform state rm aws_lb_target_group.backoffice 2>/dev/null || true
-          terraform state rm aws_lb_target_group.frontoffice 2>/dev/null || true
-          terraform state rm aws_lb_listener.main 2>/dev/null || true
-          terraform state rm aws_lb_listener_rule.api 2>/dev/null || true
-          terraform state rm aws_lb_listener_rule.backoffice 2>/dev/null || true
-          terraform state rm aws_lb_listener_rule.frontoffice 2>/dev/null || true
-          terraform state rm aws_db_subnet_group.main 2>/dev/null || true
-          terraform state rm aws_ecs_cluster.main 2>/dev/null || true
-          terraform state rm aws_ecs_service.api 2>/dev/null || true
-          terraform state rm aws_ecs_service.backoffice 2>/dev/null || true
-          terraform state rm aws_ecs_service.frontoffice 2>/dev/null || true
-          terraform state rm aws_ecs_task_definition.api 2>/dev/null || true
-          terraform state rm aws_ecs_task_definition.backoffice 2>/dev/null || true
-          terraform state rm aws_ecs_task_definition.frontoffice 2>/dev/null || true
-          terraform state rm aws_db_instance.sqlserver 2>/dev/null || true
-
-          echo "State cleanup completed!"
-
-      - name: Import existing resources
-        working-directory: terraform
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          TF_VAR_db_password: ${{ secrets.TF_VAR_db_password }}
-          TF_VAR_jwt_secret: ${{ secrets.TF_VAR_jwt_secret }}
-          TF_VAR_db_username: ${{ secrets.TF_VAR_db_username }}
-        run: |
-          echo "Importing existing resources to Terraform state..."
-
-          # Import ECR Repositories
-          terraform import aws_ecr_repository.api proyectonet-api 2>/dev/null || echo "api repo already imported or doesn't exist"
-          terraform import aws_ecr_repository.backoffice proyectonet-backoffice 2>/dev/null || echo "backoffice repo already imported or doesn't exist"
-          terraform import aws_ecr_repository.frontoffice proyectonet-frontoffice 2>/dev/null || echo "frontoffice repo already imported or doesn't exist"
-
-          # Import CloudWatch Log Groups
-          terraform import aws_cloudwatch_log_group.api /ecs/proyectonet-api 2>/dev/null || echo "api logs already imported or doesn't exist"
-          terraform import aws_cloudwatch_log_group.backoffice /ecs/proyectonet-backoffice 2>/dev/null || echo "backoffice logs already imported or doesn't exist"
-          terraform import aws_cloudwatch_log_group.frontoffice /ecs/proyectonet-frontoffice 2>/dev/null || echo "frontoffice logs already imported or doesn't exist"
-
-          # Import ALB
-          ALB_ARN=$(aws elbv2 describe-load-balancers --names proyectonet-alb --region $AWS_REGION --query 'LoadBalancers[0].LoadBalancerArn' --output text 2>/dev/null || echo "")
-          if [ -n "$ALB_ARN" ] && [ "$ALB_ARN" != "None" ]; then
-            terraform import aws_lb.main "$ALB_ARN" 2>/dev/null || echo "ALB already imported"
-
-            # Import ALB Listeners
-            LISTENER_ARN=$(aws elbv2 describe-listeners --load-balancer-arn "$ALB_ARN" --region $AWS_REGION --query 'Listeners[?Port==`80`].ListenerArn' --output text 2>/dev/null || echo "")
-            if [ -n "$LISTENER_ARN" ] && [ "$LISTENER_ARN" != "None" ]; then
-              terraform import aws_lb_listener.main "$LISTENER_ARN" 2>/dev/null || echo "Listener already imported"
-
-              # Import Listener Rules
-              # Get all listener rules for this listener
-              RULES=$(aws elbv2 describe-rules --listener-arn "$LISTENER_ARN" --region $AWS_REGION --query 'Rules[?!IsDefault].RuleArn' --output text 2>/dev/null || echo "")
-              if [ -n "$RULES" ]; then
-                for RULE_ARN in $RULES; do
-                  # Try to determine which rule this is based on priority
-                  PRIORITY=$(aws elbv2 describe-rules --rule-arns "$RULE_ARN" --region $AWS_REGION --query 'Rules[0].Priority' --output text 2>/dev/null || echo "")
-
-                  if [ "$PRIORITY" = "50" ]; then
-                    terraform import aws_lb_listener_rule.api "$RULE_ARN" 2>/dev/null || echo "API rule already imported"
-                  elif [ "$PRIORITY" = "75" ]; then
-                    terraform import aws_lb_listener_rule.frontoffice "$RULE_ARN" 2>/dev/null || echo "FrontOffice rule already imported"
-                  elif [ "$PRIORITY" = "100" ]; then
-                    terraform import aws_lb_listener_rule.backoffice "$RULE_ARN" 2>/dev/null || echo "BackOffice rule already imported"
-                  fi
-                done
-              fi
-            fi
-          fi
-
-          # Import Target Groups
-          API_TG_ARN=$(aws elbv2 describe-target-groups --names proyectonet-api-tg --region $AWS_REGION --query 'TargetGroups[0].TargetGroupArn' --output text 2>/dev/null || echo "")
-          if [ -n "$API_TG_ARN" ] && [ "$API_TG_ARN" != "None" ]; then
-            terraform import aws_lb_target_group.api "$API_TG_ARN" 2>/dev/null || echo "API TG already imported"
-          fi
-
-          BACKOFFICE_TG_ARN=$(aws elbv2 describe-target-groups --names proyectonet-backoffice-tg --region $AWS_REGION --query 'TargetGroups[0].TargetGroupArn' --output text 2>/dev/null || echo "")
-          if [ -n "$BACKOFFICE_TG_ARN" ] && [ "$BACKOFFICE_TG_ARN" != "None" ]; then
-            terraform import aws_lb_target_group.backoffice "$BACKOFFICE_TG_ARN" 2>/dev/null || echo "BackOffice TG already imported"
-          fi
-
-          FRONTOFFICE_TG_ARN=$(aws elbv2 describe-target-groups --names proyectonet-frontoffice-tg --region $AWS_REGION --query 'TargetGroups[0].TargetGroupArn' --output text 2>/dev/null || echo "")
-          if [ -n "$FRONTOFFICE_TG_ARN" ] && [ "$FRONTOFFICE_TG_ARN" != "None" ]; then
-            terraform import aws_lb_target_group.frontoffice "$FRONTOFFICE_TG_ARN" 2>/dev/null || echo "FrontOffice TG already imported"
-          fi
-
-          # Import DB Subnet Group
-          terraform import aws_db_subnet_group.main proyectonet-db-subnet-group 2>/dev/null || echo "DB subnet group already imported or doesn't exist"
-
-          # Import VPC
-          VPC_ID=$(aws ec2 describe-vpcs --filters "Name=tag:Name,Values=proyectonet-vpc" --region $AWS_REGION --query 'Vpcs[0].VpcId' --output text 2>/dev/null || echo "")
-          if [ -n "$VPC_ID" ] && [ "$VPC_ID" != "None" ]; then
-            terraform import aws_vpc.main "$VPC_ID" 2>/dev/null || echo "VPC already imported"
-          fi
-
-          # Import Internet Gateway
-          IGW_ID=$(aws ec2 describe-internet-gateways --filters "Name=tag:Name,Values=proyectonet-igw" --region $AWS_REGION --query 'InternetGateways[0].InternetGatewayId' --output text 2>/dev/null || echo "")
-          if [ -n "$IGW_ID" ] && [ "$IGW_ID" != "None" ]; then
-            terraform import aws_internet_gateway.main "$IGW_ID" 2>/dev/null || echo "IGW already imported"
-          fi
-
-          # Import Security Groups
-          ALB_SG_ID=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=proyectonet-alb-sg" --region $AWS_REGION --query 'SecurityGroups[0].GroupId' --output text 2>/dev/null || echo "")
-          if [ -n "$ALB_SG_ID" ] && [ "$ALB_SG_ID" != "None" ]; then
-            terraform import aws_security_group.alb "$ALB_SG_ID" 2>/dev/null || echo "ALB SG already imported"
-          fi
-
-          ECS_SG_ID=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=proyectonet-ecs-tasks-sg" --region $AWS_REGION --query 'SecurityGroups[0].GroupId' --output text 2>/dev/null || echo "")
-          if [ -n "$ECS_SG_ID" ] && [ "$ECS_SG_ID" != "None" ]; then
-            terraform import aws_security_group.ecs_tasks "$ECS_SG_ID" 2>/dev/null || echo "ECS tasks SG already imported"
-          fi
-
-          RDS_SG_ID=$(aws ec2 describe-security-groups --filters "Name=tag:Name,Values=proyectonet-rds-sg" --region $AWS_REGION --query 'SecurityGroups[0].GroupId' --output text 2>/dev/null || echo "")
-          if [ -n "$RDS_SG_ID" ] && [ "$RDS_SG_ID" != "None" ]; then
-            terraform import aws_security_group.rds "$RDS_SG_ID" 2>/dev/null || echo "RDS SG already imported"
-          fi
-
-          # Import Subnets
-          PUBLIC_SUBNETS=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=proyectonet-public-subnet-*" --region $AWS_REGION --query 'sort_by(Subnets, &Tags[?Key==`Name`].Value | [0])[*].SubnetId' --output text 2>/dev/null || echo "")
-          if [ -n "$PUBLIC_SUBNETS" ]; then
-            idx=0
-            for subnet_id in $PUBLIC_SUBNETS; do
-              if [ $idx -lt 2 ]; then
-                terraform import "aws_subnet.public[$idx]" "$subnet_id" 2>/dev/null || echo "Public subnet $idx already imported"
-                idx=$((idx + 1))
-              fi
-            done
-          fi
-
-          PRIVATE_SUBNETS=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=proyectonet-private-subnet-*" --region $AWS_REGION --query 'sort_by(Subnets, &Tags[?Key==`Name`].Value | [0])[*].SubnetId' --output text 2>/dev/null || echo "")
-          if [ -n "$PRIVATE_SUBNETS" ]; then
-            idx=0
-            for subnet_id in $PRIVATE_SUBNETS; do
-              if [ $idx -lt 2 ]; then
-                terraform import "aws_subnet.private[$idx]" "$subnet_id" 2>/dev/null || echo "Private subnet $idx already imported"
-                idx=$((idx + 1))
-              fi
-            done
-          fi
-
-          # Import Route Tables
-          PUBLIC_RT_ID=$(aws ec2 describe-route-tables --filters "Name=tag:Name,Values=proyectonet-public-rt" --region $AWS_REGION --query 'RouteTables[0].RouteTableId' --output text 2>/dev/null || echo "")
-          if [ -n "$PUBLIC_RT_ID" ] && [ "$PUBLIC_RT_ID" != "None" ]; then
-            terraform import aws_route_table.public "$PUBLIC_RT_ID" 2>/dev/null || echo "Public RT already imported"
-          fi
-
-          PRIVATE_RT_ID=$(aws ec2 describe-route-tables --filters "Name=tag:Name,Values=proyectonet-private-rt" --region $AWS_REGION --query 'RouteTables[0].RouteTableId' --output text 2>/dev/null || echo "")
-          if [ -n "$PRIVATE_RT_ID" ] && [ "$PRIVATE_RT_ID" != "None" ]; then
-            terraform import aws_route_table.private "$PRIVATE_RT_ID" 2>/dev/null || echo "Private RT already imported"
-          fi
-
-          # Import ECS Cluster (use cluster name, not ARN)
-          CLUSTER_NAME=$(aws ecs list-clusters --region $AWS_REGION --query "clusterArns[?contains(@, 'proyectonet-cluster')] | [0]" --output text 2>/dev/null | xargs -I {} basename {} || echo "")
-          if [ -n "$CLUSTER_NAME" ] && [ "$CLUSTER_NAME" != "None" ] && [ "$CLUSTER_NAME" != "null" ]; then
-            terraform import aws_ecs_cluster.main "$CLUSTER_NAME" 2>/dev/null || echo "ECS cluster already imported"
-          fi
-
-          # Import ECS Services (format: cluster-name/service-name)
-          if [ -n "$CLUSTER_NAME" ] && [ "$CLUSTER_NAME" != "None" ] && [ "$CLUSTER_NAME" != "null" ]; then
-            terraform import aws_ecs_service.api "proyectonet-cluster/proyectonet-api-service" 2>/dev/null || echo "API service already imported"
-            terraform import aws_ecs_service.backoffice "proyectonet-cluster/proyectonet-backoffice-service" 2>/dev/null || echo "BackOffice service already imported"
-            terraform import aws_ecs_service.frontoffice "proyectonet-cluster/proyectonet-frontoffice-service" 2>/dev/null || echo "FrontOffice service already imported"
-          fi
-
-          # Import RDS Instance if exists
-          RDS_ID=$(aws rds describe-db-instances --db-instance-identifier proyectonet-sqlserver --region $AWS_REGION --query 'DBInstances[0].DBInstanceIdentifier' --output text 2>/dev/null || echo "")
-          if [ -n "$RDS_ID" ] && [ "$RDS_ID" != "None" ]; then
-            terraform import aws_db_instance.sqlserver "$RDS_ID" 2>/dev/null || echo "RDS instance already imported"
-          fi
-
-          echo "Import process completed!"
-
       - name: Terraform Validate
         working-directory: terraform
         env:
@@ -315,16 +114,14 @@ jobs:
   build:
     name: Build & push images
     runs-on: ubuntu-latest
+    needs: infra
+    if: ${{ always() && (github.event.inputs.run_infra == 'false' || needs.infra.result == 'success' || needs.infra.result == 'skipped') }}
     env:
       ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
       API_REPO: proyectonet-api
       BACKOFFICE_REPO: proyectonet-backoffice
       FRONTOFFICE_REPO: proyectonet-frontoffice
       IMAGE_TAG: latest
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -333,6 +130,11 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
         with:
           mask-password: true
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
 
       - name: Build and push Docker image for BackOffice
         if: ${{ github.event.inputs.deploy_backoffice != 'false' }}
@@ -373,8 +175,8 @@ jobs:
 
   update-services:
     name: Update ECS services
-    if: ${{ github.event.inputs.run_update_services != 'false' }}
-    needs: build
+    if: ${{ always() && github.event.inputs.run_update_services != 'false' && (needs.build.result == 'success' || needs.build.result == 'skipped') }}
+    needs: [infra, build]
     runs-on: ubuntu-latest
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -398,6 +200,89 @@ jobs:
           # cleanup
           rm -rf awscliv2.zip aws/
 
+      - name: Update FrontOffice task definition with ALB URL
+        if: ${{ github.event.inputs.deploy_frontoffice != 'false' }}
+        run: |
+          set -euo pipefail
+          echo "🔧 Updating FrontOffice task definition with correct ALB URL..."
+
+          # Get ALB DNS
+          alb_dns=$(aws elbv2 describe-load-balancers --region "$AWS_REGION" --query 'LoadBalancers[?contains(LoadBalancerName, `proyectonet`)].DNSName' --output text)
+
+          if [ -z "$alb_dns" ]; then
+            echo "❌ ALB DNS not found. Skipping task definition update."
+            exit 0
+          fi
+
+          echo "✅ ALB DNS: $alb_dns"
+          api_base_url="http://${alb_dns}/api"
+          echo "✅ API Base URL: $api_base_url"
+
+          # Get current task definition for FrontOffice
+          task_family="proyectonet-frontoffice"
+          echo "📋 Getting current task definition for family: $task_family"
+
+          current_task_def=$(aws ecs describe-task-definition --task-definition "$task_family" --region "$AWS_REGION" --query 'taskDefinition' --output json)
+
+          if [ -z "$current_task_def" ] || [ "$current_task_def" = "null" ]; then
+            echo "⚠️ Task definition not found. It will be created by Terraform on first deployment."
+            exit 0
+          fi
+
+          # Update the environment variables in the task definition
+          echo "🔄 Updating environment variables..."
+          new_task_def=$(echo "$current_task_def" | jq --arg api_url "$api_base_url" '
+            {
+              family: .family,
+              taskRoleArn: .taskRoleArn,
+              executionRoleArn: .executionRoleArn,
+              networkMode: .networkMode,
+              containerDefinitions: [
+                .containerDefinitions[0] |
+                {
+                  name: .name,
+                  image: .image,
+                  portMappings: .portMappings,
+                  essential: .essential,
+                  environment: (
+                    (.environment // [])
+                    | map(select(.name != "ApiSettings__BaseUrl" and .name != "ApiBaseUrl"))
+                    + [{"name": "ApiSettings__BaseUrl", "value": $api_url}]
+                  ),
+                  mountPoints: (.mountPoints // []),
+                  volumesFrom: (.volumesFrom // []),
+                  logConfiguration: .logConfiguration
+                }
+              ],
+              requiresCompatibilities: .requiresCompatibilities,
+              cpu: .cpu,
+              memory: .memory
+            }
+            # Agregar volumes solo si existen
+            | if .volumes != null and (.volumes | length) > 0 then . + {volumes: .volumes} else . end
+          ')
+
+          # Save to temporary file for debugging
+          echo "$new_task_def" > /tmp/task-def.json
+          echo "📄 Task definition preview:"
+          cat /tmp/task-def.json | jq -C '.' || cat /tmp/task-def.json
+
+          # Register new task definition
+          echo "📝 Registering new task definition..."
+          new_task_def_arn=$(aws ecs register-task-definition \
+            --cli-input-json file:///tmp/task-def.json \
+            --region "$AWS_REGION" \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          if [ -z "$new_task_def_arn" ]; then
+            echo "❌ Failed to register new task definition"
+            exit 1
+          fi
+
+          echo "✅ New task definition registered: $new_task_def_arn"
+          echo "FRONTOFFICE_TASK_DEF_ARN=$new_task_def_arn" >> $GITHUB_ENV
+
       - name: Update ECS services to force new deployment
         run: |
           set -euo pipefail
@@ -420,7 +305,14 @@ jobs:
             echo "Checking service: $svcName"
             if echo "$svcName" | grep -qi "backoffice" || echo "$svcName" | grep -qi "api" || echo "$svcName" | grep -qi "frontoffice"; then
               echo "Forcing new deployment for $svcName"
-              aws ecs update-service --cluster "$clusterName" --service "$svcName" --force-new-deployment --region "$AWS_REGION"
+
+              # Si es FrontOffice y tenemos una nueva task definition, usarla
+              if echo "$svcName" | grep -qi "frontoffice" && [ -n "${FRONTOFFICE_TASK_DEF_ARN:-}" ]; then
+                echo "Using new task definition: $FRONTOFFICE_TASK_DEF_ARN"
+                aws ecs update-service --cluster "$clusterName" --service "$svcName" --task-definition "$FRONTOFFICE_TASK_DEF_ARN" --force-new-deployment --region "$AWS_REGION"
+              else
+                aws ecs update-service --cluster "$clusterName" --service "$svcName" --force-new-deployment --region "$AWS_REGION"
+              fi
             else
               echo "Skipping $svcName"
             fi
@@ -468,21 +360,21 @@ jobs:
 
           if [ -n "$dns" ] && [ "$dns" != "None" ]; then
             echo "Found ALB DNS: $dns"
-
-            # Construct URLs for all services
             backoffice_url="http://$dns"
             frontoffice_url="http://$dns/frontoffice"
             api_url="http://$dns/api"
 
-            echo "BackOffice URL: $backoffice_url"
-            echo "FrontOffice URL: $frontoffice_url"
-            echo "API URL: $api_url"
+            echo "=================================================="
+            echo "🎉 DEPLOYMENT SUCCESSFUL!"
+            echo "=================================================="
+            echo "📍 BackOffice URL:  $backoffice_url"
+            echo "📍 FrontOffice URL: $frontoffice_url"
+            echo "📍 API URL:         $api_url"
+            echo "=================================================="
 
-            # Save to GitHub outputs
             echo "backoffice_url=$backoffice_url" >> $GITHUB_OUTPUT
             echo "frontoffice_url=$frontoffice_url" >> $GITHUB_OUTPUT
             echo "api_url=$api_url" >> $GITHUB_OUTPUT
-            echo "alb_dns=$dns" >> $GITHUB_OUTPUT
           else
             echo "No ALB DNS found via AWS CLI. Trying terraform state file as fallback..."
             if [ -f terraform/terraform.tfstate ]; then
@@ -490,61 +382,57 @@ jobs:
               frontoffice_url=$(jq -r '.outputs.frontoffice_url.value' terraform/terraform.tfstate 2>/dev/null || echo "NOT_FOUND")
               api_url=$(jq -r '.outputs.api_url.value' terraform/terraform.tfstate 2>/dev/null || echo "NOT_FOUND")
 
-              echo "backoffice_url=$backoffice_url" >> $GITHUB_OUTPUT
-              echo "frontoffice_url=$frontoffice_url" >> $GITHUB_OUTPUT
-              echo "api_url=$api_url" >> $GITHUB_OUTPUT
-              echo "alb_dns=NOT_FOUND" >> $GITHUB_OUTPUT
+              if [ "$backoffice_url" != "NOT_FOUND" ] && [ "$backoffice_url" != "null" ]; then
+                echo "=================================================="
+                echo "🎉 DEPLOYMENT SUCCESSFUL!"
+                echo "=================================================="
+                echo "📍 BackOffice URL:  $backoffice_url"
+                echo "📍 FrontOffice URL: $frontoffice_url"
+                echo "📍 API URL:         $api_url"
+                echo "=================================================="
+
+                echo "backoffice_url=$backoffice_url" >> $GITHUB_OUTPUT
+                echo "frontoffice_url=$frontoffice_url" >> $GITHUB_OUTPUT
+                echo "api_url=$api_url" >> $GITHUB_OUTPUT
+              else
+                echo "No URLs found in terraform.tfstate"
+                echo "backoffice_url=NOT_FOUND" >> $GITHUB_OUTPUT
+                echo "frontoffice_url=NOT_FOUND" >> $GITHUB_OUTPUT
+                echo "api_url=NOT_FOUND" >> $GITHUB_OUTPUT
+              fi
             else
               echo "terraform.tfstate not present in repository"
               echo "backoffice_url=NOT_FOUND" >> $GITHUB_OUTPUT
               echo "frontoffice_url=NOT_FOUND" >> $GITHUB_OUTPUT
               echo "api_url=NOT_FOUND" >> $GITHUB_OUTPUT
-              echo "alb_dns=NOT_FOUND" >> $GITHUB_OUTPUT
             fi
           fi
 
-      - name: Show deployment URLs
+      - name: Show final URLs
         run: |
-          echo "=========================================="
-          echo "  DEPLOYMENT COMPLETED SUCCESSFULLY"
-          echo "=========================================="
-          echo ""
-          echo "📍 ALB DNS: ${{ steps.get_urls.outputs.alb_dns }}"
-          echo ""
-          echo "🌐 Application URLs:"
-          echo "   • BackOffice:  ${{ steps.get_urls.outputs.backoffice_url }}"
-          echo "   • FrontOffice: ${{ steps.get_urls.outputs.frontoffice_url }}"
-          echo "   • API:         ${{ steps.get_urls.outputs.api_url }}"
-          echo ""
-          echo "=========================================="
-          echo ""
+          echo "=================================================="
+          echo "📋 DEPLOYMENT SUMMARY"
+          echo "=================================================="
+          echo "BackOffice URL:  ${{ steps.get_urls.outputs.backoffice_url }}"
+          echo "FrontOffice URL: ${{ steps.get_urls.outputs.frontoffice_url }}"
+          echo "API URL:         ${{ steps.get_urls.outputs.api_url }}"
+          echo "=================================================="
 
-      - name: Write deployment URLs to file
+      - name: Write deploy URLs to file
         if: always()
         run: |
-          cat > deployment-urls.txt << EOF
-          ========================================
-          DEPLOYMENT URLS
-          ========================================
+          echo "BackOffice URL: ${{ steps.get_urls.outputs.backoffice_url }}" > deploy-urls.txt
+          echo "FrontOffice URL: ${{ steps.get_urls.outputs.frontoffice_url }}" >> deploy-urls.txt
+          echo "API URL: ${{ steps.get_urls.outputs.api_url }}" >> deploy-urls.txt
 
-          ALB DNS: ${{ steps.get_urls.outputs.alb_dns }}
-
-          BackOffice URL:  ${{ steps.get_urls.outputs.backoffice_url }}
-          FrontOffice URL: ${{ steps.get_urls.outputs.frontoffice_url }}
-          API URL:         ${{ steps.get_urls.outputs.api_url }}
-
-          ========================================
-          EOF
-
-      - name: Upload deployment URLs artifact
+      - name: Upload deploy URLs artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: deployment-urls
-          path: deployment-urls.txt
+          name: deploy-urls
+          path: deploy-urls.txt
 
     outputs:
       backoffice_url: ${{ steps.get_urls.outputs.backoffice_url }}
       frontoffice_url: ${{ steps.get_urls.outputs.frontoffice_url }}
       api_url: ${{ steps.get_urls.outputs.api_url }}
-      alb_dns: ${{ steps.get_urls.outputs.alb_dns }}

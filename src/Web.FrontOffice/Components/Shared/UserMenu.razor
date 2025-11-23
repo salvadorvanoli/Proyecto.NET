@@ -66,10 +66,10 @@ else
             Logger.LogInformation("UserMenu CheckAuthenticationState - START");
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
-            
+
             isLoggedIn = user?.Identity?.IsAuthenticated ?? false;
             userName = user?.Identity?.Name ?? string.Empty;
-            Logger.LogInformation("UserMenu CheckAuthenticationState - User: {User}, IsAuthenticated: {IsAuth}", 
+            Logger.LogInformation("UserMenu CheckAuthenticationState - User: {User}, IsAuthenticated: {IsAuth}",
                 userName, isLoggedIn);
         }
         catch (Exception ex)
@@ -82,12 +82,11 @@ else
 
     private void NavigateToLogin()
     {
-        Navigation.NavigateTo("/Auth/Login", forceLoad: true);
+        Navigation.NavigateTo("Auth/Login");
     }
 
     private void NavigateToLogout()
     {
-        Navigation.NavigateTo("/Auth/Logout", forceLoad: true);
+        Navigation.NavigateTo("Auth/Logout");
     }
 }
-
