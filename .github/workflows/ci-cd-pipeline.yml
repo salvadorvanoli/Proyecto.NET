@@ -238,11 +238,10 @@ jobs:
               executionRoleArn: .executionRoleArn,
               networkMode: .networkMode,
               containerDefinitions: [
-                .containerDefinitions[0] | {
+                .containerDefinitions[0] |
+                {
                   name: .name,
                   image: .image,
-                  cpu: .cpu,
-                  memory: .memory,
                   portMappings: .portMappings,
                   essential: .essential,
                   environment: (
@@ -250,16 +249,17 @@ jobs:
                     | map(select(.name != "ApiSettings__BaseUrl" and .name != "ApiBaseUrl"))
                     + [{"name": "ApiSettings__BaseUrl", "value": $api_url}]
                   ),
-                  mountPoints: .mountPoints,
-                  volumesFrom: .volumesFrom,
+                  mountPoints: (.mountPoints // []),
+                  volumesFrom: (.volumesFrom // []),
                   logConfiguration: .logConfiguration
                 }
               ],
               requiresCompatibilities: .requiresCompatibilities,
               cpu: .cpu,
-              memory: .memory,
-              volumes: (.volumes // [])
+              memory: .memory
             }
+            # Agregar volumes solo si existen
+            | if .volumes != null and (.volumes | length) > 0 then . + {volumes: .volumes} else . end
           ')
 
           # Save to temporary file for debugging
