@@ -315,6 +315,8 @@ jobs:
   build:
     name: Build & push images
     runs-on: ubuntu-latest
+    needs: infra
+    if: ${{ always() && (github.event.inputs.run_infra == 'false' || needs.infra.result == 'success' || needs.infra.result == 'skipped') }}
     env:
       ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
       API_REPO: proyectonet-api
@@ -373,8 +375,8 @@ jobs:
 
   update-services:
     name: Update ECS services
-    if: ${{ github.event.inputs.run_update_services != 'false' }}
-    needs: build
+    if: ${{ always() && github.event.inputs.run_update_services != 'false' && (needs.build.result == 'success' || needs.build.result == 'skipped') }}
+    needs: [infra, build]
     runs-on: ubuntu-latest
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
@@ -398,6 +400,89 @@ jobs:
           # cleanup
           rm -rf awscliv2.zip aws/
 
+      - name: Update FrontOffice task definition with ALB URL
+        if: ${{ github.event.inputs.deploy_frontoffice != 'false' }}
+        run: |
+          set -euo pipefail
+          echo "🔧 Updating FrontOffice task definition with correct ALB URL..."
+
+          # Get ALB DNS
+          alb_dns=$(aws elbv2 describe-load-balancers --region "$AWS_REGION" --query 'LoadBalancers[?contains(LoadBalancerName, `proyectonet`)].DNSName' --output text)
+
+          if [ -z "$alb_dns" ]; then
+            echo "❌ ALB DNS not found. Skipping task definition update."
+            exit 0
+          fi
+
+          echo "✅ ALB DNS: $alb_dns"
+          api_base_url="http://${alb_dns}/api"
+          echo "✅ API Base URL: $api_base_url"
+
+          # Get current task definition for FrontOffice
+          task_family="proyectonet-frontoffice"
+          echo "📋 Getting current task definition for family: $task_family"
+
+          current_task_def=$(aws ecs describe-task-definition --task-definition "$task_family" --region "$AWS_REGION" --query 'taskDefinition' --output json)
+
+          if [ -z "$current_task_def" ] || [ "$current_task_def" = "null" ]; then
+            echo "⚠️ Task definition not found. It will be created by Terraform on first deployment."
+            exit 0
+          fi
+
+          # Update the environment variables in the task definition
+          echo "🔄 Updating environment variables..."
+          new_task_def=$(echo "$current_task_def" | jq --arg api_url "$api_base_url" '
+            {
+              family: .family,
+              taskRoleArn: .taskRoleArn,
+              executionRoleArn: .executionRoleArn,
+              networkMode: .networkMode,
+              containerDefinitions: [
+                .containerDefinitions[0] |
+                {
+                  name: .name,
+                  image: .image,
+                  portMappings: .portMappings,
+                  essential: .essential,
+                  environment: (
+                    (.environment // [])
+                    | map(select(.name != "ApiSettings__BaseUrl" and .name != "ApiBaseUrl"))
+                    + [{"name": "ApiSettings__BaseUrl", "value": $api_url}]
+                  ),
+                  mountPoints: (.mountPoints // []),
+                  volumesFrom: (.volumesFrom // []),
+                  logConfiguration: .logConfiguration
+                }
+              ],
+              requiresCompatibilities: .requiresCompatibilities,
+              cpu: .cpu,
+              memory: .memory
+            }
+            # Agregar volumes solo si existen
+            | if .volumes != null and (.volumes | length) > 0 then . + {volumes: .volumes} else . end
+          ')
+
+          # Save to temporary file for debugging
+          echo "$new_task_def" > /tmp/task-def.json
+          echo "📄 Task definition preview:"
+          cat /tmp/task-def.json | jq -C '.' || cat /tmp/task-def.json
+
+          # Register new task definition
+          echo "📝 Registering new task definition..."
+          new_task_def_arn=$(aws ecs register-task-definition \
+            --cli-input-json file:///tmp/task-def.json \
+            --region "$AWS_REGION" \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+
+          if [ -z "$new_task_def_arn" ]; then
+            echo "❌ Failed to register new task definition"
+            exit 1
+          fi
+
+          echo "✅ New task definition registered: $new_task_def_arn"
+          echo "FRONTOFFICE_TASK_DEF_ARN=$new_task_def_arn" >> $GITHUB_ENV
+
       - name: Update ECS services to force new deployment
         run: |
           set -euo pipefail
@@ -420,7 +505,14 @@ jobs:
             echo "Checking service: $svcName"
             if echo "$svcName" | grep -qi "backoffice" || echo "$svcName" | grep -qi "api" || echo "$svcName" | grep -qi "frontoffice"; then
               echo "Forcing new deployment for $svcName"
-              aws ecs update-service --cluster "$clusterName" --service "$svcName" --force-new-deployment --region "$AWS_REGION"
+
+              # Si es FrontOffice y tenemos una nueva task definition, usarla
+              if echo "$svcName" | grep -qi "frontoffice" && [ -n "${FRONTOFFICE_TASK_DEF_ARN:-}" ]; then
+                echo "Using new task definition: $FRONTOFFICE_TASK_DEF_ARN"
+                aws ecs update-service --cluster "$clusterName" --service "$svcName" --task-definition "$FRONTOFFICE_TASK_DEF_ARN" --force-new-deployment --region "$AWS_REGION"
+              else
+                aws ecs update-service --cluster "$clusterName" --service "$svcName" --force-new-deployment --region "$AWS_REGION"
+              fi
             else
               echo "Skipping $svcName"
             fi
@@ -468,21 +560,21 @@ jobs:
 
           if [ -n "$dns" ] && [ "$dns" != "None" ]; then
             echo "Found ALB DNS: $dns"
-
-            # Construct URLs for all services
             backoffice_url="http://$dns"
             frontoffice_url="http://$dns/frontoffice"
             api_url="http://$dns/api"
 
-            echo "BackOffice URL: $backoffice_url"
-            echo "FrontOffice URL: $frontoffice_url"
-            echo "API URL: $api_url"
+            echo "=================================================="
+            echo "🎉 DEPLOYMENT SUCCESSFUL!"
+            echo "=================================================="
+            echo "📍 BackOffice URL:  $backoffice_url"
+            echo "📍 FrontOffice URL: $frontoffice_url"
+            echo "📍 API URL:         $api_url"
+            echo "=================================================="
 
-            # Save to GitHub outputs
             echo "backoffice_url=$backoffice_url" >> $GITHUB_OUTPUT
             echo "frontoffice_url=$frontoffice_url" >> $GITHUB_OUTPUT
             echo "api_url=$api_url" >> $GITHUB_OUTPUT
-            echo "alb_dns=$dns" >> $GITHUB_OUTPUT
           else
             echo "No ALB DNS found via AWS CLI. Trying terraform state file as fallback..."
             if [ -f terraform/terraform.tfstate ]; then
@@ -490,61 +582,57 @@ jobs:
               frontoffice_url=$(jq -r '.outputs.frontoffice_url.value' terraform/terraform.tfstate 2>/dev/null || echo "NOT_FOUND")
               api_url=$(jq -r '.outputs.api_url.value' terraform/terraform.tfstate 2>/dev/null || echo "NOT_FOUND")
 
-              echo "backoffice_url=$backoffice_url" >> $GITHUB_OUTPUT
-              echo "frontoffice_url=$frontoffice_url" >> $GITHUB_OUTPUT
-              echo "api_url=$api_url" >> $GITHUB_OUTPUT
-              echo "alb_dns=NOT_FOUND" >> $GITHUB_OUTPUT
+              if [ "$backoffice_url" != "NOT_FOUND" ] && [ "$backoffice_url" != "null" ]; then
+                echo "=================================================="
+                echo "🎉 DEPLOYMENT SUCCESSFUL!"
+                echo "=================================================="
+                echo "📍 BackOffice URL:  $backoffice_url"
+                echo "📍 FrontOffice URL: $frontoffice_url"
+                echo "📍 API URL:         $api_url"
+                echo "=================================================="
+
+                echo "backoffice_url=$backoffice_url" >> $GITHUB_OUTPUT
+                echo "frontoffice_url=$frontoffice_url" >> $GITHUB_OUTPUT
+                echo "api_url=$api_url" >> $GITHUB_OUTPUT
+              else
+                echo "No URLs found in terraform.tfstate"
+                echo "backoffice_url=NOT_FOUND" >> $GITHUB_OUTPUT
+                echo "frontoffice_url=NOT_FOUND" >> $GITHUB_OUTPUT
+                echo "api_url=NOT_FOUND" >> $GITHUB_OUTPUT
+              fi
             else
               echo "terraform.tfstate not present in repository"
               echo "backoffice_url=NOT_FOUND" >> $GITHUB_OUTPUT
               echo "frontoffice_url=NOT_FOUND" >> $GITHUB_OUTPUT
               echo "api_url=NOT_FOUND" >> $GITHUB_OUTPUT
-              echo "alb_dns=NOT_FOUND" >> $GITHUB_OUTPUT
             fi
           fi
 
-      - name: Show deployment URLs
+      - name: Show final URLs
         run: |
-          echo "=========================================="
-          echo "  DEPLOYMENT COMPLETED SUCCESSFULLY"
-          echo "=========================================="
-          echo ""
-          echo "📍 ALB DNS: ${{ steps.get_urls.outputs.alb_dns }}"
-          echo ""
-          echo "🌐 Application URLs:"
-          echo "   • BackOffice:  ${{ steps.get_urls.outputs.backoffice_url }}"
-          echo "   • FrontOffice: ${{ steps.get_urls.outputs.frontoffice_url }}"
-          echo "   • API:         ${{ steps.get_urls.outputs.api_url }}"
-          echo ""
-          echo "=========================================="
-          echo ""
+          echo "=================================================="
+          echo "📋 DEPLOYMENT SUMMARY"
+          echo "=================================================="
+          echo "BackOffice URL:  ${{ steps.get_urls.outputs.backoffice_url }}"
+          echo "FrontOffice URL: ${{ steps.get_urls.outputs.frontoffice_url }}"
+          echo "API URL:         ${{ steps.get_urls.outputs.api_url }}"
+          echo "=================================================="
 
-      - name: Write deployment URLs to file
+      - name: Write deploy URLs to file
         if: always()
         run: |
-          cat > deployment-urls.txt << EOF
-          ========================================
-          DEPLOYMENT URLS
-          ========================================
+          echo "BackOffice URL: ${{ steps.get_urls.outputs.backoffice_url }}" > deploy-urls.txt
+          echo "FrontOffice URL: ${{ steps.get_urls.outputs.frontoffice_url }}" >> deploy-urls.txt
+          echo "API URL: ${{ steps.get_urls.outputs.api_url }}" >> deploy-urls.txt
 
-          ALB DNS: ${{ steps.get_urls.outputs.alb_dns }}
-
-          BackOffice URL:  ${{ steps.get_urls.outputs.backoffice_url }}
-          FrontOffice URL: ${{ steps.get_urls.outputs.frontoffice_url }}
-          API URL:         ${{ steps.get_urls.outputs.api_url }}
-
-          ========================================
-          EOF
-
-      - name: Upload deployment URLs artifact
+      - name: Upload deploy URLs artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: deployment-urls
-          path: deployment-urls.txt
+          name: deploy-urls
+          path: deploy-urls.txt
 
     outputs:
       backoffice_url: ${{ steps.get_urls.outputs.backoffice_url }}
       frontoffice_url: ${{ steps.get_urls.outputs.frontoffice_url }}
       api_url: ${{ steps.get_urls.outputs.api_url }}
-      alb_dns: ${{ steps.get_urls.outputs.alb_dns }}

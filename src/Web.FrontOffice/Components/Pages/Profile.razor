@@ -28,7 +28,7 @@
                 @if (errorMessage.Contains("iniciar sesión"))
                 {
                     <hr />
-                    <a href="/login" class="btn btn-primary">Iniciar Sesión</a>
+                    <a href="Auth/Login" class="btn btn-primary">Iniciar Sesión</a>
                 }
             }
             else
@@ -98,7 +98,7 @@
             // Obtener userId desde los claims del usuario autenticado
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
-            
+
             var userIdClaim = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
             if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
             {

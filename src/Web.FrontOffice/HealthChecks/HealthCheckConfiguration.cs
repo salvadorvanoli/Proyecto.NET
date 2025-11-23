@@ -12,11 +12,21 @@ public static class HealthCheckConfiguration
     {
         var healthChecksBuilder = services.AddHealthChecks();
 
-        var apiBaseUrl = configuration["API_BASE_URL"];
+        var apiBaseUrl = configuration["API_BASE_URL"] ?? Environment.GetEnvironmentVariable("API_BASE_URL");
         if (!string.IsNullOrEmpty(apiBaseUrl))
         {
+            // Normalizar la URL base (quitar /api si ya está presente)
+            apiBaseUrl = apiBaseUrl.TrimEnd('/');
+            if (apiBaseUrl.EndsWith("/api"))
+            {
+                apiBaseUrl = apiBaseUrl.Substring(0, apiBaseUrl.Length - 4);
+            }
+
+            // Construir la URL del health check
+            var apiHealthUrl = apiBaseUrl + "/api/health";
+
             healthChecksBuilder.AddUrlGroup(
-                new Uri($"{apiBaseUrl}/health"),
+                new Uri(apiHealthUrl),
                 name: "api",
                 failureStatus: HealthStatus.Unhealthy,
                 tags: new[] { "api", "external" });
