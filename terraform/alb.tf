@@ -37,6 +37,12 @@ resource "aws_lb_target_group" "api" {
 
   deregistration_delay = 30
 
+  stickiness {
+    type            = "lb_cookie"
+    cookie_duration = 28800  # 8 horas - necesario para SignalR WebSockets
+    enabled         = true
+  }
+
   tags = {
     Name        = "${var.project_name}-api-tg"
     Environment = var.environment

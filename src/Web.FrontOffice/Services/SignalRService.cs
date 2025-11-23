@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.AspNetCore.Http.Connections;
 
 namespace Web.FrontOffice.Services;
 
@@ -49,13 +50,50 @@ public class SignalRService : IAsyncDisposable
             _currentUserId = userId;
 
             // Construir la URL del hub con el userId como query parameter
-            var hubUrl = $"{_apiUrl.TrimEnd('/')}/notificationHub?userId={userId}";
-            
+            // IMPORTANTE: Incluir /api porque el hub está en la API que está detrás de /api en el ALB
+            var apiBaseUrl = _apiUrl.TrimEnd('/');
+            var hubUrl = $"{apiBaseUrl}/notificationHub?userId={userId}";
+
             _logger.LogInformation("Intentando conectar a SignalR: {HubUrl}", hubUrl);
 
             _hubConnection = new HubConnectionBuilder()
-                .WithUrl(hubUrl)
-                .WithAutomaticReconnect()
+                .WithUrl(hubUrl, options =>
+                {
+                    // Configurar transportes múltiples para mejor compatibilidad con ALB
+                    // Intentará WebSockets primero, luego ServerSentEvents, y finalmente LongPolling
+                    options.Transports = HttpTransportType.WebSockets |
+                                        HttpTransportType.ServerSentEvents |
+                                        HttpTransportType.LongPolling;
+
+                    // Configurar timeouts más largos para conexiones a través de ALB
+                    options.CloseTimeout = TimeSpan.FromSeconds(60);
+
+                    // Habilitar cookies para sticky sessions del ALB
+                    options.HttpMessageHandlerFactory = (handler) =>
+                    {
+                        if (handler is HttpClientHandler clientHandler)
+                        {
+                            clientHandler.UseCookies = true;
+                            clientHandler.UseDefaultCredentials = false;
+                        }
+                        return handler;
+                    };
+
+                    // Agregar headers adicionales si es necesario
+                    options.Headers["X-Requested-With"] = "SignalR";
+                })
+                .WithAutomaticReconnect(new[]
+                {
+                    TimeSpan.Zero,
+                    TimeSpan.FromSeconds(2),
+                    TimeSpan.FromSeconds(5),
+                    TimeSpan.FromSeconds(10),
+                    TimeSpan.FromSeconds(30)
+                })
+                .ConfigureLogging(logging =>
+                {
+                    logging.SetMinimumLevel(LogLevel.Information);
+                })
                 .Build();
 
             // Escuchar el evento "ReceiveNotification"
@@ -90,7 +128,8 @@ public class SignalRService : IAsyncDisposable
             };
 
             await _hubConnection.StartAsync();
-            _logger.LogInformation("✅ Conexión SignalR establecida exitosamente para userId: {UserId}", userId);
+            _logger.LogInformation("✅ Conexión SignalR establecida exitosamente para userId: {UserId}, ConnectionId: {ConnectionId}",
+                userId, _hubConnection.ConnectionId ?? "N/A");
         }
         catch (Exception ex)
         {
