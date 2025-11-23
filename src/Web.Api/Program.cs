@@ -58,7 +58,14 @@ try
     });
 
     builder.Services.AddControllers();
-    builder.Services.AddSignalR();
+    builder.Services.AddSignalR(options =>
+    {
+        // Configurar para trabajar mejor con ALB de AWS
+        options.EnableDetailedErrors = true;
+        options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+        options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
+        options.HandshakeTimeout = TimeSpan.FromSeconds(15);
+    });
 
     // Registrar TenantAuthorizationFilter como servicio para uso con atributos
     builder.Services.AddScoped<TenantAuthorizationFilter>();
@@ -193,6 +200,15 @@ try
                     policy.WithOrigins(allowedOrigins)
                         .AllowAnyMethod()
                         .AllowAnyHeader()
+                        .AllowCredentials(); // Necesario para SignalR
+                }
+                else
+                {
+                    // Si no hay orígenes configurados, permitir cualquier origen pero sin credenciales
+                    // Esto es útil para cuando las apps están detrás del mismo ALB
+                    policy.SetIsOriginAllowed(_ => true)
+                        .AllowAnyMethod()
+                        .AllowAnyHeader()
                         .AllowCredentials();
                 }
             }
@@ -211,28 +227,6 @@ try
     builder.Services.AddSwaggerGen();
 
     var app = builder.Build();
-
-    // ========================================
-    // CONFIGURACIÓN PARA PROXY/ALB: PathBase y Forwarded Headers
-    // ========================================
-    app.UseForwardedHeaders(new ForwardedHeadersOptions
-    {
-        ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor
-                         | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
-                         | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedHost
-    });
-
-    // Configurar PathBase si la API está detrás de un ALB/proxy con ruta /api
-    var pathBase = builder.Configuration.GetValue<string>("PathBase");
-    if (!string.IsNullOrEmpty(pathBase))
-    {
-        app.UsePathBase(pathBase);
-        app.Use((context, next) =>
-        {
-            context.Request.PathBase = pathBase;
-            return next();
-        });
-    }
 
     using (var scope = app.Services.CreateScope())
     {
@@ -292,6 +286,17 @@ try
     {
         app.UseSwagger();
         app.UseSwaggerUI();
+    }
+
+    // ========================================
+    // CONFIGURACIÓN: Path Base para ALB
+    // ========================================
+    // Cuando la API está detrás de un ALB con path /api, necesitamos configurar el path base
+    var pathBase = builder.Configuration["PathBase"] ?? Environment.GetEnvironmentVariable("PATH_BASE");
+    if (!string.IsNullOrEmpty(pathBase))
+    {
+        app.UsePathBase(pathBase);
+        Log.Information($"API configured to use path base: {pathBase}");
     }
 
     // ========================================

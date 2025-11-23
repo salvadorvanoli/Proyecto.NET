@@ -8,4 +8,6 @@ public interface ILocalDatabase
     Task<List<LocalAccessEvent>> GetUnsyncedEventsAsync(int userId);
     Task MarkEventAsSyncedAsync(int eventId);
     Task<int> GetTotalEventsCountAsync(int userId);
+    Task DeleteAllUserAccessEventsAsync(int userId);
+    Task DeleteUnsyncedEventsAsync(int userId);
 }

@@ -27,4 +27,10 @@ public interface IApplicationDbContext
     DbSet<Usage> Usages { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Hydrates TimeRange and ValidityPeriod properties from shadow properties for AccessRules.
+    /// This method is needed because these properties are stored as shadow properties in the database.
+    /// </summary>
+    void HydrateAccessRuleProperties(AccessRule accessRule);
 }

@@ -20,4 +20,9 @@ public class LocalAccessEvent
     /// Indica si este evento ya fue sincronizado con el servidor
     /// </summary>
     public bool IsSynced { get; set; }
+    
+    /// <summary>
+    /// ID del evento en el backend (null si es solo local)
+    /// </summary>
+    public int? BackendId { get; set; }
 }

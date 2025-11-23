@@ -1,0 +1,65 @@
+﻿@* Componente para inicializar la conexión SignalR automáticamente *@
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using Web.FrontOffice.Services
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SignalRService SignalRService
+@inject ILogger<SignalRInitializer> Logger
+@implements IAsyncDisposable
+
+@code {
+    private bool _isInitialized = false;
+    private int _userId = 0;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_isInitialized)
+        {
+            await InitializeSignalRConnection();
+            _isInitialized = true;
+        }
+    }
+
+    private async Task InitializeSignalRConnection()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user?.Identity?.IsAuthenticated == true)
+            {
+                var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim != null && int.TryParse(userIdClaim.Value, out var userId))
+                {
+                    _userId = userId;
+                    Logger.LogInformation("🔌 Inicializando conexión SignalR para userId: {UserId}", userId);
+
+                    // Conectar a SignalR
+                    await SignalRService.StartConnectionAsync(userId);
+
+                    Logger.LogInformation("✅ SignalR inicializado correctamente");
+                }
+                else
+                {
+                    Logger.LogWarning("⚠️ No se pudo obtener el userId del usuario autenticado");
+                }
+            }
+            else
+            {
+                Logger.LogInformation("ℹ️ Usuario no autenticado, no se conecta a SignalR");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "❌ Error al inicializar SignalR");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        // No desconectar porque el servicio es Singleton y puede haber otros componentes usándolo
+        await Task.CompletedTask;
+    }
+}

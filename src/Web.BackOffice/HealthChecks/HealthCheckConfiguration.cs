@@ -25,8 +25,10 @@ public static class HealthCheckConfiguration
         var apiBaseUrl = configuration["API_BASE_URL"];
         if (!string.IsNullOrEmpty(apiBaseUrl))
         {
+            // Asegurar que la URL incluya /api/health
+            var apiHealthUrl = apiBaseUrl.TrimEnd('/') + "/api/health";
             healthChecksBuilder.AddUrlGroup(
-                new Uri($"{apiBaseUrl}/health"),
+                new Uri(apiHealthUrl),
                 name: "api",
                 failureStatus: HealthStatus.Degraded,
                 tags: new[] { "api", "external" });

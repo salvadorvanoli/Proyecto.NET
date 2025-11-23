@@ -23,6 +23,7 @@ public class AccessEventService : IAccessEventService
     {
         var events = await _context.AccessEvents
             .Include(e => e.ControlPoint)
+                .ThenInclude(cp => cp.Space)
             .Where(e => e.UserId == userId)
             .OrderByDescending(e => e.EventDateTime)
             .ToListAsync();
@@ -34,6 +35,7 @@ public class AccessEventService : IAccessEventService
     {
         var events = await _context.AccessEvents
             .Include(e => e.ControlPoint)
+                .ThenInclude(cp => cp.Space)
             .OrderByDescending(e => e.EventDateTime)
             .ToListAsync();
 
@@ -44,6 +46,7 @@ public class AccessEventService : IAccessEventService
     {
         var accessEvent = await _context.AccessEvents
             .Include(e => e.ControlPoint)
+                .ThenInclude(cp => cp.Space)
             .Where(e => e.Id == eventId)
             .FirstOrDefaultAsync();
 
@@ -84,6 +87,7 @@ public class AccessEventService : IAccessEventService
 
         var createdEvent = await _context.AccessEvents
             .Include(e => e.ControlPoint)
+                .ThenInclude(cp => cp.Space)
             .FirstOrDefaultAsync(e => e.Id == accessEvent.Id);
 
         return MapToResponse(createdEvent!);
@@ -91,15 +95,25 @@ public class AccessEventService : IAccessEventService
 
     private static AccessEventResponse MapToResponse(AccessEvent accessEvent)
     {
+        // Asegurar que EventDateTime se especifique como UTC
+        var eventDateTimeUtc = accessEvent.EventDateTime.Kind == DateTimeKind.Utc
+            ? accessEvent.EventDateTime
+            : DateTime.SpecifyKind(accessEvent.EventDateTime, DateTimeKind.Utc);
+        
         return new AccessEventResponse
         {
             Id = accessEvent.Id,
-            EventDateTime = accessEvent.EventDateTime,
+            EventDateTime = eventDateTimeUtc,
             Result = accessEvent.Result.ToString(),
             ControlPoint = new ControlPointResponse
             {
                 Id = accessEvent.ControlPoint.Id,
-                Name = accessEvent.ControlPoint.Name
+                Name = accessEvent.ControlPoint.Name,
+                Space = new SpaceResponse
+                {
+                    Id = accessEvent.ControlPoint.Space.Id,
+                    Name = accessEvent.ControlPoint.Space.Name
+                }
             },
             UserId = accessEvent.UserId
         };

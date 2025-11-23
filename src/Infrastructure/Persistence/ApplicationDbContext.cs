@@ -1,4 +1,5 @@
 using Application.Common.Interfaces;
+using Domain.DataTypes;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,6 +17,10 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
         ITenantProvider? tenantProvider) : base(options)
     {
         _tenantProvider = tenantProvider;
+
+        // Subscribe to StateChanged event to reconstruct ValidityPeriod when entities are loaded
+        ChangeTracker.StateChanged += OnEntityStateChanged;
+        ChangeTracker.Tracked += OnEntityTracked;
     }
 
     // DbSets for all entities
@@ -121,6 +126,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     /// <summary>
     /// Updates timestamps for entities being added or modified.
     /// Uses reflection to call protected UpdateTimestamp method.
+    /// Also synchronizes shadow properties for ValidityPeriod.
     /// </summary>
     private void UpdateTimestamps()
     {
@@ -138,5 +144,123 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
 
             method?.Invoke(entity, null);
         }
+
+        // Synchronize ValidityPeriod shadow properties for Benefit entities
+        var benefitEntries = ChangeTracker.Entries<Benefit>()
+            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
+
+        foreach (var entry in benefitEntries)
+        {
+            var benefit = entry.Entity;
+            if (benefit.ValidityPeriod.HasValue)
+            {
+                entry.Property("ValidityStartDate").CurrentValue = benefit.ValidityPeriod.Value.StartDate;
+                entry.Property("ValidityEndDate").CurrentValue = benefit.ValidityPeriod.Value.EndDate;
+            }
+            else
+            {
+                entry.Property("ValidityStartDate").CurrentValue = null;
+                entry.Property("ValidityEndDate").CurrentValue = null;
+            }
+        }
+
+        // Synchronize ValidityPeriod and TimeRange shadow properties for AccessRule entities
+        var accessRuleEntries = ChangeTracker.Entries<AccessRule>()
+            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
+
+        foreach (var entry in accessRuleEntries)
+        {
+            var accessRule = entry.Entity;
+            
+            // Synchronize ValidityPeriod
+            if (accessRule.ValidityPeriod.HasValue)
+            {
+                entry.Property("ValidityStartDate").CurrentValue = accessRule.ValidityPeriod.Value.StartDate;
+                entry.Property("ValidityEndDate").CurrentValue = accessRule.ValidityPeriod.Value.EndDate;
+            }
+            else
+            {
+                entry.Property("ValidityStartDate").CurrentValue = null;
+                entry.Property("ValidityEndDate").CurrentValue = null;
+            }
+            
+            // Synchronize TimeRange
+            if (accessRule.TimeRange.HasValue)
+            {
+                entry.Property("TimeRangeStartTime").CurrentValue = accessRule.TimeRange.Value.StartTime;
+                entry.Property("TimeRangeEndTime").CurrentValue = accessRule.TimeRange.Value.EndTime;
+            }
+            else
+            {
+                entry.Property("TimeRangeStartTime").CurrentValue = null;
+                entry.Property("TimeRangeEndTime").CurrentValue = null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Event handler when entity is first tracked (loaded from database).
+    /// </summary>
+    private void OnEntityTracked(object? sender, Microsoft.EntityFrameworkCore.ChangeTracking.EntityTrackedEventArgs e)
+    {
+        ReconstructValidityPeriod(e.Entry);
+    }
+
+    /// <summary>
+    /// Event handler when entity state changes.
+    /// </summary>
+    private void OnEntityStateChanged(object? sender, Microsoft.EntityFrameworkCore.ChangeTracking.EntityStateChangedEventArgs e)
+    {
+        if (e.NewState == EntityState.Unchanged || e.NewState == EntityState.Modified)
+        {
+            ReconstructValidityPeriod(e.Entry);
+        }
+    }
+
+    /// <summary>
+    /// Reconstructs ValidityPeriod from shadow properties when loading entities.
+    /// </summary>
+    private void ReconstructValidityPeriod(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry)
+    {
+        if (entry.Entity is Benefit benefit)
+        {
+            var startDate = entry.Property("ValidityStartDate").CurrentValue as DateOnly?;
+            var endDate = entry.Property("ValidityEndDate").CurrentValue as DateOnly?;
+
+            if (startDate.HasValue && endDate.HasValue)
+            {
+                var validityPeriodProperty = typeof(Benefit).GetProperty("ValidityPeriod");
+                validityPeriodProperty?.SetValue(benefit, new DateRange(startDate.Value, endDate.Value));
+            }
+        }
+        else if (entry.Entity is AccessRule accessRule)
+        {
+            var startDate = entry.Property("ValidityStartDate").CurrentValue as DateOnly?;
+            var endDate = entry.Property("ValidityEndDate").CurrentValue as DateOnly?;
+            var startTime = entry.Property("TimeRangeStartTime").CurrentValue as TimeOnly?;
+            var endTime = entry.Property("TimeRangeEndTime").CurrentValue as TimeOnly?;
+
+            if (startDate.HasValue && endDate.HasValue)
+            {
+                var validityPeriodProperty = typeof(AccessRule).GetProperty("ValidityPeriod");
+                validityPeriodProperty?.SetValue(accessRule, new DateRange(startDate.Value, endDate.Value));
+            }
+            
+            if (startTime.HasValue && endTime.HasValue)
+            {
+                var timeRangeProperty = typeof(AccessRule).GetProperty("TimeRange");
+                timeRangeProperty?.SetValue(accessRule, new TimeRange(startTime.Value, endTime.Value));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Public method to hydrate AccessRule properties from shadow properties.
+    /// Used by Application layer when needed.
+    /// </summary>
+    public void HydrateAccessRuleProperties(AccessRule accessRule)
+    {
+        var entry = Entry(accessRule);
+        ReconstructValidityPeriod(entry);
     }
 }

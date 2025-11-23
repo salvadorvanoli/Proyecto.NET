@@ -19,4 +19,14 @@ public class ControlPointResponse
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
+    public SpaceResponse Space { get; set; } = null!;
+}
+
+/// <summary>
+/// Response DTO for space information.
+/// </summary>
+public class SpaceResponse
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
 }

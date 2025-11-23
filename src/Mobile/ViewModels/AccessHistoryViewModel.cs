@@ -2,13 +2,17 @@ using Mobile.Models;
 using Mobile.Services;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using Mobile.Messages;
 
 namespace Mobile.ViewModels;
 
 public class AccessHistoryViewModel : BaseViewModel
 {
     private readonly IAccessEventService _accessEventService;
+    private readonly IDialogService _dialogService;
     private readonly SemaphoreSlim _loadSemaphore = new SemaphoreSlim(1, 1);
+    private NetworkAccess _previousNetworkAccess;
     
     private bool _isLoading;
     private bool _isLoadingMore;
@@ -40,9 +44,18 @@ public class AccessHistoryViewModel : BaseViewModel
     public ICommand LoadMoreCommand { get; }
     public ICommand RefreshCommand { get; }
 
-    public AccessHistoryViewModel(IAccessEventService accessEventService)
+    /// <summary>
+    /// Initializes the ViewModel. Called when the page appears.
+    /// </summary>
+    public async Task InitializeAsync()
+    {
+        await RefreshEventsAsync();
+    }
+
+    public AccessHistoryViewModel(IAccessEventService accessEventService, IDialogService dialogService)
     {
         _accessEventService = accessEventService;
+        _dialogService = dialogService;
         
         Title = "Historial de Accesos";
         
@@ -52,8 +65,14 @@ public class AccessHistoryViewModel : BaseViewModel
 
         System.Diagnostics.Debug.WriteLine("🔔 AccessHistoryViewModel constructor - Suscribiéndose a mensajes");
 
+        // Guardar estado inicial de conectividad
+        _previousNetworkAccess = Connectivity.NetworkAccess;
+
+        // Suscribirse a cambios de conectividad
+        Connectivity.ConnectivityChanged += OnConnectivityChanged;
+
         // Suscribirse a notificaciones de nuevos eventos
-        MessagingCenter.Subscribe<CredentialViewModel>(this, "AccessEventCreated", async (sender) =>
+        WeakReferenceMessenger.Default.Register<AccessEventCreatedMessage>(this, async (recipient, message) =>
         {
             System.Diagnostics.Debug.WriteLine("📬 MENSAJE RECIBIDO: AccessEventCreated en AccessHistoryViewModel");
             await MainThread.InvokeOnMainThreadAsync(async () =>
@@ -64,7 +83,7 @@ public class AccessHistoryViewModel : BaseViewModel
         });
 
         // Suscribirse a notificaciones de sincronización completada
-        MessagingCenter.Subscribe<Services.SyncService>(this, "EventsSynced", async (sender) =>
+        WeakReferenceMessenger.Default.Register<EventsSyncedMessage>(this, async (recipient, message) =>
         {
             System.Diagnostics.Debug.WriteLine("📬 MENSAJE RECIBIDO: EventsSynced en AccessHistoryViewModel");
             await MainThread.InvokeOnMainThreadAsync(async () =>
@@ -75,9 +94,21 @@ public class AccessHistoryViewModel : BaseViewModel
         });
     }
 
-    public async Task InitializeAsync()
+    private async void OnConnectivityChanged(object? sender, ConnectivityChangedEventArgs e)
     {
-        await LoadEventsAsync();
+        System.Diagnostics.Debug.WriteLine($"🌐 Conectividad cambió: {_previousNetworkAccess} → {e.NetworkAccess}");
+        
+        // Solo recargar si pasamos de offline a online
+        if (_previousNetworkAccess != NetworkAccess.Internet && e.NetworkAccess == NetworkAccess.Internet)
+        {
+            System.Diagnostics.Debug.WriteLine("✅ Reconectado a Internet - Recargando historial");
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                await RefreshEventsAsync();
+            });
+        }
+        
+        _previousNetworkAccess = e.NetworkAccess;
     }
 
     private async Task LoadEventsAsync()
@@ -114,10 +145,9 @@ public class AccessHistoryViewModel : BaseViewModel
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error loading events: {ex.Message}");
-            await Shell.Current.DisplayAlert(
+            await _dialogService.ShowAlertAsync(
                 "Error",
-                "No se pudieron cargar los eventos de acceso",
-                "OK");
+                "No se pudieron cargar los eventos de acceso");
         }
         finally
         {
@@ -163,5 +193,11 @@ public class AccessHistoryViewModel : BaseViewModel
         System.Diagnostics.Debug.WriteLine("🔄 RefreshEventsAsync LLAMADO");
         await LoadEventsAsync();
         System.Diagnostics.Debug.WriteLine("✅ LoadEventsAsync completado desde RefreshEventsAsync");
+    }
+
+    ~AccessHistoryViewModel()
+    {
+        // Desuscribirse del evento de conectividad
+        Connectivity.ConnectivityChanged -= OnConnectivityChanged;
     }
 }

@@ -40,6 +40,7 @@
 		<EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
 		<AndroidUseAssemblyStore>false</AndroidUseAssemblyStore>
 		<PublishReadyToRun>false</PublishReadyToRun>
+		<RunAOTCompilation>false</RunAOTCompilation>
 	</PropertyGroup>
 
 	<ItemGroup>

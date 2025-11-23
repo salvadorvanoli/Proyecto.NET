@@ -34,4 +34,9 @@ public class AccessValidationResult
     /// Control point name.
     /// </summary>
     public string ControlPointName { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// Space name associated with the control point.
+    /// </summary>
+    public string SpaceName { get; set; } = string.Empty;
 }

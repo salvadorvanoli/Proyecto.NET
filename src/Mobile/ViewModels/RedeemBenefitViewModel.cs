@@ -68,6 +68,14 @@ public class RedeemBenefitViewModel : BaseViewModel
     public ICommand CancelCommand { get; }
     public ICommand BackToListCommand { get; }
 
+    /// <summary>
+    /// Initializes the ViewModel. Called when the page appears.
+    /// </summary>
+    public async Task InitializeAsync()
+    {
+        await LoadBenefitsAsync();
+    }
+
     public RedeemBenefitViewModel(IBenefitService benefitService, IAuthService authService, IBiometricAuthService? biometricAuthService = null)
     {
         _benefitService = benefitService;

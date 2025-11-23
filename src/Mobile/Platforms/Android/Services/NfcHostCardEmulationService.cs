@@ -118,14 +118,26 @@ public class NfcHostCardEmulationService : HostApduService
             
             // Extract message if present
             string message = "Acceso concedido";
+            string controlPointName = "";
+            string spaceName = "";
+            
             if (commandApdu.Length > ACCESS_GRANTED_APDU.Length)
             {
                 try
                 {
                     byte[] messageBytes = new byte[commandApdu.Length - ACCESS_GRANTED_APDU.Length];
                     Array.Copy(commandApdu, ACCESS_GRANTED_APDU.Length, messageBytes, 0, messageBytes.Length);
-                    message = Encoding.UTF8.GetString(messageBytes).TrimEnd('\0');
+                    string fullMessage = Encoding.UTF8.GetString(messageBytes).TrimEnd('\0');
+                    
+                    // Parsear formato: "MENSAJE|CONTROL_POINT_NAME|SPACE_NAME"
+                    string[] parts = fullMessage.Split('|');
+                    if (parts.Length >= 1) message = parts[0];
+                    if (parts.Length >= 2) controlPointName = parts[1];
+                    if (parts.Length >= 3) spaceName = parts[2];
+                    
                     System.Diagnostics.Debug.WriteLine($"   Extracted message: '{message}'");
+                    System.Diagnostics.Debug.WriteLine($"   Control Point: '{controlPointName}'");
+                    System.Diagnostics.Debug.WriteLine($"   Space: '{spaceName}'");
                 }
                 catch (Exception ex)
                 { 
@@ -142,7 +154,9 @@ public class NfcHostCardEmulationService : HostApduService
             {
                 AccessGranted = true,
                 Message = message,
-                Timestamp = DateTime.Now
+                Timestamp = DateTime.UtcNow,
+                ControlPointName = controlPointName,
+                SpaceName = spaceName
             };
             
             OnAccessResponseReceived?.Invoke(null, response);
@@ -160,14 +174,26 @@ public class NfcHostCardEmulationService : HostApduService
             
             // Extract message if present
             string message = "Acceso denegado";
+            string controlPointName = "";
+            string spaceName = "";
+            
             if (commandApdu.Length > ACCESS_DENIED_APDU.Length)
             {
                 try
                 {
                     byte[] messageBytes = new byte[commandApdu.Length - ACCESS_DENIED_APDU.Length];
                     Array.Copy(commandApdu, ACCESS_DENIED_APDU.Length, messageBytes, 0, messageBytes.Length);
-                    message = Encoding.UTF8.GetString(messageBytes).TrimEnd('\0');
+                    string fullMessage = Encoding.UTF8.GetString(messageBytes).TrimEnd('\0');
+                    
+                    // Parsear formato: "MENSAJE|CONTROL_POINT_NAME|SPACE_NAME"
+                    string[] parts = fullMessage.Split('|');
+                    if (parts.Length >= 1) message = parts[0];
+                    if (parts.Length >= 2) controlPointName = parts[1];
+                    if (parts.Length >= 3) spaceName = parts[2];
+                    
                     System.Diagnostics.Debug.WriteLine($"   Extracted message: '{message}'");
+                    System.Diagnostics.Debug.WriteLine($"   Control Point: '{controlPointName}'");
+                    System.Diagnostics.Debug.WriteLine($"   Space: '{spaceName}'");
                 }
                 catch (Exception ex)
                 { 
@@ -184,7 +210,9 @@ public class NfcHostCardEmulationService : HostApduService
             {
                 AccessGranted = false,
                 Message = message,
-                Timestamp = DateTime.Now
+                Timestamp = DateTime.UtcNow,
+                ControlPointName = controlPointName,
+                SpaceName = spaceName
             };
             
             OnAccessResponseReceived?.Invoke(null, response);

@@ -10,6 +10,7 @@ public class AccessResponse
     public DateTime Timestamp { get; set; }
     public int? ControlPointId { get; set; }
     public string? ControlPointName { get; set; }
+    public string? SpaceName { get; set; }
 }
 
 /// <summary>

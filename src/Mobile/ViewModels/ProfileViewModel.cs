@@ -9,6 +9,8 @@ public class ProfileViewModel : BaseViewModel
 {
     private readonly IUserService _userService;
     private readonly IAuthService _authService;
+    private readonly INavigationService _navigationService;
+    private readonly IDialogService _dialogService;
     
     private UserProfileDto? _profile;
     private bool _isLoadingProfile;
@@ -35,10 +37,12 @@ public class ProfileViewModel : BaseViewModel
     public ICommand LoadProfileCommand { get; }
     public ICommand LogoutCommand { get; }
 
-    public ProfileViewModel(IUserService userService, IAuthService authService)
+    public ProfileViewModel(IUserService userService, IAuthService authService, INavigationService navigationService, IDialogService dialogService)
     {
         _userService = userService;
         _authService = authService;
+        _navigationService = navigationService;
+        _dialogService = dialogService;
         
         Title = "Mi Perfil";
         
@@ -157,7 +161,7 @@ public class ProfileViewModel : BaseViewModel
 
     private async Task LogoutAsync()
     {
-        var confirm = await Shell.Current.DisplayAlert(
+        var confirm = await _dialogService.ShowConfirmAsync(
             "Cerrar Sesión",
             "¿Estás seguro que deseas cerrar sesión?",
             "Sí",
@@ -171,7 +175,7 @@ public class ProfileViewModel : BaseViewModel
             SecureStorage.Remove("user_profile_cache");
             
             // Navegar a login
-            await Shell.Current.GoToAsync("//LoginPage");
+            await _navigationService.NavigateToAsync("//LoginPage");
         }
     }
 }

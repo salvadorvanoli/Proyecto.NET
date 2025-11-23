@@ -4,18 +4,18 @@ namespace Mobile.Pages;
 
 public partial class AccessHistoryPage : ContentPage
 {
-    private AccessHistoryViewModel ViewModel => (AccessHistoryViewModel)BindingContext;
+    private readonly AccessHistoryViewModel _viewModel;
 
     public AccessHistoryPage(AccessHistoryViewModel viewModel)
     {
         InitializeComponent();
-        BindingContext = viewModel;
+        _viewModel = viewModel;
+        BindingContext = _viewModel;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        // Siempre refrescar al entrar a la pestaña
-        await ViewModel.RefreshEventsAsync();
+        await _viewModel.InitializeAsync();
     }
 }

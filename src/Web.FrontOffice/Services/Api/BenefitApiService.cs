@@ -202,4 +202,27 @@ public class BenefitApiService : IBenefitApiService
             throw;
         }
     }
+
+    public async Task<List<BenefitWithHistoryResponse>> GetBenefitsWithHistoryAsync(int userId)
+    {
+        try
+        {
+            _logger.LogInformation("Getting benefits with history for user {UserId}", userId);
+
+            var response = await _httpClient.GetAsync($"api/benefits/history/{userId}");
+            response.EnsureSuccessStatusCode();
+
+            var benefits = await response.Content.ReadFromJsonAsync<List<BenefitWithHistoryResponse>>();
+            
+            _logger.LogInformation("Retrieved {Count} benefits with history for user {UserId}", 
+                benefits?.Count ?? 0, userId);
+
+            return benefits ?? new List<BenefitWithHistoryResponse>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting benefits with history for user {UserId}", userId);
+            throw;
+        }
+    }
 }

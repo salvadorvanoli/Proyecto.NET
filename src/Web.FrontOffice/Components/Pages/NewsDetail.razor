@@ -1,0 +1,90 @@
+@page "/noticia/{id:int}"
+@rendermode InteractiveServer
+@using Web.FrontOffice.Services.Interfaces
+@using global::Shared.DTOs.News
+@inject INewsApiService NewsApiService
+@inject ILogger<NewsDetail> Logger
+
+<Microsoft.AspNetCore.Components.Web.PageTitle>@(noticia?.Title ?? "Noticia")</Microsoft.AspNetCore.Components.Web.PageTitle>
+
+<div class="news-detail-container">
+    @if (isLoading)
+    {
+        <div class="loading">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Cargando noticia...</span>
+            </div>
+        </div>
+    }
+    else if (error != null)
+    {
+        <div class="alert alert-danger">
+            <p>@error</p>
+        </div>
+    }
+    else if (noticia != null)
+    {
+        <div class="news-article">
+            <h1 class="news-title">@noticia.Title</h1>
+            
+            @if (!string.IsNullOrEmpty(noticia.ImageUrl))
+            {
+                <div class="news-image-container">
+                    <img src="@noticia.ImageUrl" alt="@noticia.Title" class="news-image" />
+                </div>
+            }
+            
+            <div class="news-description">
+                <p>@noticia.Content</p>
+            </div>
+            
+            <div class="back-action">
+                <a href="/" class="btn btn-primary">
+                    <i class="bi bi-arrow-left"></i> Volver al inicio
+                </a>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private NewsResponse? noticia;
+    private bool isLoading = true;
+    private string? error = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarNoticia();
+    }
+
+    private async Task CargarNoticia()
+    {
+        try
+        {
+            isLoading = true;
+            error = null;
+
+            Logger.LogInformation("Cargando noticia con ID: {Id}", Id);
+
+            noticia = await NewsApiService.GetNewsByIdAsync(Id);
+
+            if (noticia == null)
+            {
+                error = "No se encontró la noticia.";
+                Logger.LogWarning("Noticia con ID {Id} no encontrada", Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al cargar la noticia con ID: {Id}", Id);
+            error = $"Error al cargar la noticia: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

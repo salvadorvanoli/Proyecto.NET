@@ -17,6 +17,7 @@ public class BenefitResponse
     public bool HasAvailableQuotas { get; set; }
     public bool CanBeConsumed { get; set; }
     public bool IsPermanent { get; set; }
+    public bool Active { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
