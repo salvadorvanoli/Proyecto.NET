@@ -58,7 +58,14 @@ try
     });
 
     builder.Services.AddControllers();
-    builder.Services.AddSignalR();
+    builder.Services.AddSignalR(options =>
+    {
+        // Configurar para trabajar mejor con ALB de AWS
+        options.EnableDetailedErrors = true;
+        options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+        options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
+        options.HandshakeTimeout = TimeSpan.FromSeconds(15);
+    });
 
     // Registrar TenantAuthorizationFilter como servicio para uso con atributos
     builder.Services.AddScoped<TenantAuthorizationFilter>();
