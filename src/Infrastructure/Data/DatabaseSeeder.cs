@@ -482,6 +482,102 @@ public static class DatabaseSeeder
             }
         }
 
+        // Seed 4 Custom Control Points with Specific Access Rules for Tenant 1
+        var tenant1 = await context.Tenants.FirstOrDefaultAsync(t => t.Name == "Universidad Indigo");
+        if (tenant1 != null)
+        {
+            var tenant1Space = await context.Spaces.FirstOrDefaultAsync(s => s.TenantId == tenant1.Id && s.Name.Contains("Entrada"));
+            if (tenant1Space != null)
+            {
+                var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "AdministradorBackoffice" && r.TenantId == tenant1.Id);
+                var userRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Usuario" && r.TenantId == tenant1.Id);
+
+                // 1. Control Point: 8 AM - 8 PM (sin fecha límite)
+                var cp1Name = "Punto Horario 8AM-8PM";
+                var cp1Exists = await context.ControlPoints.AnyAsync(cp => cp.Name == cp1Name && cp.TenantId == tenant1.Id);
+                if (!cp1Exists)
+                {
+                    Console.WriteLine($"\n🚪 Creating custom control point: {cp1Name}...");
+                    var controlPoint1 = new ControlPoint(tenant1.Id, cp1Name, tenant1Space.Id);
+                    context.ControlPoints.Add(controlPoint1);
+                    await context.SaveChangesAsync();
+
+                    var timeRange1 = new TimeRange(new TimeOnly(8, 0), new TimeOnly(20, 0));
+                    var accessRule1 = new AccessRule(tenant1.Id, controlPoint1.Id, timeRange1, null);
+                    if (adminRole != null) accessRule1.Roles.Add(adminRole);
+                    if (userRole != null) accessRule1.Roles.Add(userRole);
+                    context.AccessRules.Add(accessRule1);
+                    await context.SaveChangesAsync();
+                    
+                    Console.WriteLine($"   ✅ Creado con horario 8:00 AM - 8:00 PM");
+                }
+
+                // 2. Control Point: Sin horario, fecha del 09/10/2024 al 21/11/2025
+                var cp2Name = "Punto Sin Horario Oct2024-Nov2025";
+                var cp2Exists = await context.ControlPoints.AnyAsync(cp => cp.Name == cp2Name && cp.TenantId == tenant1.Id);
+                if (!cp2Exists)
+                {
+                    Console.WriteLine($"\n🚪 Creating custom control point: {cp2Name}...");
+                    var controlPoint2 = new ControlPoint(tenant1.Id, cp2Name, tenant1Space.Id);
+                    context.ControlPoints.Add(controlPoint2);
+                    await context.SaveChangesAsync();
+
+                    var validityPeriod2 = new DateRange(new DateTime(2024, 10, 9), new DateTime(2025, 11, 21));
+                    var accessRule2 = new AccessRule(tenant1.Id, controlPoint2.Id, null, validityPeriod2);
+                    if (adminRole != null) accessRule2.Roles.Add(adminRole);
+                    if (userRole != null) accessRule2.Roles.Add(userRole);
+                    context.AccessRules.Add(accessRule2);
+                    await context.SaveChangesAsync();
+                    
+                    Console.WriteLine($"   ✅ Creado sin horario, válido del 09/10/2024 al 21/11/2025");
+                }
+
+                // 3. Control Point: 8 PM - 11:59 PM, fecha del 09/10/2024 al 21/11/2025
+                var cp3Name = "Punto Nocturno 8PM-11:59PM Oct2024-Nov2025";
+                var cp3Exists = await context.ControlPoints.AnyAsync(cp => cp.Name == cp3Name && cp.TenantId == tenant1.Id);
+                if (!cp3Exists)
+                {
+                    Console.WriteLine($"\n🚪 Creating custom control point: {cp3Name}...");
+                    var controlPoint3 = new ControlPoint(tenant1.Id, cp3Name, tenant1Space.Id);
+                    context.ControlPoints.Add(controlPoint3);
+                    await context.SaveChangesAsync();
+
+                    var timeRange3 = new TimeRange(new TimeOnly(20, 0), new TimeOnly(23, 59));
+                    var validityPeriod3 = new DateRange(new DateTime(2024, 10, 9), new DateTime(2025, 11, 21));
+                    var accessRule3 = new AccessRule(tenant1.Id, controlPoint3.Id, timeRange3, validityPeriod3);
+                    if (adminRole != null) accessRule3.Roles.Add(adminRole);
+                    if (userRole != null) accessRule3.Roles.Add(userRole);
+                    context.AccessRules.Add(accessRule3);
+                    await context.SaveChangesAsync();
+                    
+                    Console.WriteLine($"   ✅ Creado con horario 8:00 PM - 11:59 PM, válido del 09/10/2024 al 21/11/2025");
+                }
+
+                // 4. Control Point: 8 AM - 8 PM, fecha del 09/10/2024 al 27/11/2025
+                var cp4Name = "Punto Horario 8AM-8PM Oct2024-Nov2025Ext";
+                var cp4Exists = await context.ControlPoints.AnyAsync(cp => cp.Name == cp4Name && cp.TenantId == tenant1.Id);
+                if (!cp4Exists)
+                {
+                    Console.WriteLine($"\n🚪 Creating custom control point: {cp4Name}...");
+                    var controlPoint4 = new ControlPoint(tenant1.Id, cp4Name, tenant1Space.Id);
+                    context.ControlPoints.Add(controlPoint4);
+                    await context.SaveChangesAsync();
+
+                    var timeRange4 = new TimeRange(new TimeOnly(8, 0), new TimeOnly(20, 0));
+                    var validityPeriod4 = new DateRange(new DateTime(2024, 10, 9), new DateTime(2025, 11, 27));
+                    var accessRule4 = new AccessRule(tenant1.Id, controlPoint4.Id, timeRange4, validityPeriod4);
+                    if (adminRole != null) accessRule4.Roles.Add(adminRole);
+                    if (userRole != null) accessRule4.Roles.Add(userRole);
+                    context.AccessRules.Add(accessRule4);
+                    await context.SaveChangesAsync();
+                    
+                    Console.WriteLine($"   ✅ Creado con horario 8:00 AM - 8:00 PM, válido del 09/10/2024 al 27/11/2025");
+                }
+
+                Console.WriteLine("\n✅ Custom control points for Tenant 1 created successfully!");
+            }
+        }
+
         Console.WriteLine("\n✅ NFC testing setup completed!");
         Console.WriteLine("===========================================");
         Console.WriteLine("MOBILE APP USER:");

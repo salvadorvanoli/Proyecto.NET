@@ -128,13 +128,15 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             }
         }
 
-        // Synchronize ValidityPeriod shadow properties for AccessRule entities
+        // Synchronize ValidityPeriod and TimeRange shadow properties for AccessRule entities
         var accessRuleEntries = ChangeTracker.Entries<AccessRule>()
             .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
 
         foreach (var entry in accessRuleEntries)
         {
             var accessRule = entry.Entity;
+            
+            // Synchronize ValidityPeriod
             if (accessRule.ValidityPeriod.HasValue)
             {
                 entry.Property("ValidityStartDate").CurrentValue = accessRule.ValidityPeriod.Value.StartDate;
@@ -144,6 +146,18 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
             {
                 entry.Property("ValidityStartDate").CurrentValue = null;
                 entry.Property("ValidityEndDate").CurrentValue = null;
+            }
+            
+            // Synchronize TimeRange
+            if (accessRule.TimeRange.HasValue)
+            {
+                entry.Property("TimeRangeStartTime").CurrentValue = accessRule.TimeRange.Value.StartTime;
+                entry.Property("TimeRangeEndTime").CurrentValue = accessRule.TimeRange.Value.EndTime;
+            }
+            else
+            {
+                entry.Property("TimeRangeStartTime").CurrentValue = null;
+                entry.Property("TimeRangeEndTime").CurrentValue = null;
             }
         }
     }

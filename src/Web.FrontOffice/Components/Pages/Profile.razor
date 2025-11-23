@@ -41,70 +41,14 @@
     {
         <div class="profile-header">
             <PageHeader Title="Mi Perfil" Subtitle="Información personal y estado de cuenta" />
-            @if (!modoEdicion)
-            {
-                <button class="secondary-button edit-button" @onclick="ActivarEdicion" type="button">
-                    <span>Editar Perfil</span>
-                </button>
-            }
         </div>
 
         <div class="profile-grid">
             <!-- Datos Personales -->
             <Card Title="Datos Personales">
-                @if (modoEdicion)
-                {
-                    <div class="edit-form">
-                        <div class="form-group">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-input" @bind="editModel.Email" />
-                            <small class="text-muted">Este es tu identificador único en el sistema</small>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Nombre</label>
-                            <input type="text" class="form-input" @bind="editModel.FirstName" />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Apellido</label>
-                            <input type="text" class="form-input" @bind="editModel.LastName" />
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Fecha de Nacimiento</label>
-                            <input type="date"
-                                   class="form-input"
-                                   @bind="editModel.DateOfBirth"
-                                   @bind:format="yyyy-MM-dd" />
-                        </div>
-                        
-                        @if (!string.IsNullOrEmpty(errorMessage))
-                        {
-                            <div class="alert alert-danger mt-3">@errorMessage</div>
-                        }
-                        @if (!string.IsNullOrEmpty(successMessage))
-                        {
-                            <div class="alert alert-success mt-3">@successMessage</div>
-                        }
-                        
-                        <div class="form-actions">
-                            <button class="primary-button" @onclick="GuardarCambios" type="button" disabled="@isSaving">
-                                @if (isSaving)
-                                {
-                                    <span class="spinner-border spinner-border-sm me-2"></span>
-                                }
-                                <span>Guardar Cambios</span>
-                            </button>
-                            <button class="secondary-button" @onclick="CancelarEdicion" type="button" disabled="@isSaving">
-                                <span>Cancelar</span>
-                            </button>
-                        </div>
-                    </div>
-                }
-                else
-                {
-                    <InfoField Label="Email" Value="@usuario.Email" />
-                    <InfoField Label="Nombre Completo" Value="@usuario.FullName" />
-                    <InfoField Label="Fecha de Nacimiento" Value="@usuario.DateOfBirth.ToString("dd/MM/yyyy")" />
-                }
+                <InfoField Label="Email" Value="@usuario.Email" />
+                <InfoField Label="Nombre Completo" Value="@usuario.FullName" />
+                <InfoField Label="Fecha de Nacimiento" Value="@usuario.DateOfBirth.ToString("dd/MM/yyyy")" />
             </Card>
 
             <!-- Información de Cuenta -->
@@ -130,20 +74,14 @@
 </div>
 
 @code {
-    // Estado de carga y edición
+    // Estado de carga
     private bool isLoading = true;
-    private bool modoEdicion = false;
-    private bool isSaving = false;
     
     // Mensajes
     private string errorMessage = string.Empty;
-    private string successMessage = string.Empty;
 
     // Datos del usuario desde el backend
     private UserResponse? usuario;
-    
-    // Modelo de edición
-    private UpdateUserRequest editModel = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -178,13 +116,6 @@
             if (usuario != null)
             {
                 Logger.LogInformation("Usuario cargado: {Email}", usuario.Email);
-                editModel = new UpdateUserRequest
-                {
-                    Email = usuario.Email,
-                    FirstName = usuario.FirstName,
-                    LastName = usuario.LastName,
-                    DateOfBirth = usuario.DateOfBirth
-                };
             }
             else
             {
@@ -206,81 +137,5 @@
         {
             isLoading = false;
         }
-    }
-
-    private void ActivarEdicion()
-    {
-        modoEdicion = true;
-        errorMessage = string.Empty;
-        successMessage = string.Empty;
-        
-        // Reinicializar modelo de edición
-        editModel = new UpdateUserRequest
-        {
-            Email = usuario!.Email,
-            FirstName = usuario.FirstName,
-            LastName = usuario.LastName,
-            DateOfBirth = usuario.DateOfBirth
-        };
-    }
-
-    private async Task GuardarCambios()
-    {
-        if (usuario == null) return;
-
-        isSaving = true;
-        errorMessage = string.Empty;
-        successMessage = string.Empty;
-
-        try
-        {
-            // Llamar al backend para actualizar el usuario
-            var usuarioActualizado = await UserApiService.UpdateUserAsync(usuario.Id, editModel);
-
-            // Actualizar datos locales con la respuesta del backend
-            usuario = usuarioActualizado;
-            
-            successMessage = "Perfil actualizado correctamente.";
-            modoEdicion = false;
-
-            Logger.LogInformation("Usuario {UserId} actualizado correctamente", usuario.Id);
-        }
-        catch (HttpRequestException ex)
-        {
-            Logger.LogError(ex, "Error HTTP al actualizar usuario: {StatusCode}", ex.StatusCode);
-            
-            if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                errorMessage = "Sesión expirada. Por favor, inicia sesión nuevamente.";
-                await Task.Delay(2000);
-                Navigation.NavigateTo("/login-dev");
-            }
-            else if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
-            {
-                errorMessage = "Los datos proporcionados no son válidos.";
-            }
-            else
-            {
-                errorMessage = $"Error al guardar los cambios: {ex.Message}";
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error inesperado al actualizar usuario");
-            errorMessage = "Error inesperado al guardar los cambios. Intenta nuevamente.";
-        }
-        finally
-        {
-            isSaving = false;
-        }
-    }
-
-    private void CancelarEdicion()
-    {
-        modoEdicion = false;
-        errorMessage = string.Empty;
-        successMessage = string.Empty;
-        
-        // Restaurar datos originales (ya están en 'usuario')
     }
 }
