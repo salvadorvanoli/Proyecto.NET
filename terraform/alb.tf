@@ -1,4 +1,4 @@
-﻿# Application Load Balancer
+# Application Load Balancer
 resource "aws_lb" "main" {
   name               = "${var.project_name}-alb"
   internal           = false
@@ -7,7 +7,7 @@ resource "aws_lb" "main" {
   subnets            = aws_subnet.public[*].id
 
   enable_deletion_protection = false
-  enable_http2              = true
+  enable_http2               = true
 
   tags = {
     Name        = "${var.project_name}-alb"
@@ -39,7 +39,7 @@ resource "aws_lb_target_group" "api" {
 
   stickiness {
     type            = "lb_cookie"
-    cookie_duration = 28800  # 8 horas - necesario para SignalR WebSockets
+    cookie_duration = 28800 # 8 horas - necesario para SignalR WebSockets
     enabled         = true
   }
 
@@ -73,7 +73,7 @@ resource "aws_lb_target_group" "backoffice" {
 
   stickiness {
     type            = "lb_cookie"
-    cookie_duration = 28800  # 8 horas (igual que la sesión de autenticación)
+    cookie_duration = 28800 # 8 horas (igual que la sesión de autenticación)
     enabled         = true
   }
 
@@ -107,7 +107,7 @@ resource "aws_lb_target_group" "frontoffice" {
 
   stickiness {
     type            = "lb_cookie"
-    cookie_duration = 28800  # 8 horas
+    cookie_duration = 28800 # 8 horas
     enabled         = true
   }
 

@@ -1,6 +1,6 @@
 using Application.Benefits.DTOs;
 using Application.Benefits.Services;
-using Infrastructure.Persistence;
+using Application.Common.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Shared.DTOs.Benefits;
 
@@ -11,9 +11,9 @@ namespace Infrastructure.Services.Benefits;
 /// </summary>
 public class BenefitService : IBenefitService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
 
-    public BenefitService(ApplicationDbContext context)
+    public BenefitService(IApplicationDbContext context)
     {
         _context = context;
     }

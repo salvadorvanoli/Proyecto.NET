@@ -18,7 +18,11 @@ public class SignalRService : IAsyncDisposable
 
     public SignalRService(IConfiguration configuration, ILogger<SignalRService> logger)
     {
-        _apiUrl = configuration.GetValue<string>("ApiSettings:BaseUrl") ?? "http://localhost:5236/";
+        // Usar la misma configuración que Program.cs para consistencia
+        _apiUrl = configuration["API_BASE_URL"] 
+                  ?? Environment.GetEnvironmentVariable("API_BASE_URL")
+                  ?? configuration.GetValue<string>("ApiSettings:BaseUrl") 
+                  ?? "http://localhost:5236/";
         _logger = logger;
     }
 
@@ -50,9 +54,9 @@ public class SignalRService : IAsyncDisposable
             _currentUserId = userId;
 
             // Construir la URL del hub con el userId como query parameter
-            // IMPORTANTE: Incluir /api porque el hub está en la API que está detrás de /api en el ALB
+            // IMPORTANTE: La API está detrás de /api en el ALB, así que agregamos /api explícitamente
             var apiBaseUrl = _apiUrl.TrimEnd('/');
-            var hubUrl = $"{apiBaseUrl}/notificationHub?userId={userId}";
+            var hubUrl = $"{apiBaseUrl}/api/notificationHub?userId={userId}";
 
             _logger.LogInformation("Intentando conectar a SignalR: {HubUrl}", hubUrl);
 

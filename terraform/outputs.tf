@@ -1,4 +1,4 @@
-﻿output "alb_dns_name" {
+output "alb_dns_name" {
   description = "DNS del Application Load Balancer"
   value       = aws_lb.main.dns_name
 }
@@ -59,7 +59,7 @@ output "cors_configuration" {
   value = {
     specified_origins = var.cors_allowed_origins
     effective_origin  = length(var.cors_allowed_origins) > 0 ? join(", ", var.cors_allowed_origins) : "http://${aws_lb.main.dns_name}"
-    note             = "Si no especificas cors_allowed_origins, se usa automáticamente el DNS del ALB"
+    note              = "Si no especificas cors_allowed_origins, se usa automáticamente el DNS del ALB"
   }
 }
 
@@ -73,20 +73,38 @@ output "jwt_configuration" {
   sensitive = false
 }
 
+output "redis_endpoint" {
+  description = "Endpoint de Redis NLB (Network Load Balancer)"
+  value       = var.redis_enabled ? "${aws_lb.redis[0].dns_name}:6379" : "Redis deshabilitado"
+}
+
+output "redis_configuration" {
+  description = "Configuración de Redis como contenedor ECS"
+  value = {
+    enabled             = var.redis_enabled
+    endpoint            = var.redis_enabled ? "${aws_lb.redis[0].dns_name}:6379" : "N/A"
+    deployment_type     = var.redis_enabled ? "ECS Fargate Container" : "N/A"
+    load_balancer       = var.redis_enabled ? "Network Load Balancer (internal)" : "N/A"
+    default_ttl_minutes = var.redis_default_ttl_minutes
+    note                = var.redis_enabled ? "Redis ejecutándose como contenedor ECS detrás de NLB interno" : "Redis deshabilitado - usando memoria local"
+  }
+}
+
 output "security_notes" {
   description = "Notas importantes de seguridad"
-  value = <<-EOT
+  value       = <<-EOT
     IMPORTANTE - SEGURIDAD:
 
     1. JWT Secret: Configurado vía variable sensible (no visible en outputs)
     2. DB Password: Configurado vía variable sensible (no visible en outputs)
-    3. HTTPS: Actualmente usando HTTP. Para producción:
+    3. Redis: ${var.redis_enabled ? "Redis ECS Container habilitado (compatible con Learner Labs)" : "Deshabilitado (usando memoria local)"}
+    4. HTTPS: Actualmente usando HTTP. Para producción:
        - Solicita certificado SSL/TLS en AWS Certificate Manager
        - Configura listener HTTPS en puerto 443
        - Habilita redirección HTTP → HTTPS
-    4. CORS: Configurado para: ${length(var.cors_allowed_origins) > 0 ? join(", ", var.cors_allowed_origins) : "ALB DNS (auto)"}
-    5. Rate Limiting: Configurado en la aplicación (5 login/min, 200 req/min)
-    6. Security Headers: Configurados en la aplicación (HSTS, CSP, etc.)
+    5. CORS: Configurado para: ${length(var.cors_allowed_origins) > 0 ? join(", ", var.cors_allowed_origins) : "ALB DNS (auto)"}
+    6. Rate Limiting: Configurado en la aplicación (5 login/min, 200 req/min)
+    7. Security Headers: Configurados en la aplicación (HSTS, CSP, etc.)
 
     Para conectar BackOffice/FrontOffice a la API, usa:
        API URL: http://${aws_lb.main.dns_name}

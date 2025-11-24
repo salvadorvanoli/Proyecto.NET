@@ -1,4 +1,4 @@
-﻿# ECS Cluster
+# ECS Cluster
 resource "aws_ecs_cluster" "main" {
   name = "${var.project_name}-cluster"
 
@@ -117,6 +117,18 @@ resource "aws_ecs_task_definition" "api" {
         {
           name  = "CORS_ALLOWED_ORIGINS"
           value = length(var.cors_allowed_origins) > 0 ? join(",", var.cors_allowed_origins) : "http://${aws_lb.main.dns_name}"
+        },
+        {
+          name  = "ConnectionStrings__Redis"
+          value = var.redis_enabled ? "${aws_lb.redis[0].dns_name}:6379,password=${var.redis_password},abortConnect=false" : ""
+        },
+        {
+          name  = "Redis__Enabled"
+          value = tostring(var.redis_enabled)
+        },
+        {
+          name  = "Redis__DefaultTtlMinutes"
+          value = tostring(var.redis_default_ttl_minutes)
         }
       ]
 
@@ -184,6 +196,18 @@ resource "aws_ecs_task_definition" "backoffice" {
         {
           name  = "ConnectionStrings__DefaultConnection"
           value = "Server=${aws_db_instance.sqlserver.address},1433;Database=${var.db_name};User Id=${var.db_username};Password=${var.db_password};TrustServerCertificate=True;MultipleActiveResultSets=true"
+        },
+        {
+          name  = "ConnectionStrings__Redis"
+          value = var.redis_enabled ? "${aws_lb.redis[0].dns_name}:6379,password=${var.redis_password},abortConnect=false" : ""
+        },
+        {
+          name  = "Redis__Enabled"
+          value = tostring(var.redis_enabled)
+        },
+        {
+          name  = "Redis__DefaultTtlMinutes"
+          value = tostring(var.redis_default_ttl_minutes)
         }
       ]
 
@@ -251,6 +275,18 @@ resource "aws_ecs_task_definition" "frontoffice" {
         {
           name  = "API_BASE_URL"
           value = "http://${aws_lb.main.dns_name}"
+        },
+        {
+          name  = "ConnectionStrings__Redis"
+          value = var.redis_enabled ? "${aws_lb.redis[0].dns_name}:6379,password=${var.redis_password},abortConnect=false" : ""
+        },
+        {
+          name  = "Redis__Enabled"
+          value = tostring(var.redis_enabled)
+        },
+        {
+          name  = "Redis__DefaultTtlMinutes"
+          value = tostring(var.redis_default_ttl_minutes)
         }
       ]
 

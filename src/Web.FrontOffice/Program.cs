@@ -16,6 +16,35 @@ builder.Services.AddRazorComponents()
 builder.Services.AddControllers(); // Agregar soporte para API controllers
 
 // ========================================
+// REDIS: Distributed Caching para Blazor Server
+// ========================================
+var redisEnabled = builder.Configuration.GetValue<bool>("Redis:Enabled", false);
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
+
+if (redisEnabled && !string.IsNullOrEmpty(redisConnectionString))
+{
+    try
+    {
+        builder.Services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = redisConnectionString;
+            options.InstanceName = "ProyectoNet:FrontOffice:";
+        });
+        Console.WriteLine($"Redis habilitado para FrontOffice: {redisConnectionString.Split(',')[0]}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error conectando a Redis: {ex.Message}. Usando memoria distribuida.");
+        builder.Services.AddDistributedMemoryCache();
+    }
+}
+else
+{
+    Console.WriteLine("ℹRedis deshabilitado. Usando memoria distribuida.");
+    builder.Services.AddDistributedMemoryCache();
+}
+
+// ========================================
 // SEGURIDAD: Configurar Authentication & Authorization
 // ========================================
 // Configurar autenticación basada en cookies para Blazor Server

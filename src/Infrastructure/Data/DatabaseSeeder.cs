@@ -33,7 +33,7 @@ public static class DatabaseSeeder
         await context.Database.EnsureCreatedAsync();
 
         // Seed Tenants
-        if (!await context.Tenants.AnyAsync())
+        if (!await context.Tenants.IgnoreQueryFilters().AnyAsync())
         {
             Console.WriteLine("🏢 Creando tenants...");
 
@@ -63,13 +63,13 @@ public static class DatabaseSeeder
         }
 
         // Seed Admin Users for BackOffice (one per tenant)
-        var tenants = await context.Tenants.ToListAsync();
-
+        var tenants = await context.Tenants.IgnoreQueryFilters().ToListAsync();
+        
         foreach (var tenant in tenants)
         {
             var adminEmail = $"admin@{tenant.Name.Replace(" ", "").ToLower()}.com";
-            var adminExists = await context.Users.AnyAsync(u => u.Email == adminEmail);
-
+            var adminExists = await context.Users.IgnoreQueryFilters().AnyAsync(u => u.Email == adminEmail);
+            
             if (!adminExists)
             {
                 Console.WriteLine($"\n👤 Creando usuario admin para {tenant.Name}...");
@@ -105,7 +105,7 @@ public static class DatabaseSeeder
                 await context.SaveChangesAsync();
 
                 // Reload user and assign credential
-                var savedUser = await context.Users.FirstAsync(u => u.Id == adminUser.Id);
+                var savedUser = await context.Users.IgnoreQueryFilters().FirstAsync(u => u.Id == adminUser.Id);
                 savedUser.AssignCredential(credential.Id);
                 await context.SaveChangesAsync();
 
@@ -118,6 +118,7 @@ public static class DatabaseSeeder
 
                 // Reload admin user with ID
                 var savedAdminUser = await context.Users
+                    .IgnoreQueryFilters()
                     .FirstAsync(u => u.Email == adminEmail);
 
                 savedAdminUser.AssignRole(adminRole);
@@ -129,6 +130,7 @@ public static class DatabaseSeeder
 
         Console.WriteLine("\n📋 Usuarios de BackOffice disponibles:");
         var backofficeUsers = await context.Users
+            .IgnoreQueryFilters()
             .Include(u => u.Roles)
             .Where(u => u.Email.Contains("@backoffice.com"))
             .ToListAsync();
@@ -140,6 +142,7 @@ public static class DatabaseSeeder
         }
 
         var otherUsersCount = await context.Users
+            .IgnoreQueryFilters()
             .Where(u => !u.Email.Contains("@backoffice.com"))
             .CountAsync();
 
@@ -149,12 +152,12 @@ public static class DatabaseSeeder
         }
 
         // Seed Benefit Types
-        if (!await context.BenefitTypes.AnyAsync())
+        if (!await context.BenefitTypes.IgnoreQueryFilters().AnyAsync())
         {
             Console.WriteLine("\n🎁 Creating benefit types...");
 
             var benefitTypes = new List<BenefitType>();
-            var allTenants = await context.Tenants.ToListAsync();
+            var allTenants = await context.Tenants.IgnoreQueryFilters().ToListAsync();
 
             foreach (var tenant in allTenants)
             {
@@ -173,12 +176,12 @@ public static class DatabaseSeeder
         }
 
         // Seed Benefits
-        if (!await context.Benefits.AnyAsync())
+        if (!await context.Benefits.IgnoreQueryFilters().AnyAsync())
         {
             Console.WriteLine("\n🎁 Creating benefits...");
 
             var benefits = new List<Benefit>();
-            var benefitTypes = await context.BenefitTypes.ToListAsync();
+            var benefitTypes = await context.BenefitTypes.IgnoreQueryFilters().ToListAsync();
 
             foreach (var benefitType in benefitTypes)
             {
@@ -207,12 +210,12 @@ public static class DatabaseSeeder
         // No sample data is seeded for these entities
 
         // Seed Space Types
-        if (!await context.SpaceTypes.AnyAsync())
+        if (!await context.SpaceTypes.IgnoreQueryFilters().AnyAsync())
         {
             Console.WriteLine("\n🏢 Creating space types...");
 
             var spaceTypes = new List<SpaceType>();
-            var allTenants = await context.Tenants.ToListAsync();
+            var allTenants = await context.Tenants.IgnoreQueryFilters().ToListAsync();
 
             foreach (var tenant in allTenants)
             {
@@ -231,14 +234,14 @@ public static class DatabaseSeeder
         }
 
         // Seed Spaces
-        if (!await context.Spaces.AnyAsync())
+        if (!await context.Spaces.IgnoreQueryFilters().AnyAsync())
         {
             Console.WriteLine("\n🏢 Creating spaces...");
 
             var spaces = new List<Space>();
-            var spaceTypes = await context.SpaceTypes.ToListAsync();
+            var spaceTypes = await context.SpaceTypes.IgnoreQueryFilters().ToListAsync();
 
-            foreach (var tenant in await context.Tenants.ToListAsync())
+            foreach (var tenant in await context.Tenants.IgnoreQueryFilters().ToListAsync())
             {
                 var tenantSpaceTypes = spaceTypes.Where(st => st.TenantId == tenant.Id).ToList();
 
@@ -260,12 +263,12 @@ public static class DatabaseSeeder
         }
 
         // Seed Control Points
-        if (!await context.ControlPoints.AnyAsync())
+        if (!await context.ControlPoints.IgnoreQueryFilters().AnyAsync())
         {
             Console.WriteLine("\n🚪 Creating control points...");
 
             var controlPoints = new List<ControlPoint>();
-            var spaces = await context.Spaces.ToListAsync();
+            var spaces = await context.Spaces.IgnoreQueryFilters().ToListAsync();
 
             foreach (var space in spaces)
             {
@@ -291,16 +294,16 @@ public static class DatabaseSeeder
         }
 
         // Seed Access Events
-        if (!await context.AccessEvents.AnyAsync())
+        if (!await context.AccessEvents.IgnoreQueryFilters().AnyAsync())
         {
             Console.WriteLine("\n🔐 Creating sample access events...");
-
-            var allUsers = await context.Users.ToListAsync();
-            var allControlPoints = await context.ControlPoints.ToListAsync();
+            
+            var allUsers = await context.Users.IgnoreQueryFilters().ToListAsync();
+            var allControlPoints = await context.ControlPoints.IgnoreQueryFilters().ToListAsync();
             var accessEvents = new List<AccessEvent>();
             var random = new Random();
 
-            foreach (var tenant in await context.Tenants.ToListAsync())
+            foreach (var tenant in await context.Tenants.IgnoreQueryFilters().ToListAsync())
             {
                 var firstUser = allUsers.FirstOrDefault(u => u.TenantId == tenant.Id);
                 if (firstUser == null) continue;
@@ -333,12 +336,12 @@ public static class DatabaseSeeder
         }
 
         // Seed NFC Testing User with Credential
-        var nfcTestUser = await context.Users.FirstOrDefaultAsync(u => u.Email == "nfctest@indigo.com");
+        var nfcTestUser = await context.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Email == "nfctest@indigo.com");
         if (nfcTestUser == null)
         {
             Console.WriteLine("\n🔑 Creating NFC testing user...");
-
-            var tenant = await context.Tenants.FirstAsync(); // Universidad Indigo (TenantId: 1)
+            
+            var tenant = await context.Tenants.IgnoreQueryFilters().FirstAsync(); // Universidad Indigo (TenantId: 1)
             var passwordHash = passwordHasher.HashPassword("Test123!");
             var personalData = new PersonalData("Usuario", "NFC Testing", new DateOnly(1995, 5, 15));
 
@@ -347,7 +350,7 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
 
             // Assign role
-            var adminRole = await context.Roles.FirstAsync(r => r.Name == "AdministradorBackoffice" && r.TenantId == tenant.Id);
+            var adminRole = await context.Roles.IgnoreQueryFilters().FirstAsync(r => r.Name == "AdministradorBackoffice" && r.TenantId == tenant.Id);
             nfcTestUser.AssignRole(adminRole);
             await context.SaveChangesAsync();
 
@@ -370,7 +373,7 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
 
             // Reload user and assign credential
-            nfcTestUser = await context.Users.FirstAsync(u => u.Id == nfcTestUser.Id);
+            nfcTestUser = await context.Users.IgnoreQueryFilters().FirstAsync(u => u.Id == nfcTestUser.Id);
             nfcTestUser.AssignCredential(credential.Id);
             await context.SaveChangesAsync();
 
@@ -378,12 +381,12 @@ public static class DatabaseSeeder
         }
 
         // Seed Regular User for Mobile App
-        var regularUser = await context.Users.FirstOrDefaultAsync(u => u.Email == "usuario1@mobile.com");
+        var regularUser = await context.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Email == "usuario1@mobile.com");
         if (regularUser == null)
         {
             Console.WriteLine("\n📱 Creating regular user for Mobile App...");
-
-            var tenant = await context.Tenants.FirstAsync();
+            
+            var tenant = await context.Tenants.IgnoreQueryFilters().FirstAsync();
             var passwordHash = passwordHasher.HashPassword("User123!");
             var personalData = new PersonalData("Juan", "Pérez", new DateOnly(1995, 5, 15));
 
@@ -392,7 +395,7 @@ public static class DatabaseSeeder
             await context.SaveChangesAsync();
 
             // Assign role Usuario
-            var userRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Usuario" && r.TenantId == tenant.Id);
+            var userRole = await context.Roles.IgnoreQueryFilters().FirstOrDefaultAsync(r => r.Name == "Usuario" && r.TenantId == tenant.Id);
             if (userRole == null)
             {
                 userRole = new Role(tenant.Id, "Usuario");
@@ -414,7 +417,7 @@ public static class DatabaseSeeder
             context.Credentials.Add(credential);
             await context.SaveChangesAsync();
 
-            regularUser = await context.Users.FirstAsync(u => u.Id == regularUser.Id);
+            regularUser = await context.Users.IgnoreQueryFilters().FirstAsync(u => u.Id == regularUser.Id);
             regularUser.AssignCredential(credential.Id);
             await context.SaveChangesAsync();
 
@@ -423,8 +426,8 @@ public static class DatabaseSeeder
         }
 
         // Seed Access Rules for Control Points
-        var allControlPointsWithRules = await context.ControlPoints.Include(cp => cp.AccessRules).ToListAsync();
-
+        var allControlPointsWithRules = await context.ControlPoints.IgnoreQueryFilters().Include(cp => cp.AccessRules).ToListAsync();
+        
         foreach (var controlPoint in allControlPointsWithRules)
         {
             if (!controlPoint.AccessRules.Any())
@@ -437,9 +440,11 @@ public static class DatabaseSeeder
 
                 // Assign BOTH roles to this access rule
                 var adminRole = await context.Roles
+                    .IgnoreQueryFilters()
                     .FirstOrDefaultAsync(r => r.Name == "AdministradorBackoffice" && r.TenantId == controlPoint.TenantId);
 
                 var userRole = await context.Roles
+                    .IgnoreQueryFilters()
                     .FirstOrDefaultAsync(r => r.Name == "Usuario" && r.TenantId == controlPoint.TenantId);
 
                 if (adminRole != null)

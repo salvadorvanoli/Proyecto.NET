@@ -43,6 +43,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=${DB_NAME:-ProyectoNetDb};User Id=sa;Password=${SQL_SERVER_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true
+      - ConnectionStrings__Redis=redis:6379,password=${REDIS_PASSWORD:-P@ssw0rd123!},abortConnect=false
       - Logging__Console__FormatterName=simple
       - SEED_DATABASE=${SEED_DATABASE:-false}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-}
@@ -50,8 +51,12 @@ services:
       - Jwt__Issuer=${JWT_ISSUER:-ProyectoNet}
       - Jwt__Audience=${JWT_AUDIENCE:-ProyectoNetClients}
       - Jwt__LifetimeMinutes=${JWT_LIFETIME_MINUTES:-60}
+      - Redis__Enabled=${REDIS_ENABLED:-true}
+      - Redis__DefaultTtlMinutes=${REDIS_DEFAULT_TTL_MINUTES:-30}
     depends_on:
       sqlserver:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - proyectonet-network
@@ -84,8 +89,13 @@ services:
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=${DB_NAME:-ProyectoNetDb};User Id=sa;Password=${SQL_SERVER_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true
       - API_BASE_URL=${API_BASE_URL:-http://web-api:8080}
+      - ConnectionStrings__Redis=redis:6379,password=${REDIS_PASSWORD:-P@ssw0rd123!},abortConnect=false
+      - Redis__Enabled=${REDIS_ENABLED:-true}
+      - Redis__DefaultTtlMinutes=${REDIS_DEFAULT_TTL_MINUTES:-30}
     depends_on:
       sqlserver:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       web-api:
         condition: service_started
@@ -119,7 +129,12 @@ services:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
       - ASPNETCORE_URLS=http://+:8080
       - API_BASE_URL=${API_BASE_URL:-http://web-api:8080}
+      - ConnectionStrings__Redis=redis:6379,password=${REDIS_PASSWORD:-P@ssw0rd123!},abortConnect=false
+      - Redis__Enabled=${REDIS_ENABLED:-true}
+      - Redis__DefaultTtlMinutes=${REDIS_DEFAULT_TTL_MINUTES:-15}
     depends_on:
+      redis:
+        condition: service_healthy
       web-api:
         condition: service_started
     networks:
@@ -136,6 +151,32 @@ services:
         reservations:
           cpus: '0.25'
           memory: 256M
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: proyectonet-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-P@ssw0rd123!}
+    volumes:
+      - redis-data:/data
+    networks:
+      - proyectonet-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
 
   seq:
     image: datalust/seq:latest
@@ -168,5 +209,7 @@ networks:
 volumes:
   sqlserver-data:
     name: proyectonet-sqlserver-data
+  redis-data:
+    name: proyectonet-redis-data
   seq-data:
     name: proyectonet-seq-data
