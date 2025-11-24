@@ -1,4 +1,4 @@
-﻿# ECS Cluster
+# ECS Cluster
 resource "aws_ecs_cluster" "main" {
   name = "${var.project_name}-cluster"
 
@@ -120,7 +120,7 @@ resource "aws_ecs_task_definition" "api" {
         },
         {
           name  = "ConnectionStrings__Redis"
-          value = var.redis_enabled ? "${aws_elasticache_cluster.redis[0].cache_nodes[0].address}:6379,abortConnect=false" : ""
+          value = var.redis_enabled ? "redis.${var.project_name}.local:6379,password=${var.redis_password},abortConnect=false" : ""
         },
         {
           name  = "Redis__Enabled"
@@ -199,7 +199,7 @@ resource "aws_ecs_task_definition" "backoffice" {
         },
         {
           name  = "ConnectionStrings__Redis"
-          value = var.redis_enabled ? "${aws_elasticache_cluster.redis[0].cache_nodes[0].address}:6379,abortConnect=false" : ""
+          value = var.redis_enabled ? "redis.${var.project_name}.local:6379,password=${var.redis_password},abortConnect=false" : ""
         },
         {
           name  = "Redis__Enabled"
@@ -278,7 +278,7 @@ resource "aws_ecs_task_definition" "frontoffice" {
         },
         {
           name  = "ConnectionStrings__Redis"
-          value = var.redis_enabled ? "${aws_elasticache_cluster.redis[0].cache_nodes[0].address}:6379,abortConnect=false" : ""
+          value = var.redis_enabled ? "redis.${var.project_name}.local:6379,password=${var.redis_password},abortConnect=false" : ""
         },
         {
           name  = "Redis__Enabled"

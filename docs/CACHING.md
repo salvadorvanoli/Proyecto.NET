@@ -313,28 +313,46 @@ redis:
 }
 ```
 
-### Entorno AWS (ElastiCache)
+### Entorno AWS (Redis como Contenedor ECS)
 
-**terraform/elasticache.tf:**
+**IMPORTANTE**: Esta implementación usa Redis como contenedor ECS en lugar de ElastiCache, ya que ElastiCache **NO está disponible en AWS Learner Labs**.
+
+**terraform/redis-ecs.tf:**
 ```hcl
-resource "aws_elasticache_cluster" "redis" {
-  cluster_id           = "${var.project_name}-redis"
-  engine               = "redis"
-  engine_version       = "7.0"
-  node_type            = "cache.t3.micro"
-  num_cache_nodes      = 1
-  parameter_group_name = aws_elasticache_parameter_group.redis[0].name
-  security_group_ids   = [aws_security_group.elasticache[0].id]
-  port                 = 6379
+# Task Definition - Redis Container
+resource "aws_ecs_task_definition" "redis" {
+  family                   = "${var.project_name}-redis"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "256"  # 0.25 vCPU
+  memory                   = "512"  # 512 MB
+
+  container_definitions = jsonencode([{
+    name  = "redis"
+    image = "redis:7.2-alpine"
+    command = [
+      "redis-server",
+      "--appendonly", "yes",
+      "--requirepass", var.redis_password,
+      "--maxmemory", "256mb",
+      "--maxmemory-policy", "allkeys-lru"
+    ]
+    portMappings = [{
+      containerPort = 6379
+      protocol      = "tcp"
+    }]
+  }])
 }
 
-resource "aws_elasticache_parameter_group" "redis" {
-  name   = "${var.project_name}-redis-params"
-  family = "redis7"
-  
-  parameter {
-    name  = "maxmemory-policy"
-    value = "allkeys-lru"
+# Service Discovery para DNS interno
+resource "aws_service_discovery_service" "redis" {
+  name = "redis"
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.main[0].id
+    dns_records {
+      ttl  = 10
+      type = "A"
+    }
   }
 }
 ```
@@ -344,7 +362,7 @@ resource "aws_elasticache_parameter_group" "redis" {
 environment = [
   {
     name  = "ConnectionStrings__Redis"
-    value = "${aws_elasticache_cluster.redis[0].cache_nodes[0].address}:6379,abortConnect=false"
+    value = "redis.${var.project_name}.local:6379,password=${var.redis_password},abortConnect=false"
   },
   {
     name  = "Redis__Enabled"
@@ -356,6 +374,19 @@ environment = [
   }
 ]
 ```
+
+**Ventajas de esta arquitectura:**
+- ✅ Compatible con AWS Learner Labs (sin restricciones de servicio)
+- ✅ Sin costo adicional (solo recursos ECS)
+- ✅ Service Discovery automático vía AWS Cloud Map
+- ✅ Persistencia con AOF habilitado
+- ✅ Misma funcionalidad que ElastiCache para el alcance del proyecto
+
+**Limitaciones:**
+- ⚠️ No tiene replicación automática (single node)
+- ⚠️ Menos resiliente que ElastiCache administrado
+- ⚠️ Datos se pierden al reiniciar la tarea ECS (adecuado para caché)
+
 
 ### Inyección de Dependencias
 
@@ -613,6 +644,94 @@ _metricsService.RecordMiss(key);
 ```
 
 ### 4. Singleton para IConnectionMultiplexer
+
+```csharp
+services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var config = ConfigurationOptions.Parse(redisConnection);
+    return ConnectionMultiplexer.Connect(config);
+});
+```
+
+---
+
+## Arquitectura de Despliegue AWS
+
+### Diagrama de Infraestructura
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    AWS VPC (10.0.0.0/16)                │
+│                                                          │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │         Public Subnets (10.0.1.0/24)             │  │
+│  │                                                   │  │
+│  │   ┌──────────────────────────────────────┐      │  │
+│  │   │   Application Load Balancer          │      │  │
+│  │   │   - API: /api/*                      │      │  │
+│  │   │   - BackOffice: /backoffice/*        │      │  │
+│  │   │   - FrontOffice: /frontoffice/*      │      │  │
+│  │   └──────────────┬───────────────────────┘      │  │
+│  │                  │                               │  │
+│  └──────────────────┼───────────────────────────────┘  │
+│                     │                                   │
+│  ┌──────────────────▼───────────────────────────────┐  │
+│  │        Private Subnets (10.0.11.0/24)            │  │
+│  │                                                   │  │
+│  │   ┌────────────┐  ┌────────────┐  ┌──────────┐  │  │
+│  │   │  Web.Api   │  │ BackOffice │  │FrontOffice│ │  │
+│  │   │  (Fargate) │  │ (Fargate)  │  │ (Fargate)│  │  │
+│  │   └─────┬──────┘  └─────┬──────┘  └────┬─────┘  │  │
+│  │         │               │               │         │  │
+│  │         └───────────────┼───────────────┘         │  │
+│  │                         │                          │  │
+│  │                         ▼                          │  │
+│  │                 ┌──────────────┐                  │  │
+│  │                 │ Redis (ECS)  │                  │  │
+│  │                 │ Fargate      │                  │  │
+│  │                 │ 256MB / 0.25 │                  │  │
+│  │                 │ Service DNS: │                  │  │
+│  │                 │ redis.*.local│                  │  │
+│  │                 └──────────────┘                  │  │
+│  │                                                   │  │
+│  │   ┌──────────────────────────────────┐           │  │
+│  │   │   RDS SQL Server                 │           │  │
+│  │   │   (db.t3.micro)                  │           │  │
+│  │   └──────────────────────────────────┘           │  │
+│  │                                                   │  │
+│  └───────────────────────────────────────────────────┘  │
+│                                                          │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │      AWS Cloud Map (Service Discovery)           │  │
+│  │      Namespace: proyectonet.local                 │  │
+│  │      Service: redis.proyectonet.local → 10.0.x.x │  │
+│  └───────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Service Discovery
+
+Redis se registra automáticamente en AWS Cloud Map, permitiendo que los otros servicios lo encuentren por nombre DNS:
+
+- **DNS privado**: `redis.proyectonet.local`
+- **Puerto**: 6379
+- **Autenticación**: Password configurado vía variable `redis_password`
+- **Resolución**: Automática dentro de la VPC
+
+**Beneficios:**
+1. No necesitas conocer la IP del contenedor Redis
+2. Si Redis se reinicia, el DNS se actualiza automáticamente
+3. Simplifica la configuración (mismo connection string siempre)
+
+### Costos AWS Learner Labs
+
+**Recursos utilizados para Redis:**
+- **ECS Fargate Task**: 256 CPU (0.25 vCPU) + 512 MB RAM
+- **Costo estimado**: ~$0.04/día (incluido en créditos del lab)
+- **Cloud Map Service Discovery**: Sin costo adicional
+- **CloudWatch Logs**: Minimal (7 días retención)
+
+**Total**: Impacto mínimo en presupuesto del Learner Lab
 Reutilización eficiente de conexiones a Redis:
 
 ```csharp

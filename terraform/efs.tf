@@ -1,4 +1,4 @@
-﻿# NOTA: EFS deshabilitado debido a restricciones de permisos en AWS Academy/voclabs
+# NOTA: EFS deshabilitado debido a restricciones de permisos en AWS Academy/voclabs
 # El usuario no tiene permisos para: elasticfilesystem:DescribeMountTargets
 #
 # ALTERNATIVA IMPLEMENTADA:

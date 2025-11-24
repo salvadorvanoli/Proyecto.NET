@@ -1,4 +1,4 @@
-﻿output "alb_dns_name" {
+output "alb_dns_name" {
   description = "DNS del Application Load Balancer"
   value       = aws_lb.main.dns_name
 }
@@ -59,7 +59,7 @@ output "cors_configuration" {
   value = {
     specified_origins = var.cors_allowed_origins
     effective_origin  = length(var.cors_allowed_origins) > 0 ? join(", ", var.cors_allowed_origins) : "http://${aws_lb.main.dns_name}"
-    note             = "Si no especificas cors_allowed_origins, se usa automáticamente el DNS del ALB"
+    note              = "Si no especificas cors_allowed_origins, se usa automáticamente el DNS del ALB"
   }
 }
 
@@ -74,29 +74,30 @@ output "jwt_configuration" {
 }
 
 output "redis_endpoint" {
-  description = "Endpoint de ElastiCache Redis"
-  value       = var.redis_enabled ? aws_elasticache_cluster.redis[0].cache_nodes[0].address : "Redis deshabilitado"
+  description = "Endpoint de Redis ECS Service"
+  value       = var.redis_enabled ? "redis.${var.project_name}.local:6379" : "Redis deshabilitado"
 }
 
 output "redis_configuration" {
-  description = "Configuración de Redis/ElastiCache"
+  description = "Configuración de Redis como contenedor ECS"
   value = {
-    enabled              = var.redis_enabled
-    endpoint             = var.redis_enabled ? "${aws_elasticache_cluster.redis[0].cache_nodes[0].address}:6379" : "N/A"
-    node_type            = var.redis_node_type
-    default_ttl_minutes  = var.redis_default_ttl_minutes
-    note                 = var.redis_enabled ? "ElastiCache habilitado y configurado" : "ElastiCache deshabilitado - usando memoria local"
+    enabled             = var.redis_enabled
+    endpoint            = var.redis_enabled ? "redis.${var.project_name}.local:6379" : "N/A"
+    deployment_type     = var.redis_enabled ? "ECS Fargate Container" : "N/A"
+    service_discovery   = var.redis_enabled ? "AWS Cloud Map (${var.project_name}.local)" : "N/A"
+    default_ttl_minutes = var.redis_default_ttl_minutes
+    note                = var.redis_enabled ? "Redis ejecutándose como contenedor ECS con Service Discovery" : "Redis deshabilitado - usando memoria local"
   }
 }
 
 output "security_notes" {
   description = "Notas importantes de seguridad"
-  value = <<-EOT
+  value       = <<-EOT
     IMPORTANTE - SEGURIDAD:
 
     1. JWT Secret: Configurado vía variable sensible (no visible en outputs)
     2. DB Password: Configurado vía variable sensible (no visible en outputs)
-    3. Redis: ${var.redis_enabled ? "ElastiCache habilitado" : "Deshabilitado (usando memoria local)"}
+    3. Redis: ${var.redis_enabled ? "Redis ECS Container habilitado (compatible con Learner Labs)" : "Deshabilitado (usando memoria local)"}
     4. HTTPS: Actualmente usando HTTP. Para producción:
        - Solicita certificado SSL/TLS en AWS Certificate Manager
        - Configura listener HTTPS en puerto 443

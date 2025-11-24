@@ -102,26 +102,32 @@ jwt_lifetime_minutes = 60
 cors_allowed_origins = []
 
 # ===================================
-# Configuración de Redis/ElastiCache
+# Configuración de Redis (ECS Container)
 # ===================================
 
-# Habilitar ElastiCache Redis para caching distribuido
-# NOTA: ElastiCache tiene costo adicional en AWS
-# Para Learner Lab con presupuesto limitado, puedes dejar en false
-# La aplicación usará memoria local en su lugar (menos eficiente pero sin costo)
+# Habilitar Redis como contenedor ECS para caching distribuido
+# IMPORTANTE: Esta implementación usa un contenedor Redis en ECS Fargate
+# en lugar de ElastiCache, compatible con AWS Learner Labs
+# 
+# redis_enabled = true  → Redis como contenedor ECS (256 MB RAM, 0.25 vCPU)
+# redis_enabled = false → Sin caché, usa memoria local en cada contenedor
 redis_enabled = true
 
-# Tipo de nodo de ElastiCache
-# Opciones comunes para Learner Lab:
-# - cache.t3.micro (0.5 GB RAM) - Más económico
-# - cache.t3.small (1.37 GB RAM) - Recomendado
-# - cache.t3.medium (3.09 GB RAM) - Mayor capacidad
-redis_node_type = "cache.t3.micro"
+# Contraseña para Redis
+# IMPORTANTE: Cambia esto por una contraseña segura
+redis_password = "P@ssw0rd123!"
 
 # TTL por defecto para items en cache (en minutos)
 # Beneficios activos: 30 min
 # Reglas de acceso: 60 min  
 redis_default_ttl_minutes = 30
+
+# NOTA: Redis se despliega como contenedor ECS con:
+# - CPU: 256 (0.25 vCPU)
+# - Memoria: 512 MB
+# - MaxMemory: 256 MB con política allkeys-lru
+# - Persistencia: AOF habilitado
+# - Service Discovery: redis.proyectonet.local
 
 # ===================================
 # Configuración de Red (opcional)

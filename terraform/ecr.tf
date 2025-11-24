@@ -1,4 +1,4 @@
-﻿# ECR Repository para BackOffice
+# ECR Repository para BackOffice
 resource "aws_ecr_repository" "backoffice" {
   name                 = "${var.project_name}-backoffice"
   image_tag_mutability = "MUTABLE"
@@ -23,9 +23,9 @@ resource "aws_ecr_lifecycle_policy" "backoffice" {
         rulePriority = 1
         description  = "Keep last 10 images"
         selection = {
-          tagStatus     = "any"
-          countType     = "imageCountMoreThan"
-          countNumber   = 10
+          tagStatus   = "any"
+          countType   = "imageCountMoreThan"
+          countNumber = 10
         }
         action = {
           type = "expire"
@@ -59,9 +59,9 @@ resource "aws_ecr_lifecycle_policy" "api" {
         rulePriority = 1
         description  = "Keep last 10 images"
         selection = {
-          tagStatus     = "any"
-          countType     = "imageCountMoreThan"
-          countNumber   = 10
+          tagStatus   = "any"
+          countType   = "imageCountMoreThan"
+          countNumber = 10
         }
         action = {
           type = "expire"
@@ -95,9 +95,9 @@ resource "aws_ecr_lifecycle_policy" "frontoffice" {
         rulePriority = 1
         description  = "Keep last 10 images"
         selection = {
-          tagStatus     = "any"
-          countType     = "imageCountMoreThan"
-          countNumber   = 10
+          tagStatus   = "any"
+          countType   = "imageCountMoreThan"
+          countNumber = 10
         }
         action = {
           type = "expire"

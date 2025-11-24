@@ -1,4 +1,4 @@
-﻿variable "aws_region" {
+variable "aws_region" {
   description = "AWS region donde desplegar la infraestructura"
   type        = string
   default     = "us-east-1"
@@ -123,7 +123,7 @@ variable "jwt_secret" {
   description = "Secret key para firmar JWT tokens (mínimo 32 caracteres)"
   type        = string
   sensitive   = true
-  default = "ThisIsASecretKeyForJWTSigningAndItMustBeLongEnoughToBeSecure"
+  default     = "ThisIsASecretKeyForJWTSigningAndItMustBeLongEnoughToBeSecure"
 }
 
 variable "jwt_issuer" {
@@ -157,17 +157,18 @@ variable "cors_allow_credentials" {
   default     = true
 }
 
-# Redis/ElastiCache Configuration
-variable "redis_node_type" {
-  description = "Tipo de nodo para ElastiCache Redis"
-  type        = string
-  default     = "cache.t3.micro"
-}
-
+# Redis Configuration (ECS Container)
 variable "redis_enabled" {
-  description = "Habilitar Redis cache"
+  description = "Habilitar Redis cache como contenedor ECS"
   type        = bool
   default     = true
+}
+
+variable "redis_password" {
+  description = "Password para Redis"
+  type        = string
+  default     = "P@ssw0rd123!"
+  sensitive   = true
 }
 
 variable "redis_default_ttl_minutes" {
