@@ -58,6 +58,8 @@ public static class DependencyInjection
         // Add Redis caching
         AddRedisCaching(services, configuration);
 
+        services.AddScoped<DbSeeder>();
+
         return services;
     }
 
