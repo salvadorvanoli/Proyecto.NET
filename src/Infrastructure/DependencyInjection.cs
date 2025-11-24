@@ -49,6 +49,8 @@ public static class DependencyInjection
 
         services.AddScoped<INotificationHubService, NotificationHubService>();
 
+        services.AddScoped<DbSeeder>();
+
         return services;
     }
 }
