@@ -23,14 +23,24 @@ var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
 
 if (redisEnabled && !string.IsNullOrEmpty(redisConnectionString))
 {
-    builder.Services.AddStackExchangeRedisCache(options =>
+    try
     {
-        options.Configuration = redisConnectionString;
-        options.InstanceName = "ProyectoNet:FrontOffice:";
-    });
+        builder.Services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = redisConnectionString;
+            options.InstanceName = "ProyectoNet:FrontOffice:";
+        });
+        Console.WriteLine($"Redis habilitado para FrontOffice: {redisConnectionString.Split(',')[0]}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error conectando a Redis: {ex.Message}. Usando memoria distribuida.");
+        builder.Services.AddDistributedMemoryCache();
+    }
 }
 else
 {
+    Console.WriteLine("ℹRedis deshabilitado. Usando memoria distribuida.");
     builder.Services.AddDistributedMemoryCache();
 }
 

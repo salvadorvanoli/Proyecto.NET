@@ -57,11 +57,7 @@ try
         hostOptions.ShutdownTimeout = TimeSpan.FromSeconds(30);
     });
 
-    builder.Services.AddControllers(options =>
-    {
-        // Aplicar TenantAuthorizationFilter globalmente a todos los endpoints autenticados
-        options.Filters.Add<TenantAuthorizationFilter>();
-    });
+    builder.Services.AddControllers();
     builder.Services.AddSignalR(options =>
     {
         // Configurar para trabajar mejor con ALB de AWS
@@ -103,6 +99,21 @@ try
             // Log authentication events for security monitoring
             options.Events = new JwtBearerEvents
             {
+                // Permitir tokens en query string para SignalR (access_token parameter)
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    var path = context.HttpContext.Request.Path;
+                    
+                    // Si la petición es para SignalR y hay un token en query string
+                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/notificationHub"))
+                    {
+                        context.Token = accessToken;
+                        Log.Debug("Token JWT extraído de query string para SignalR");
+                    }
+                    
+                    return Task.CompletedTask;
+                },
                 OnAuthenticationFailed = context =>
                 {
                     Log.Warning("JWT authentication failed: {Error}", context.Exception.Message);
@@ -139,6 +150,15 @@ try
         options.HttpStatusCode = 429;
         options.RealIpHeader = "X-Real-IP";
         options.ClientIdHeader = "X-ClientId";
+        
+        // Excluir endpoints de SignalR del rate limiting
+        options.EndpointWhitelist = new List<string>
+        {
+            "get:/notificationHub",
+            "post:/notificationHub/negotiate",
+            "*:/notificationHub/*"
+        };
+        
         options.GeneralRules = new List<RateLimitRule>
         {
             new RateLimitRule
@@ -172,9 +192,13 @@ try
         {
             if (builder.Environment.IsDevelopment())
             {
-                policy.AllowAnyOrigin()
+                // En desarrollo, permitir cualquier origen pero CON credenciales (necesario para SignalR)
+                policy.SetIsOriginAllowed(_ => true)
                     .AllowAnyMethod()
-                    .AllowAnyHeader();
+                    .AllowAnyHeader()
+                    .AllowCredentials();
+                
+                Log.Information("🌐 CORS configurado en modo Development (permite cualquier origen con credenciales)");
             }
             else
             {
@@ -385,6 +409,7 @@ try
 
     // Mapear SignalR Hub
     app.MapHub<NotificationHub>("/notificationHub");
+    Log.Information("🔌 SignalR Hub mapeado en /notificationHub");
 
     Log.Information("✅ API iniciado correctamente en {Environment}", app.Environment.EnvironmentName);
 
