@@ -119,7 +119,7 @@ public class AccessRuleService : IAccessRuleService
 
         // Create one access rule for the first control point (one-to-many relationship)
         var firstControlPoint = controlPoints.First();
-        var accessRule = new AccessRule(tenantId, firstControlPoint.Id, timeRange, dateRange);
+        var accessRule = new AccessRule(tenantId, firstControlPoint.Id);
 
         // Add roles
         foreach (var role in roles)
@@ -189,21 +189,27 @@ public class AccessRuleService : IAccessRuleService
             throw new InvalidOperationException("One or more control points not found or do not belong to the current tenant.");
         }
 
-        // Update time range
+        // Parse and set TimeRange
         TimeRange? timeRange = null;
         if (!string.IsNullOrWhiteSpace(request.StartTime) && !string.IsNullOrWhiteSpace(request.EndTime))
         {
-            timeRange = new TimeRange(request.StartTime, request.EndTime);
+            if (TimeOnly.TryParse(request.StartTime, out var startTime) && 
+                TimeOnly.TryParse(request.EndTime, out var endTime))
+            {
+                timeRange = new TimeRange(startTime, endTime);
+            }
         }
-        accessRule.UpdateTimeRange(timeRange);
-
-        // Update date range
+        
+        // Parse and set DateRange
         DateRange? dateRange = null;
         if (request.StartDate.HasValue && request.EndDate.HasValue)
         {
-            dateRange = new DateRange(request.StartDate.Value, request.EndDate.Value);
+            dateRange = new DateRange(DateOnly.FromDateTime(request.StartDate.Value), 
+                                     DateOnly.FromDateTime(request.EndDate.Value));
         }
-        accessRule.UpdateValidityPeriod(dateRange);
+        
+        // Update domain properties (ApplicationDbContext will sync shadow properties automatically)
+        accessRule.UpdateTimeAndDateRanges(timeRange, dateRange);
 
         // Update roles - remove old ones and add new ones
         var currentRoles = accessRule.Roles.ToList();
@@ -260,6 +266,9 @@ public class AccessRuleService : IAccessRuleService
     {
         var now = DateTime.Now;
         
+        // Hydrate properties from shadow properties
+        _context.HydrateAccessRuleProperties(accessRule);
+        
         return new AccessRuleResponse
         {
             Id = accessRule.Id,
@@ -311,6 +320,9 @@ public class AccessRuleService : IAccessRuleService
 
             foreach (var user in usersWithAccess)
             {
+                // Hydrate properties
+                _context.HydrateAccessRuleProperties(accessRule);
+                
                 // For now, allow all days (future: implement DaysOfWeek logic)
                 string allowedDays = "0,1,2,3,4,5,6"; // All days
 

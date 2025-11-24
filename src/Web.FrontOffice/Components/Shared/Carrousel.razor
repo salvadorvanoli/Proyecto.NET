@@ -3,6 +3,7 @@
 @using global::Shared.DTOs.News
 @using Web.FrontOffice.Services.Interfaces
 @inject INewsApiService NewsApiService
+@inject NavigationManager Navigation
 
 @if (isLoading)
 {
@@ -41,7 +42,7 @@ else
                 var news = newsList[i];
                 var imageUrl = !string.IsNullOrEmpty(news.ImageUrl) ? news.ImageUrl : "images/newsTestImage.webp";
                 
-                <div class="carousel-item @(i == 0 ? "active" : "")">
+                <div class="carousel-item @(i == 0 ? "active" : "")" style="cursor: pointer;" @onclick="() => NavigateToNews(news.Id)">
                     <img src="@imageUrl" class="d-block w-100" alt="@news.Title" />
                     <div class="carousel-caption d-none d-md-block">
                         <h3>@news.Title</h3>
@@ -97,5 +98,10 @@ else
             return string.Empty;
             
         return content.Length > 150 ? content.Substring(0, 150) + "..." : content;
+    }
+
+    private void NavigateToNews(int newsId)
+    {
+        Navigation.NavigateTo($"/noticia/{newsId}");
     }
 }

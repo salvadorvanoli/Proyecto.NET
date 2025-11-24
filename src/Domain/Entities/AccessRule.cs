@@ -61,6 +61,16 @@ public class AccessRule : BaseEntity
     }
 
     /// <summary>
+    /// Updates both time range and validity period for this access rule.
+    /// </summary>
+    public void UpdateTimeAndDateRanges(TimeRange? timeRange, DateRange? validityPeriod)
+    {
+        TimeRange = timeRange;
+        ValidityPeriod = validityPeriod;
+        UpdateTimestamp();
+    }
+
+    /// <summary>
     /// Adds a role to this access rule.
     /// </summary>
     public void AddRole(Role role)

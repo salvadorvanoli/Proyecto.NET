@@ -13,9 +13,9 @@ public partial class RedeemBenefitPage : ContentPage
 		BindingContext = _viewModel;
 	}
 
-	protected override void OnAppearing()
+	protected override async void OnAppearing()
 	{
 		base.OnAppearing();
-		_viewModel.LoadBenefitsCommand.Execute(null);
+		await _viewModel.InitializeAsync();
 	}
 }

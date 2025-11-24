@@ -43,4 +43,30 @@ public class NewsApiService : INewsApiService
             return Enumerable.Empty<NewsResponse>();
         }
     }
+
+    public async Task<NewsResponse?> GetNewsByIdAsync(int id)
+    {
+        try
+        {
+            // Add X-Tenant-Id header for default tenant (1)
+            _httpClient.DefaultRequestHeaders.Remove("X-Tenant-Id");
+            _httpClient.DefaultRequestHeaders.Add("X-Tenant-Id", "1");
+
+            var response = await _httpClient.GetAsync($"api/news/{id}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("Failed to fetch news {Id} with status code: {StatusCode}", id, response.StatusCode);
+                return null;
+            }
+
+            var news = await response.Content.ReadFromJsonAsync<NewsResponse>();
+            return news;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching news {Id} from API", id);
+            return null;
+        }
+    }
 }

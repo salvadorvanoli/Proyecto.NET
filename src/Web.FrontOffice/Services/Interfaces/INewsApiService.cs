@@ -8,4 +8,5 @@ namespace Web.FrontOffice.Services.Interfaces;
 public interface INewsApiService
 {
     Task<IEnumerable<NewsResponse>> GetAllNewsAsync();
+    Task<NewsResponse?> GetNewsByIdAsync(int id);
 }

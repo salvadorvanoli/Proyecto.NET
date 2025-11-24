@@ -5,6 +5,8 @@ using Shared.DTOs.Auth;
 using Mobile.Models;
 using CommunityToolkit.Maui.Views;
 using Mobile.Popups;
+using CommunityToolkit.Mvvm.Messaging;
+using Mobile.Messages;
 
 namespace Mobile.ViewModels;
 
@@ -19,6 +21,8 @@ public class CredentialViewModel : BaseViewModel
     private readonly IAccessEventService _accessEventService;
     private readonly ISyncService _syncService;
     private readonly ILogger<CredentialViewModel> _logger;
+    private readonly INavigationService _navigationService;
+    private readonly IDialogService _dialogService;
 
     private int? _userId;
     private int? _credentialId;
@@ -164,13 +168,17 @@ public class CredentialViewModel : BaseViewModel
         IAuthService authService,
         IAccessEventService accessEventService,
         ISyncService syncService,
-        ILogger<CredentialViewModel> logger)
+        ILogger<CredentialViewModel> logger,
+        INavigationService navigationService,
+        IDialogService dialogService)
     {
         _nfcCredentialService = nfcCredentialService;
         _authService = authService;
         _accessEventService = accessEventService;
         _syncService = syncService;
         _logger = logger;
+        _navigationService = navigationService;
+        _dialogService = dialogService;
 
         Title = "Mi Credencial Digital";
 
@@ -203,9 +211,9 @@ public class CredentialViewModel : BaseViewModel
                 var accessEvent = new AccessEventDto
                 {
                     UserId = UserId ?? 0,
-                    ControlPointId = response.ControlPointId ?? 0, // Si el AccessPoint no envía ID, será 0
-                    ControlPointName = response.ControlPointName ?? "Punto de Control", // Nombre por defecto
-                    SpaceName = "",
+                    ControlPointId = response.ControlPointId ?? 0,
+                    ControlPointName = response.ControlPointName ?? "Punto de Control",
+                    SpaceName = response.SpaceName ?? "",
                     Timestamp = DateTime.UtcNow,
                     WasGranted = response.AccessGranted,
                     DenialReason = response.AccessGranted ? null : response.Message
@@ -216,7 +224,7 @@ public class CredentialViewModel : BaseViewModel
 
                 // Notificar al historial para que se actualice
                 _logger.LogInformation("📢 ENVIANDO MENSAJE: AccessEventCreated desde CredentialViewModel");
-                MessagingCenter.Send(this, "AccessEventCreated");
+                WeakReferenceMessenger.Default.Send(new AccessEventCreatedMessage());
                 _logger.LogInformation("📢 MENSAJE ENVIADO: AccessEventCreated");
             }
             catch (Exception ex)
@@ -377,8 +385,8 @@ public class CredentialViewModel : BaseViewModel
             _logger.LogError("❌ CANNOT START EMULATION - Missing values!");
             _logger.LogError("   UserId: {UserId} (HasValue: {HasValue})", UserId, UserId.HasValue);
             _logger.LogError("   CredentialId: {CredentialId} (HasValue: {HasValue})", CredentialId, CredentialId.HasValue);
-            await Shell.Current.DisplayAlert("Error", 
-                $"No se pudo cargar la credencial.\n\nUserId: {UserId}\nCredentialId: {CredentialId}\n\nIntenta cerrar sesión e iniciar de nuevo.", "OK");
+            await _dialogService.ShowAlertAsync("Error", 
+                $"No se pudo cargar la credencial.\n\nUserId: {UserId}\nCredentialId: {CredentialId}\n\nIntenta cerrar sesión e iniciar de nuevo.");
             return;
         }
 
@@ -407,7 +415,7 @@ public class CredentialViewModel : BaseViewModel
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error starting credential emulation");
-            await Shell.Current.DisplayAlert("Error", $"No se pudo iniciar la emulación:\n{ex.Message}", "OK");
+            await _dialogService.ShowAlertAsync("Error", $"No se pudo iniciar la emulación:\n{ex.Message}");
             StatusMessage = "❌ Error al iniciar emulación";
         }
         finally
@@ -445,12 +453,12 @@ public class CredentialViewModel : BaseViewModel
             await _authService.LogoutAsync();
             
             // Navegar a la página de login
-            await Shell.Current.GoToAsync("//LoginPage");
+            await _navigationService.NavigateToAsync("//LoginPage");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during logout");
-            await Shell.Current.DisplayAlert("Error", "Error al cerrar sesión", "OK");
+            await _dialogService.ShowAlertAsync("Error", "Error al cerrar sesión");
         }
     }
 }

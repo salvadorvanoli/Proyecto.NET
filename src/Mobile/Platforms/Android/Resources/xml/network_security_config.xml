@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Permitir HTTP en claro para desarrollo local -->
+    <!-- Permitir HTTP en claro para desarrollo local y AWS -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">192.168.1.28</domain>
         <domain includeSubdomains="true">192.168.1.23</domain>
         <domain includeSubdomains="true">192.168.1.5</domain>
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">10.0.2.2</domain> <!-- Emulador Android -->
+        <domain includeSubdomains="true">proyectonet-alb-1773717055.us-east-1.elb.amazonaws.com</domain> <!-- AWS ALB -->
     </domain-config>
 </network-security-config>
