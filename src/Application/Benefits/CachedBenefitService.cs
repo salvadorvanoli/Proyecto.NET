@@ -112,6 +112,16 @@ public class CachedBenefitService : IBenefitService
     }
 
     /// <summary>
+    /// Gets benefits with history for user - user-specific, no caching.
+    /// This is personalized data with low cache hit rate.
+    /// </summary>
+    public Task<List<BenefitWithHistoryResponse>> GetBenefitsWithHistoryAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        // No caching for user-specific queries
+        return _innerService.GetBenefitsWithHistoryAsync(userId, cancellationToken);
+    }
+
+    /// <summary>
     /// Gets redeemable benefits for user - user-specific, no caching.
     /// This is personalized data with low cache hit rate.
     /// </summary>
