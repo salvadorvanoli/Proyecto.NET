@@ -376,16 +376,16 @@ environment = [
 ```
 
 **Ventajas de esta arquitectura:**
-- ✅ Compatible con AWS Learner Labs (sin restricciones de servicio)
-- ✅ Sin costo adicional (solo recursos ECS)
-- ✅ Service Discovery automático vía AWS Cloud Map
-- ✅ Persistencia con AOF habilitado
-- ✅ Misma funcionalidad que ElastiCache para el alcance del proyecto
+- Compatible con AWS Learner Labs (sin restricciones de servicio)
+- Sin costo adicional (solo recursos ECS)
+- Service Discovery automático vía AWS Cloud Map
+- Persistencia con AOF habilitado
+- Misma funcionalidad que ElastiCache para el alcance del proyecto
 
 **Limitaciones:**
-- ⚠️ No tiene replicación automática (single node)
-- ⚠️ Menos resiliente que ElastiCache administrado
-- ⚠️ Datos se pierden al reiniciar la tarea ECS (adecuado para caché)
+- No tiene replicación automática (single node)
+- Menos resiliente que ElastiCache administrado
+- Datos se pierden al reiniciar la tarea ECS (adecuado para caché)
 
 
 ### Inyección de Dependencias
