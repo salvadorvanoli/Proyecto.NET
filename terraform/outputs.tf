@@ -74,19 +74,19 @@ output "jwt_configuration" {
 }
 
 output "redis_endpoint" {
-  description = "Endpoint de Redis ECS Service"
-  value       = var.redis_enabled ? "redis.${var.project_name}.local:6379" : "Redis deshabilitado"
+  description = "Endpoint de Redis NLB (Network Load Balancer)"
+  value       = var.redis_enabled ? "${aws_lb.redis[0].dns_name}:6379" : "Redis deshabilitado"
 }
 
 output "redis_configuration" {
   description = "Configuración de Redis como contenedor ECS"
   value = {
     enabled             = var.redis_enabled
-    endpoint            = var.redis_enabled ? "redis.${var.project_name}.local:6379" : "N/A"
+    endpoint            = var.redis_enabled ? "${aws_lb.redis[0].dns_name}:6379" : "N/A"
     deployment_type     = var.redis_enabled ? "ECS Fargate Container" : "N/A"
-    service_discovery   = var.redis_enabled ? "AWS Cloud Map (${var.project_name}.local)" : "N/A"
+    load_balancer       = var.redis_enabled ? "Network Load Balancer (internal)" : "N/A"
     default_ttl_minutes = var.redis_default_ttl_minutes
-    note                = var.redis_enabled ? "Redis ejecutándose como contenedor ECS con Service Discovery" : "Redis deshabilitado - usando memoria local"
+    note                = var.redis_enabled ? "Redis ejecutándose como contenedor ECS detrás de NLB interno" : "Redis deshabilitado - usando memoria local"
   }
 }
 

@@ -120,7 +120,7 @@ resource "aws_ecs_task_definition" "api" {
         },
         {
           name  = "ConnectionStrings__Redis"
-          value = var.redis_enabled ? "redis.${var.project_name}.local:6379,password=${var.redis_password},abortConnect=false" : ""
+          value = var.redis_enabled ? "${aws_lb.redis[0].dns_name}:6379,password=${var.redis_password},abortConnect=false" : ""
         },
         {
           name  = "Redis__Enabled"
@@ -199,7 +199,7 @@ resource "aws_ecs_task_definition" "backoffice" {
         },
         {
           name  = "ConnectionStrings__Redis"
-          value = var.redis_enabled ? "redis.${var.project_name}.local:6379,password=${var.redis_password},abortConnect=false" : ""
+          value = var.redis_enabled ? "${aws_lb.redis[0].dns_name}:6379,password=${var.redis_password},abortConnect=false" : ""
         },
         {
           name  = "Redis__Enabled"
@@ -278,7 +278,7 @@ resource "aws_ecs_task_definition" "frontoffice" {
         },
         {
           name  = "ConnectionStrings__Redis"
-          value = var.redis_enabled ? "redis.${var.project_name}.local:6379,password=${var.redis_password},abortConnect=false" : ""
+          value = var.redis_enabled ? "${aws_lb.redis[0].dns_name}:6379,password=${var.redis_password},abortConnect=false" : ""
         },
         {
           name  = "Redis__Enabled"

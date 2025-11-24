@@ -71,6 +71,57 @@ resource "aws_ecs_task_definition" "redis" {
   }
 }
 
+# Network Load Balancer interno para Redis
+resource "aws_lb" "redis" {
+  count              = var.redis_enabled ? 1 : 0
+  name               = "${var.project_name}-redis-nlb"
+  internal           = true
+  load_balancer_type = "network"
+  subnets            = aws_subnet.private[*].id
+
+  enable_deletion_protection = false
+
+  tags = {
+    Name        = "${var.project_name}-redis-nlb"
+    Environment = var.environment
+  }
+}
+
+# Target Group para Redis
+resource "aws_lb_target_group" "redis" {
+  count       = var.redis_enabled ? 1 : 0
+  name        = "${var.project_name}-redis-tg"
+  port        = 6379
+  protocol    = "TCP"
+  vpc_id      = aws_vpc.main.id
+  target_type = "ip"
+
+  health_check {
+    enabled  = true
+    protocol = "TCP"
+    port     = 6379
+    interval = 30
+  }
+
+  tags = {
+    Name        = "${var.project_name}-redis-tg"
+    Environment = var.environment
+  }
+}
+
+# Listener para Redis NLB
+resource "aws_lb_listener" "redis" {
+  count             = var.redis_enabled ? 1 : 0
+  load_balancer_arn = aws_lb.redis[0].arn
+  port              = 6379
+  protocol          = "TCP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.redis[0].arn
+  }
+}
+
 # ECS Service - Redis
 resource "aws_ecs_service" "redis" {
   count           = var.redis_enabled ? 1 : 0
@@ -86,10 +137,14 @@ resource "aws_ecs_service" "redis" {
     assign_public_ip = false
   }
 
-  # Service Discovery para DNS interno
-  service_registries {
-    registry_arn = aws_service_discovery_service.redis[0].arn
+  # Registrar con NLB en lugar de Service Discovery
+  load_balancer {
+    target_group_arn = aws_lb_target_group.redis[0].arn
+    container_name   = "redis"
+    container_port   = 6379
   }
+
+  depends_on = [aws_lb_listener.redis]
 
   tags = {
     Name        = "${var.project_name}-redis-service"
@@ -122,45 +177,6 @@ resource "aws_security_group" "redis_ecs" {
 
   tags = {
     Name        = "${var.project_name}-redis-ecs-sg"
-    Environment = var.environment
-  }
-}
-
-# Service Discovery - Namespace privado
-resource "aws_service_discovery_private_dns_namespace" "main" {
-  count       = var.redis_enabled ? 1 : 0
-  name        = "${var.project_name}.local"
-  description = "Private DNS namespace for service discovery"
-  vpc         = aws_vpc.main.id
-
-  tags = {
-    Name        = "${var.project_name}-service-discovery"
-    Environment = var.environment
-  }
-}
-
-# Service Discovery - Redis Service
-resource "aws_service_discovery_service" "redis" {
-  count = var.redis_enabled ? 1 : 0
-  name  = "redis"
-
-  dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.main[0].id
-
-    dns_records {
-      ttl  = 10
-      type = "A"
-    }
-
-    routing_policy = "MULTIVALUE"
-  }
-
-  health_check_custom_config {
-    failure_threshold = 1
-  }
-
-  tags = {
-    Name        = "${var.project_name}-redis-discovery"
     Environment = var.environment
   }
 }

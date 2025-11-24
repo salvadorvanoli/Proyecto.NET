@@ -344,15 +344,27 @@ resource "aws_ecs_task_definition" "redis" {
   }])
 }
 
-# Service Discovery para DNS interno
-resource "aws_service_discovery_service" "redis" {
-  name = "redis"
-  dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.main[0].id
-    dns_records {
-      ttl  = 10
-      type = "A"
-    }
+# Network Load Balancer interno para Redis
+resource "aws_lb" "redis" {
+  count              = var.redis_enabled ? 1 : 0
+  name               = "${var.project_name}-redis-nlb"
+  internal           = true
+  load_balancer_type = "network"
+  subnets            = aws_subnet.private[*].id
+}
+
+# Target Group para Redis
+resource "aws_lb_target_group" "redis" {
+  count       = var.redis_enabled ? 1 : 0
+  name        = "${var.project_name}-redis-tg"
+  port        = 6379
+  protocol    = "TCP"
+  target_type = "ip"
+
+  health_check {
+    enabled  = true
+    protocol = "TCP"
+    port     = 6379
   }
 }
 ```
@@ -362,7 +374,7 @@ resource "aws_service_discovery_service" "redis" {
 environment = [
   {
     name  = "ConnectionStrings__Redis"
-    value = "redis.${var.project_name}.local:6379,password=${var.redis_password},abortConnect=false"
+    value = "${aws_lb.redis[0].dns_name}:6379,password=${var.redis_password},abortConnect=false"
   },
   {
     name  = "Redis__Enabled"
@@ -376,16 +388,18 @@ environment = [
 ```
 
 **Ventajas de esta arquitectura:**
-- Compatible con AWS Learner Labs (sin restricciones de servicio)
-- Sin costo adicional (solo recursos ECS)
-- Service Discovery automático vía AWS Cloud Map
-- Persistencia con AOF habilitado
-- Misma funcionalidad que ElastiCache para el alcance del proyecto
+- ✅ Compatible con AWS Learner Labs (sin restricciones de servicio)
+- ✅ Network Load Balancer proporciona DNS estable
+- ✅ Health checks automáticos TCP en puerto 6379
+- ✅ Persistencia con AOF habilitado
+- ✅ Misma funcionalidad que ElastiCache para el alcance del proyecto
+- ✅ Latencia mínima (balanceo capa 4)
 
 **Limitaciones:**
-- No tiene replicación automática (single node)
-- Menos resiliente que ElastiCache administrado
-- Datos se pierden al reiniciar la tarea ECS (adecuado para caché)
+- ⚠️ No tiene replicación automática (single node)
+- ⚠️ Menos resiliente que ElastiCache administrado
+- ⚠️ Datos se pierden al reiniciar la tarea ECS (adecuado para caché)
+- ⚠️ Costo adicional del NLB (~$0.02/día)
 
 
 ### Inyección de Dependencias
@@ -687,12 +701,26 @@ services.AddSingleton<IConnectionMultiplexer>(sp =>
 │  │                         │                          │  │
 │  │                         ▼                          │  │
 │  │                 ┌──────────────┐                  │  │
-│  │                 │ Redis (ECS)  │                  │  │
-│  │                 │ Fargate      │                  │  │
-│  │                 │ 256MB / 0.25 │                  │  │
-│  │                 │ Service DNS: │                  │  │
-│  │                 │ redis.*.local│                  │  │
-│  │                 └──────────────┘                  │  │
+│  │         ┌──────────────────────────────┐          │  │
+│  │         │ Network Load Balancer        │          │  │
+│  │         │ (Internal)                   │          │  │
+│  │         │ proyectonet-redis-nlb        │          │  │
+│  │         │ Port: 6379 (TCP)             │          │  │
+│  │         └──────────┬───────────────────┘          │  │
+│  │                    │                              │  │
+│  │                    ▼                              │  │
+│  │           ┌─────────────────┐                    │  │
+│  │           │  Target Group   │                    │  │
+│  │           │  (IP targets)   │                    │  │
+│  │           └────────┬────────┘                    │  │
+│  │                    │                              │  │
+│  │                    ▼                              │  │
+│  │           ┌──────────────────┐                   │  │
+│  │           │  Redis (ECS)     │                   │  │
+│  │           │  Fargate Task    │                   │  │
+│  │           │  256MB / 0.25    │                   │  │
+│  │           │  IP: 10.0.11.x   │                   │  │
+│  │           └──────────────────┘                   │  │
 │  │                                                   │  │
 │  │   ┌──────────────────────────────────┐           │  │
 │  │   │   RDS SQL Server                 │           │  │
@@ -700,38 +728,36 @@ services.AddSingleton<IConnectionMultiplexer>(sp =>
 │  │   └──────────────────────────────────┘           │  │
 │  │                                                   │  │
 │  └───────────────────────────────────────────────────┘  │
-│                                                          │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │      AWS Cloud Map (Service Discovery)           │  │
-│  │      Namespace: proyectonet.local                 │  │
-│  │      Service: redis.proyectonet.local → 10.0.x.x │  │
-│  └───────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Service Discovery
+### Network Load Balancer para Redis
 
-Redis se registra automáticamente en AWS Cloud Map, permitiendo que los otros servicios lo encuentren por nombre DNS:
+Redis es accesible a través de un Network Load Balancer interno que proporciona un DNS estable:
 
-- **DNS privado**: `redis.proyectonet.local`
-- **Puerto**: 6379
+- **DNS del NLB**: `proyectonet-redis-nlb-xxx.elb.amazonaws.com`
+- **Puerto**: 6379 (TCP)
 - **Autenticación**: Password configurado vía variable `redis_password`
-- **Resolución**: Automática dentro de la VPC
+- **Health Checks**: TCP en puerto 6379 cada 30 segundos
+- **Tipo**: Internal (solo accesible dentro de la VPC)
 
 **Beneficios:**
-1. No necesitas conocer la IP del contenedor Redis
-2. Si Redis se reinicia, el DNS se actualiza automáticamente
-3. Simplifica la configuración (mismo connection string siempre)
+1. DNS estable que no cambia aunque Redis se reinicie
+2. Health checks automáticos garantizan alta disponibilidad
+3. Compatible con AWS Learner Labs (Service Discovery bloqueado)
+4. Balanceo de carga capa 4 (latencia mínima)
+5. Simplifica la configuración (mismo connection string siempre)
 
 ### Costos AWS Learner Labs
 
 **Recursos utilizados para Redis:**
-- **ECS Fargate Task**: 256 CPU (0.25 vCPU) + 512 MB RAM
-- **Costo estimado**: ~$0.04/día (incluido en créditos del lab)
-- **Cloud Map Service Discovery**: Sin costo adicional
-- **CloudWatch Logs**: Minimal (7 días retención)
+- **ECS Fargate Task**: 256 CPU (0.25 vCPU) + 512 MB RAM → ~$0.04/día
+- **Network Load Balancer**: Interno, minimal processing → ~$0.02/día
+- **CloudWatch Logs**: 7 días retención → Sin costo significativo
 
-**Total**: Impacto mínimo en presupuesto del Learner Lab
+**Total estimado**: ~$0.06/día = **$1.80/mes** (incluido en créditos del Learner Lab)
+
+**Nota**: El NLB tiene un costo base de ~$0.0225/hora más $0.006 por LCU-hora. Para tráfico bajo de un proyecto académico, el costo es mínimo.
 Reutilización eficiente de conexiones a Redis:
 
 ```csharp
